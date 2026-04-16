@@ -1,0 +1,17 @@
+{
+  "name": "Workout Tracker",
+  "short_name": "Workout",
+  "description": "Il tuo diario di allenamento personale",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64",
+      "type": "image/x-icon"
+    }
+  ]
+}
