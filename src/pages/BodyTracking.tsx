@@ -67,7 +67,7 @@ export default function BodyTracking() {
   const latest = measurements.length > 0 ? measurements[measurements.length - 1] : null;
 
   return (
-    <div className="px-5 pt-14 pb-24 min-h-screen">
+    <div className="px-4 pt-14 pb-24 min-h-screen overflow-x-hidden">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold">Corpo</h1>
