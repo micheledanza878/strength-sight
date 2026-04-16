@@ -107,7 +107,7 @@ export default function WorkoutSession() {
   }
 
   return (
-    <div className="min-h-screen px-5 pt-14 pb-8">
+    <div className="min-h-screen px-4 pt-14 pb-8 overflow-x-hidden">
       {showTimer && (
         <RestTimer
           seconds={90}
@@ -155,8 +155,8 @@ export default function WorkoutSession() {
 
         <div className="space-y-3">
           {exSets.map((s, i) => (
-            <div key={i} className="flex items-center gap-3">
-              <span className="w-8 text-xs text-muted-foreground font-medium">S{i + 1}</span>
+            <div key={i} className="flex items-center gap-2">
+              <span className="w-7 text-xs text-muted-foreground font-medium shrink-0">S{i + 1}</span>
               <input
                 type="number"
                 inputMode="numeric"
@@ -164,7 +164,7 @@ export default function WorkoutSession() {
                 value={s.reps}
                 onChange={(e) => updateSet(i, "reps", e.target.value)}
                 disabled={s.done}
-                className="flex-1 h-12 bg-secondary rounded-xl px-4 text-foreground text-base placeholder:text-muted-foreground disabled:opacity-50 outline-none"
+                className="flex-1 min-w-0 h-12 bg-secondary rounded-xl px-3 text-foreground text-base placeholder:text-muted-foreground disabled:opacity-50 outline-none"
               />
               <input
                 type="number"
@@ -173,12 +173,12 @@ export default function WorkoutSession() {
                 value={s.weight}
                 onChange={(e) => updateSet(i, "weight", e.target.value)}
                 disabled={s.done}
-                className="flex-1 h-12 bg-secondary rounded-xl px-4 text-foreground text-base placeholder:text-muted-foreground disabled:opacity-50 outline-none"
+                className="flex-1 min-w-0 h-12 bg-secondary rounded-xl px-3 text-foreground text-base placeholder:text-muted-foreground disabled:opacity-50 outline-none"
               />
               <button
                 onClick={() => completeSet(i)}
                 disabled={s.done}
-                className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors
+                className={`w-11 h-12 rounded-xl flex items-center justify-center shrink-0 transition-colors
                   ${s.done ? "bg-success text-success-foreground" : "bg-secondary text-muted-foreground"}
                 `}
               >
