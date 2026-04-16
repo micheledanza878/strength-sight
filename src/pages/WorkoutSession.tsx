@@ -129,18 +129,18 @@ export default function WorkoutSession() {
       </div>
 
       {/* Exercise selector */}
-      <div className="flex gap-2 overflow-x-auto pb-3 mb-5 -mx-1 px-1 no-scrollbar">
+      <div className="flex flex-wrap gap-2 pb-3 mb-5">
         {workout.exercises.map((ex, i) => {
           const done = (sets[ex.name] || []).every((s) => s.done);
           return (
             <button
               key={ex.name}
               onClick={() => setCurrentExIdx(i)}
-              className={`flex-shrink-0 px-4 py-2 rounded-full text-xs font-semibold transition-colors
+              className={`px-3 py-1.5 rounded-full text-[11px] font-semibold transition-colors
                 ${i === currentExIdx ? "bg-primary text-primary-foreground" : done ? "bg-success/20 text-success" : "bg-secondary text-secondary-foreground"}
               `}
             >
-              {ex.name.length > 14 ? ex.name.slice(0, 14) + "…" : ex.name}
+              {ex.name.length > 12 ? ex.name.slice(0, 12) + "…" : ex.name}
             </button>
           );
         })}
