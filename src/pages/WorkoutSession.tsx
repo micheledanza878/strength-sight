@@ -25,6 +25,7 @@ export default function WorkoutSession() {
   const [workoutLogId, setWorkoutLogId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [prevSets, setPrevSets] = useState<Record<string, { reps: number; weight: number }[]>>({});
 
   useEffect(() => {
     // Get current user
@@ -48,9 +49,41 @@ export default function WorkoutSession() {
     });
     setSets(init);
 
+    // Load previous session weights
+    loadPrevSession(userId, workout.id);
+
     // Create workout log
     createWorkoutLog();
   }, [workout, userId]);
+
+  async function loadPrevSession(uid: string, workoutId: string) {
+    const { data: lastLog } = await supabase
+      .from("workout_logs")
+      .select("id")
+      .eq("user_id", uid)
+      .eq("workout_day", workoutId)
+      .not("completed_at", "is", null)
+      .order("started_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!lastLog) return;
+
+    const { data: lastSets } = await supabase
+      .from("set_logs")
+      .select("exercise_name, set_number, reps, weight")
+      .eq("workout_log_id", lastLog.id)
+      .order("set_number", { ascending: true });
+
+    if (lastSets) {
+      const grouped: Record<string, { reps: number; weight: number }[]> = {};
+      lastSets.forEach((s) => {
+        if (!grouped[s.exercise_name]) grouped[s.exercise_name] = [];
+        grouped[s.exercise_name].push({ reps: s.reps, weight: s.weight });
+      });
+      setPrevSets(grouped);
+    }
+  }
 
   async function createWorkoutLog() {
     if (!workout || !userId) return;
@@ -205,7 +238,17 @@ export default function WorkoutSession() {
 
         <div className="space-y-3">
           {exSets.map((s, i) => (
-            <div key={i} className="flex items-center gap-2">
+            <div key={i} className="flex flex-col gap-1">
+              {prevSets[exercise.name]?.[i] && (
+                <p className="text-[11px] text-muted-foreground ml-9">
+                  Ultima volta:{" "}
+                  {prevSets[exercise.name][i].weight > 0
+                    ? `${prevSets[exercise.name][i].weight}kg × `
+                    : ""}
+                  {prevSets[exercise.name][i].reps} rep
+                </p>
+              )}
+            <div className="flex items-center gap-2">
               <span className="w-7 text-xs text-muted-foreground font-medium shrink-0">S{i + 1}</span>
               <input
                 type="number"
@@ -234,6 +277,7 @@ export default function WorkoutSession() {
               >
                 <Check className="w-5 h-5" />
               </button>
+            </div>
             </div>
           ))}
         </div>

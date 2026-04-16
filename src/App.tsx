@@ -6,6 +6,7 @@ import Dashboard from "./pages/Dashboard";
 import WorkoutSelect from "./pages/WorkoutSelect";
 import WorkoutSession from "./pages/WorkoutSession";
 import BodyTracking from "./pages/BodyTracking";
+import History from "./pages/History";
 import BottomNav from "./components/BottomNav";
 import NotFound from "./pages/NotFound";
 
@@ -19,6 +20,7 @@ function AppContent() {
         <Route path="/workout" element={<WorkoutSelect />} />
         <Route path="/session/:dayId" element={<WorkoutSession />} />
         <Route path="/body" element={<BodyTracking />} />
+        <Route path="/history" element={<History />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       <BottomNav />

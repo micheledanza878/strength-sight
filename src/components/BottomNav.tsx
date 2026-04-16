@@ -1,10 +1,11 @@
-import { Home, Dumbbell, Activity } from "lucide-react";
+import { Home, Dumbbell, Activity, History } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 const tabs = [
   { path: "/", icon: Home, label: "Home" },
   { path: "/workout", icon: Dumbbell, label: "Allenamento" },
+  { path: "/history", icon: History, label: "Storico" },
   { path: "/body", icon: Activity, label: "Corpo" },
 ];
 
