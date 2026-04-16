@@ -37,6 +37,7 @@ export default function WorkoutSession() {
   const [currentExIdx, setCurrentExIdx] = useState(0);
   const [sets, setSets] = useState<Record<string, SetEntry[]>>({});
   const [showTimer, setShowTimer] = useState(false);
+  const [timerKey, setTimerKey] = useState(0);
   const [workoutLogId, setWorkoutLogId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [prevSets, setPrevSets] = useState<Record<string, { reps: number; weight: number }[]>>({});
@@ -228,6 +229,7 @@ export default function WorkoutSession() {
     if (!current.done) {
       setJustDone(`${exercise.name}-${idx}`);
       setTimeout(() => setJustDone(null), 400);
+      setTimerKey((k) => k + 1);
       setShowTimer(true);
     }
     setSets((prev) => {
@@ -318,6 +320,7 @@ export default function WorkoutSession() {
     <div className="min-h-screen px-5 pt-14 pb-24 max-w-full overflow-x-hidden">
       {showTimer && (
         <RestTimer
+          key={timerKey}
           seconds={90}
           color={workout.color}
           onComplete={() => setShowTimer(false)}
