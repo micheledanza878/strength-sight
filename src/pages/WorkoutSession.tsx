@@ -240,39 +240,37 @@ export default function WorkoutSession() {
   }
 
   async function finishWorkout() {
-    if (!workoutLogId) return;
     setSaving(true);
 
-    try {
-      const allSets = Object.entries(sets).flatMap(([exName, exSets]) =>
-        exSets.filter((s) => s.done).map((s, i) => ({
-          workout_log_id: workoutLogId,
-          user_id: getUserId(),
-          exercise_name: exName,
-          set_number: i + 1,
-          reps: parseInt(s.reps) || 0,
-          weight: parseFloat(s.weight) || 0,
-        }))
-      );
+    const allSets = Object.entries(sets).flatMap(([exName, exSets]) =>
+      exSets.filter((s) => s.done).map((s, i) => ({
+        workout_log_id: workoutLogId ?? "",
+        user_id: getUserId(),
+        exercise_name: exName,
+        set_number: i + 1,
+        reps: parseInt(s.reps) || 0,
+        weight: parseFloat(s.weight) || 0,
+      }))
+    );
 
-      if (allSets.length > 0) {
-        const { error } = await supabase.from("set_logs").insert(allSets);
-        if (error) throw error;
+    // Salva su DB solo se il log è stato creato correttamente
+    if (workoutLogId) {
+      try {
+        if (allSets.length > 0) {
+          await supabase.from("set_logs").insert(allSets);
+        }
+        await supabase
+          .from("workout_logs")
+          .update({ completed_at: new Date().toISOString() })
+          .eq("id", workoutLogId);
+      } catch {
+        toast({ title: "Avviso", description: "Dati salvati parzialmente", variant: "destructive" });
       }
-
-      const { error } = await supabase
-        .from("workout_logs")
-        .update({ completed_at: new Date().toISOString() })
-        .eq("id", workoutLogId);
-
-      if (error) throw error;
-
-      const volume = allSets.reduce((acc, s) => acc + s.weight * s.reps, 0);
-      setCompletion({ duration: Math.round(elapsed / 60), sets: allSets.length, volume });
-    } catch {
-      toast({ title: "Errore", description: "Impossibile salvare l'allenamento", variant: "destructive" });
-      setSaving(false);
     }
+
+    // Mostra sempre la schermata di completamento
+    const volume = allSets.reduce((acc, s) => acc + s.weight * s.reps, 0);
+    setCompletion({ duration: Math.round(elapsed / 60), sets: allSets.length, volume });
   }
 
   // Completion screen
