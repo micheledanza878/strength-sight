@@ -145,9 +145,9 @@ export default function BodyTracking() {
       {/* Add Form Modal */}
       {showForm && (
         <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex flex-col justify-end">
-          <div className="bg-card rounded-t-3xl p-6 max-w-[428px] mx-auto w-full">
+          <div className="bg-card rounded-t-3xl p-5 pb-8 max-w-[428px] mx-auto w-full max-h-[80vh] flex flex-col safe-bottom">
             <p className="text-lg font-bold mb-4">Nuova misurazione</p>
-            <div className="space-y-3">
+            <div className="space-y-3 overflow-y-auto flex-1">
               {[
                 { key: "weight", label: "Peso (kg)", mode: "decimal" as const },
                 { key: "body_fat", label: "Grasso corporeo (%)", mode: "decimal" as const },
@@ -162,21 +162,21 @@ export default function BodyTracking() {
                   placeholder={f.label}
                   value={form[f.key as keyof typeof form]}
                   onChange={(e) => setForm((p) => ({ ...p, [f.key]: e.target.value }))}
-                  className="w-full h-14 bg-secondary rounded-2xl px-5 text-foreground text-base placeholder:text-muted-foreground outline-none"
+                  className="w-full h-13 bg-secondary rounded-2xl px-5 text-foreground text-base placeholder:text-muted-foreground outline-none"
                 />
               ))}
             </div>
-            <div className="flex gap-3 mt-5">
+            <div className="flex gap-3 mt-4 shrink-0">
               <button
                 onClick={() => setShowForm(false)}
-                className="flex-1 h-14 rounded-2xl bg-secondary text-foreground font-semibold"
+                className="flex-1 h-13 rounded-2xl bg-secondary text-foreground font-semibold"
               >
                 Annulla
               </button>
               <button
                 onClick={saveMeasurement}
                 disabled={saving}
-                className="flex-1 h-14 rounded-2xl bg-primary text-primary-foreground font-bold"
+                className="flex-1 h-13 rounded-2xl bg-primary text-primary-foreground font-bold"
               >
                 {saving ? "..." : "Salva"}
               </button>
