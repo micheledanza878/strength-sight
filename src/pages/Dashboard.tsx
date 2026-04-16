@@ -34,7 +34,11 @@ export default function Dashboard() {
   useEffect(() => {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) loadData(user.id);
+      if (user) {
+        loadData(user.id);
+      } else {
+        setLoading(false);
+      }
     };
     getUser();
   }, []);

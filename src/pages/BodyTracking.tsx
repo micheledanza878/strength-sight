@@ -34,6 +34,8 @@ export default function BodyTracking() {
       if (user) {
         setUserId(user.id);
         loadData();
+      } else {
+        setLoading(false);
       }
     };
     getUser();
