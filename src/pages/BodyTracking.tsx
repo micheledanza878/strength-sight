@@ -174,7 +174,7 @@ export default function BodyTracking() {
             {tab.label}
           </button>
         ))}
-      </div>
+      </div>}
 
       {/* Chart */}
       {!loading && chartData.length > 1 ? (
