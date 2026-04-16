@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Check, Trophy } from "lucide-react";
+import { ArrowLeft, Check, Trophy, RotateCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { WORKOUT_DAYS } from "@/data/workouts";
-import type { Exercise } from "@/data/workouts";
 import RestTimer from "@/components/RestTimer";
 import { useToast } from "@/hooks/use-toast";
 
@@ -60,6 +59,28 @@ export default function WorkoutSession() {
     createWorkoutLog();
   }, [workout, userId]);
 
+  // Auto-fill weights from previous session when they load
+  useEffect(() => {
+    if (Object.keys(prevSets).length === 0) return;
+    setSets((prev) => {
+      const updated = { ...prev };
+      Object.entries(prevSets).forEach(([exName, prevExSets]) => {
+        if (updated[exName]) {
+          updated[exName] = updated[exName].map((s, i) => ({
+            ...s,
+            weight: s.weight === "" && prevExSets[i]?.weight > 0
+              ? String(prevExSets[i].weight)
+              : s.weight,
+            reps: s.reps === "" && prevExSets[i]?.reps > 0
+              ? String(prevExSets[i].reps)
+              : s.reps,
+          }));
+        }
+      });
+      return updated;
+    });
+  }, [prevSets]);
+
   async function loadPrevSession(uid: string, workoutId: string) {
     const { data: lastLog } = await supabase
       .from("workout_logs")
@@ -108,7 +129,6 @@ export default function WorkoutSession() {
 
   const exercise = workout.exercises[currentExIdx];
   const exSets = sets[exercise.name] || [];
-  const allDone = exSets.every((s) => s.done);
   const totalExercises = workout.exercises.length;
   const completedExercises = workout.exercises.filter((ex) =>
     (sets[ex.name] || []).every((s) => s.done)
@@ -123,16 +143,29 @@ export default function WorkoutSession() {
     });
   }
 
-  function completeSet(idx: number) {
-    const key = `${exercise.name}-${idx}`;
-    setJustDone(key);
-    setTimeout(() => setJustDone(null), 400);
+  function adjustWeight(idx: number, delta: number) {
     setSets((prev) => {
       const updated = [...(prev[exercise.name] || [])];
-      updated[idx] = { ...updated[idx], done: true };
+      const current = parseFloat(updated[idx].weight) || 0;
+      const next = Math.max(0, current + delta);
+      updated[idx] = { ...updated[idx], weight: next % 1 === 0 ? String(next) : next.toFixed(1) };
       return { ...prev, [exercise.name]: updated };
     });
-    setShowTimer(true);
+  }
+
+  function toggleSet(idx: number) {
+    const current = (sets[exercise.name] || [])[idx];
+    if (!current.done) {
+      const key = `${exercise.name}-${idx}`;
+      setJustDone(key);
+      setTimeout(() => setJustDone(null), 400);
+      setShowTimer(true);
+    }
+    setSets((prev) => {
+      const updated = [...(prev[exercise.name] || [])];
+      updated[idx] = { ...updated[idx], done: !updated[idx].done };
+      return { ...prev, [exercise.name]: updated };
+    });
   }
 
   async function finishWorkout() {
@@ -281,43 +314,71 @@ export default function WorkoutSession() {
           {exercise.sets} × {exercise.reps} {exercise.weight ? `· ${exercise.weight}` : ""}
         </p>
 
-        <div className="space-y-3">
+        <div className="space-y-2">
           {exSets.map((s, i) => {
             const key = `${exercise.name}-${i}`;
+            const isPrevAvailable = !!prevSets[exercise.name]?.[i];
             return (
-              <div key={i} className="flex flex-col gap-1">
-                {prevSets[exercise.name]?.[i] && (
-                  <p className="text-[11px] text-muted-foreground ml-9">
-                    Ultima volta:{" "}
-                    {prevSets[exercise.name][i].weight > 0
+              <div key={i}>
+                {/* Previous session hint — only shown if not auto-filled */}
+                {isPrevAvailable && s.weight === "" && (
+                  <p className="text-[11px] text-muted-foreground ml-9 mb-1">
+                    Ultima volta: {prevSets[exercise.name][i].weight > 0
                       ? `${prevSets[exercise.name][i].weight}kg × `
                       : ""}
                     {prevSets[exercise.name][i].reps} rep
                   </p>
                 )}
+
                 <div className="flex items-center gap-2">
-                  <span className="w-7 text-xs text-muted-foreground font-medium shrink-0">S{i + 1}</span>
+                  {/* Set number / undo button */}
+                  <button
+                    onClick={() => s.done && toggleSet(i)}
+                    className="w-7 shrink-0 flex items-center justify-center"
+                  >
+                    {s.done
+                      ? <RotateCcw className="w-3.5 h-3.5 text-muted-foreground" />
+                      : <span className="text-xs text-muted-foreground font-medium">S{i + 1}</span>
+                    }
+                  </button>
+
+                  {/* Reps input */}
                   <input
                     type="number"
                     inputMode="numeric"
-                    placeholder="Reps"
+                    placeholder="Rep"
                     value={s.reps}
                     onChange={(e) => updateSet(i, "reps", e.target.value)}
-                    disabled={s.done}
-                    className="flex-1 min-w-0 h-12 bg-secondary rounded-xl px-3 text-foreground text-base placeholder:text-muted-foreground disabled:opacity-50 outline-none"
+                    className={`w-16 h-12 bg-secondary rounded-xl px-2 text-foreground text-base text-center placeholder:text-muted-foreground outline-none transition-opacity ${s.done ? "opacity-50" : ""}`}
                   />
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    placeholder="Kg"
-                    value={s.weight}
-                    onChange={(e) => updateSet(i, "weight", e.target.value)}
-                    disabled={s.done}
-                    className="flex-1 min-w-0 h-12 bg-secondary rounded-xl px-3 text-foreground text-base placeholder:text-muted-foreground disabled:opacity-50 outline-none"
-                  />
+
+                  {/* Weight stepper */}
+                  <div className={`flex items-center flex-1 bg-secondary rounded-xl overflow-hidden h-12 transition-opacity ${s.done ? "opacity-50" : ""}`}>
+                    <button
+                      onClick={() => adjustWeight(i, -2.5)}
+                      className="h-full px-3 text-base font-bold text-muted-foreground active:bg-muted transition-colors"
+                    >
+                      −
+                    </button>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      placeholder="kg"
+                      value={s.weight}
+                      onChange={(e) => updateSet(i, "weight", e.target.value)}
+                      className="flex-1 h-full bg-transparent text-foreground text-base text-center outline-none min-w-0 placeholder:text-muted-foreground"
+                    />
+                    <button
+                      onClick={() => adjustWeight(i, 2.5)}
+                      className="h-full px-3 text-base font-bold text-muted-foreground active:bg-muted transition-colors"
+                    >
+                      +
+                    </button>
+                  </div>
+
+                  {/* Check / complete button */}
                   <button
-                    onClick={() => completeSet(i)}
-                    disabled={s.done}
+                    onClick={() => toggleSet(i)}
                     className={`w-11 h-12 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200
                       ${justDone === key ? "scale-110" : "scale-100"}
                       ${s.done ? "text-white" : "bg-secondary text-muted-foreground"}
