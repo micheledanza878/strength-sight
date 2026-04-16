@@ -125,13 +125,23 @@ export default function WorkoutSession() {
   }
 
   async function startWorkout() {
-    if (!workout || !userId) return;
+    if (!workout) return;
+
+    // Get user directly — avoids race condition with userId state
+    let uid = userId;
+    if (!uid) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      uid = user.id;
+      setUserId(uid);
+    }
+
     startedAt.current = new Date();
     setPhase("active");
 
     const { data, error } = await supabase
       .from("workout_logs")
-      .insert({ workout_day: workout.id, user_id: userId })
+      .insert({ workout_day: workout.id, user_id: uid })
       .select("id")
       .single();
 
