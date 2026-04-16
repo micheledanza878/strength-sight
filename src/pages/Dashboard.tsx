@@ -7,6 +7,7 @@ import {
 import { it } from "date-fns/locale";
 import { ChevronRight, Flame } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
+import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { WORKOUT_DAYS, getNextWorkoutDay } from "@/data/workouts";
 import type { WorkoutDay } from "@/data/workouts";
@@ -131,8 +132,21 @@ export default function Dashboard() {
         {format(now, "EEEE d MMMM", { locale: it })}
       </p>
 
+      {/* Next Workout Card skeleton */}
+      {loading && (
+        <div className="space-y-3 mb-4">
+          <Skeleton className="w-full h-24 rounded-2xl" />
+          <div className="grid grid-cols-3 gap-3">
+            <Skeleton className="h-16 rounded-2xl" />
+            <Skeleton className="h-16 rounded-2xl" />
+            <Skeleton className="h-16 rounded-2xl" />
+          </div>
+          <Skeleton className="w-full h-20 rounded-2xl" />
+        </div>
+      )}
+
       {/* Next Workout Card */}
-      <button
+      {!loading && <button
         onClick={() => navigate(`/session/${nextWorkout.id}`)}
         className="w-full bg-card rounded-2xl p-5 mb-4 text-left flex items-center justify-between active:scale-[0.98] transition-transform"
       >
@@ -148,7 +162,7 @@ export default function Dashboard() {
           </div>
           <ChevronRight className="w-5 h-5 text-muted-foreground" />
         </div>
-      </button>
+      </button>}
 
       {/* Stats Row */}
       {!loading && (

@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO, differenceInMinutes } from "date-fns";
 import { it } from "date-fns/locale";
 import { ChevronDown, ChevronUp, Trophy } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { WORKOUT_DAYS } from "@/data/workouts";
 
 interface SetLog {
@@ -79,7 +80,11 @@ export default function History() {
       </div>
 
       {loading && (
-        <div className="text-center text-muted-foreground text-sm py-12">Caricamento...</div>
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="w-full h-20 rounded-2xl" />
+          ))}
+        </div>
       )}
 
       {activeTab === "history" && !loading && (

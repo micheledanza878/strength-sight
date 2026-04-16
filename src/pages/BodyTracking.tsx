@@ -4,6 +4,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tool
 import { format, parseISO } from "date-fns";
 import { it } from "date-fns/locale";
 import { Plus, Check } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 
 interface Measurement {
@@ -24,6 +25,7 @@ export default function BodyTracking() {
   const [saving, setSaving] = useState(false);
   const [activeChart, setActiveChart] = useState<"weight" | "body_fat" | "arms" | "waist" | "legs">("weight");
   const [userId, setUserId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [saveFeedback, setSaveFeedback] = useState(false);
 
   useEffect(() => {
@@ -45,6 +47,7 @@ export default function BodyTracking() {
       .eq("user_id", userId)
       .order("measured_at", { ascending: true });
     if (data) setMeasurements(data as Measurement[]);
+    setLoading(false);
   }
 
   async function saveMeasurement() {
@@ -119,8 +122,21 @@ export default function BodyTracking() {
         </button>
       </div>
 
+      {/* Loading skeleton */}
+      {loading && (
+        <div className="space-y-3">
+          <div className="grid grid-cols-3 gap-3">
+            <Skeleton className="h-20 rounded-2xl" />
+            <Skeleton className="h-20 rounded-2xl" />
+            <Skeleton className="h-20 rounded-2xl" />
+          </div>
+          <Skeleton className="h-10 w-full rounded-xl" />
+          <Skeleton className="h-52 w-full rounded-2xl" />
+        </div>
+      )}
+
       {/* Latest Stats */}
-      {latest && (
+      {!loading && latest && (
         <div className="grid grid-cols-3 gap-3 mb-6">
           {latest.weight && (
             <div className="bg-card rounded-2xl p-5 text-center">
@@ -144,7 +160,7 @@ export default function BodyTracking() {
       )}
 
       {/* Chart Tabs */}
-      <div className="flex gap-2 overflow-x-auto pb-3 mb-4 no-scrollbar">
+      {!loading && <div className="flex gap-2 overflow-x-auto pb-3 mb-4 no-scrollbar">
         {chartTabs.map((tab) => (
           <button
             key={tab.key}
@@ -159,7 +175,7 @@ export default function BodyTracking() {
       </div>
 
       {/* Chart */}
-      {chartData.length > 1 ? (
+      {!loading && chartData.length > 1 ? (
         <div className="bg-card rounded-2xl p-4 mb-4 h-52">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>
@@ -174,11 +190,11 @@ export default function BodyTracking() {
             </LineChart>
           </ResponsiveContainer>
         </div>
-      ) : (
+      ) : !loading ? (
         <div className="bg-card rounded-2xl p-8 text-center mb-4">
           <p className="text-muted-foreground text-sm">Aggiungi almeno 2 misurazioni per vedere il grafico</p>
         </div>
-      )}
+      ) : null}
 
       {/* Add Form Modal */}
       {showForm && (
