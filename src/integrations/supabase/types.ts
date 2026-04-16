@@ -22,7 +22,6 @@ export type Database = {
           id: string
           legs: number | null
           measured_at: string
-          user_id: string
           waist: number | null
           weight: number | null
         }
@@ -33,7 +32,6 @@ export type Database = {
           id?: string
           legs?: number | null
           measured_at?: string
-          user_id: string
           waist?: number | null
           weight?: number | null
         }
@@ -44,7 +42,6 @@ export type Database = {
           id?: string
           legs?: number | null
           measured_at?: string
-          user_id?: string
           waist?: number | null
           weight?: number | null
         }
@@ -57,7 +54,6 @@ export type Database = {
           id: string
           reps: number
           set_number: number
-          user_id: string
           weight: number | null
           workout_log_id: string
         }
@@ -67,7 +63,6 @@ export type Database = {
           id?: string
           reps: number
           set_number: number
-          user_id: string
           weight?: number | null
           workout_log_id: string
         }
@@ -77,7 +72,6 @@ export type Database = {
           id?: string
           reps?: number
           set_number?: number
-          user_id?: string
           weight?: number | null
           workout_log_id?: string
         }
@@ -98,7 +92,6 @@ export type Database = {
           id: string
           started_at: string
           updated_at: string
-          user_id: string
           workout_day: string
         }
         Insert: {
@@ -107,7 +100,6 @@ export type Database = {
           id?: string
           started_at?: string
           updated_at?: string
-          user_id: string
           workout_day: string
         }
         Update: {
@@ -116,7 +108,6 @@ export type Database = {
           id?: string
           started_at?: string
           updated_at?: string
-          user_id?: string
           workout_day?: string
         }
         Relationships: []
