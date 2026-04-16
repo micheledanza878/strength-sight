@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -9,10 +10,26 @@ import BodyTracking from "./pages/BodyTracking";
 import History from "./pages/History";
 import BottomNav from "./components/BottomNav";
 import NotFound from "./pages/NotFound";
+import { supabase } from "@/integrations/supabase/client";
 
 const queryClient = new QueryClient();
 
 function AppContent() {
+  const [authReady, setAuthReady] = useState(false);
+
+  useEffect(() => {
+    const init = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        await supabase.auth.signInAnonymously();
+      }
+      setAuthReady(true);
+    };
+    init();
+  }, []);
+
+  if (!authReady) return null;
+
   return (
     <>
       <Routes>
