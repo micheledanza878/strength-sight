@@ -1,14 +1,22 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 
 interface RestTimerProps {
   seconds: number;
+  color?: string;
   onComplete: () => void;
   onDismiss: () => void;
 }
 
-export default function RestTimer({ seconds, onComplete, onDismiss }: RestTimerProps) {
+function formatTime(s: number) {
+  const m = Math.floor(s / 60).toString().padStart(2, "0");
+  const sec = (s % 60).toString().padStart(2, "0");
+  return `${m}:${sec}`;
+}
+
+export default function RestTimer({ seconds, color = "hsl(var(--primary))", onComplete, onDismiss }: RestTimerProps) {
   const [remaining, setRemaining] = useState(seconds);
+  const [total, setTotal] = useState(seconds);
 
   useEffect(() => {
     if (remaining <= 0) {
@@ -19,38 +27,65 @@ export default function RestTimer({ seconds, onComplete, onDismiss }: RestTimerP
     return () => clearTimeout(t);
   }, [remaining, onComplete]);
 
-  const progress = ((seconds - remaining) / seconds) * 100;
+  function addTime(delta: number) {
+    setRemaining((r) => Math.max(0, r + delta));
+    setTotal((t) => Math.max(0, t + delta));
+  }
+
+  const progress = total > 0 ? ((total - remaining) / total) * 100 : 100;
+  const circumference = 2 * Math.PI * 45;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/95 backdrop-blur-sm">
-      <div className="flex flex-col items-center gap-6">
-        <button onClick={onDismiss} className="absolute top-12 right-6 text-muted-foreground">
+      <div className="flex flex-col items-center gap-6 w-full px-8">
+
+        <button onClick={onDismiss} className="absolute top-14 right-6 text-muted-foreground">
           <X className="w-6 h-6" />
         </button>
+
         <p className="text-muted-foreground text-sm font-medium uppercase tracking-widest">Recupero</p>
-        <div className="relative w-48 h-48">
+
+        {/* Circular timer */}
+        <div className="relative w-52 h-52">
           <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-            <circle cx="50" cy="50" r="45" fill="none" stroke="hsl(var(--secondary))" strokeWidth="4" />
+            <circle cx="50" cy="50" r="45" fill="none" stroke="hsl(var(--secondary))" strokeWidth="5" />
             <circle
               cx="50" cy="50" r="45" fill="none"
-              stroke="hsl(var(--primary))"
-              strokeWidth="4"
+              stroke={color}
+              strokeWidth="5"
               strokeLinecap="round"
-              strokeDasharray={`${2 * Math.PI * 45}`}
-              strokeDashoffset={`${2 * Math.PI * 45 * (1 - progress / 100)}`}
+              strokeDasharray={circumference}
+              strokeDashoffset={circumference * (1 - progress / 100)}
               className="transition-all duration-1000 ease-linear"
             />
           </svg>
           <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-5xl font-bold tabular-nums text-foreground">{remaining}</span>
+            <span className="text-5xl font-bold tabular-nums">{formatTime(remaining)}</span>
           </div>
         </div>
-        <button
-          onClick={onDismiss}
-          className="mt-4 px-8 py-3 rounded-full bg-secondary text-foreground font-semibold text-base"
-        >
-          Salta
-        </button>
+
+        {/* +/- time buttons */}
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => addTime(-15)}
+            className="w-14 h-14 rounded-2xl bg-secondary text-foreground font-bold text-sm transition-transform active:scale-95"
+          >
+            −15s
+          </button>
+          <button
+            onClick={onDismiss}
+            className="flex-1 h-14 rounded-2xl bg-secondary text-foreground font-semibold text-base px-8 transition-transform active:scale-95"
+          >
+            Salta
+          </button>
+          <button
+            onClick={() => addTime(30)}
+            className="w-14 h-14 rounded-2xl bg-secondary text-foreground font-bold text-sm transition-transform active:scale-95"
+          >
+            +30s
+          </button>
+        </div>
+
       </div>
     </div>
   );

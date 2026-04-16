@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Check, Trophy, RotateCcw } from "lucide-react";
+import { ArrowLeft, Check, Trophy, RotateCcw, Clock, Play } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { WORKOUT_DAYS } from "@/data/workouts";
 import RestTimer from "@/components/RestTimer";
@@ -18,6 +18,12 @@ interface CompletionStats {
   volume: number;
 }
 
+function formatElapsed(seconds: number) {
+  const m = Math.floor(seconds / 60).toString().padStart(2, "0");
+  const s = (seconds % 60).toString().padStart(2, "0");
+  return `${m}:${s}`;
+}
+
 export default function WorkoutSession() {
   const { dayId } = useParams();
   const navigate = useNavigate();
@@ -25,6 +31,8 @@ export default function WorkoutSession() {
   const workout = WORKOUT_DAYS.find((d) => d.id === dayId);
   const startedAt = useRef<Date>(new Date());
 
+  const [phase, setPhase] = useState<"preview" | "active">("preview");
+  const [elapsed, setElapsed] = useState(0);
   const [currentExIdx, setCurrentExIdx] = useState(0);
   const [sets, setSets] = useState<Record<string, SetEntry[]>>({});
   const [showTimer, setShowTimer] = useState(false);
@@ -38,13 +46,17 @@ export default function WorkoutSession() {
   useEffect(() => {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) setUserId(user.id);
+      if (user) {
+        setUserId(user.id);
+        if (workout) loadPrevSession(user.id, workout.id);
+      }
     };
     getUser();
   }, []);
 
+  // Init sets on load (for preview)
   useEffect(() => {
-    if (!workout || !userId) return;
+    if (!workout) return;
     const init: Record<string, SetEntry[]> = {};
     workout.exercises.forEach((ex) => {
       init[ex.name] = Array.from({ length: ex.sets }, () => ({
@@ -54,12 +66,9 @@ export default function WorkoutSession() {
       }));
     });
     setSets(init);
-    startedAt.current = new Date();
-    loadPrevSession(userId, workout.id);
-    createWorkoutLog();
-  }, [workout, userId]);
+  }, [workout]);
 
-  // Auto-fill weights from previous session when they load
+  // Auto-fill from previous session
   useEffect(() => {
     if (Object.keys(prevSets).length === 0) return;
     setSets((prev) => {
@@ -68,18 +77,23 @@ export default function WorkoutSession() {
         if (updated[exName]) {
           updated[exName] = updated[exName].map((s, i) => ({
             ...s,
-            weight: s.weight === "" && prevExSets[i]?.weight > 0
-              ? String(prevExSets[i].weight)
-              : s.weight,
-            reps: s.reps === "" && prevExSets[i]?.reps > 0
-              ? String(prevExSets[i].reps)
-              : s.reps,
+            weight: s.weight === "" && prevExSets[i]?.weight > 0 ? String(prevExSets[i].weight) : s.weight,
+            reps: s.reps === "" && prevExSets[i]?.reps > 0 ? String(prevExSets[i].reps) : s.reps,
           }));
         }
       });
       return updated;
     });
   }, [prevSets]);
+
+  // Elapsed workout timer
+  useEffect(() => {
+    if (phase !== "active") return;
+    const interval = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - startedAt.current.getTime()) / 1000));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [phase]);
 
   async function loadPrevSession(uid: string, workoutId: string) {
     const { data: lastLog } = await supabase
@@ -110,8 +124,11 @@ export default function WorkoutSession() {
     }
   }
 
-  async function createWorkoutLog() {
+  async function startWorkout() {
     if (!workout || !userId) return;
+    startedAt.current = new Date();
+    setPhase("active");
+
     const { data, error } = await supabase
       .from("workout_logs")
       .insert({ workout_day: workout.id, user_id: userId })
@@ -127,6 +144,66 @@ export default function WorkoutSession() {
 
   if (!workout) return <div className="p-5 pt-14 text-foreground">Scheda non trovata</div>;
 
+  // ── PREVIEW SCREEN ──────────────────────────────────────────────
+  if (phase === "preview") {
+    return (
+      <div className="min-h-screen px-5 pt-14 pb-32 max-w-full overflow-x-hidden">
+        <div className="flex items-center gap-3 mb-6">
+          <button onClick={() => navigate(-1)} className="text-muted-foreground">
+            <ArrowLeft className="w-6 h-6" />
+          </button>
+          <div>
+            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{workout.label}</p>
+            <p className="text-xl font-bold">{workout.title}</p>
+          </div>
+        </div>
+
+        {/* Color accent banner */}
+        <div className="rounded-2xl p-4 mb-6 flex items-center gap-4" style={{ backgroundColor: workout.color + "18" }}>
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold shrink-0" style={{ backgroundColor: workout.color + "33", color: workout.color }}>
+            {workout.id}
+          </div>
+          <div>
+            <p className="font-bold" style={{ color: workout.color }}>{workout.exercises.length} esercizi</p>
+            <p className="text-xs text-muted-foreground">Scorri per vedere il programma</p>
+          </div>
+        </div>
+
+        {/* Exercise list */}
+        <div className="space-y-2 mb-8">
+          {workout.exercises.map((ex, i) => (
+            <div key={ex.name} className="bg-card rounded-2xl px-4 py-3 flex items-center gap-3">
+              <span className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0"
+                style={{ backgroundColor: workout.color + "22", color: workout.color }}>
+                {i + 1}
+              </span>
+              <div className="flex-1">
+                <p className="font-medium text-sm">{ex.name}</p>
+                <p className="text-xs text-muted-foreground">
+                  {ex.sets} serie × {ex.reps}
+                  {prevSets[ex.name]?.[0]?.weight > 0 ? ` · ${prevSets[ex.name][0].weight}kg` : ex.weight ? ` · ${ex.weight}` : ""}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Start button */}
+        <div className="fixed bottom-8 left-4 right-4 max-w-[412px] mx-auto">
+          <button
+            onClick={startWorkout}
+            className="w-full h-16 rounded-2xl font-bold text-white text-lg flex items-center justify-center gap-3 transition-transform active:scale-95"
+            style={{ backgroundColor: workout.color }}
+          >
+            <Play className="w-5 h-5 fill-white" />
+            Inizia allenamento
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── ACTIVE WORKOUT ───────────────────────────────────────────────
   const exercise = workout.exercises[currentExIdx];
   const exSets = sets[exercise.name] || [];
   const totalExercises = workout.exercises.length;
@@ -156,8 +233,7 @@ export default function WorkoutSession() {
   function toggleSet(idx: number) {
     const current = (sets[exercise.name] || [])[idx];
     if (!current.done) {
-      const key = `${exercise.name}-${idx}`;
-      setJustDone(key);
+      setJustDone(`${exercise.name}-${idx}`);
       setTimeout(() => setJustDone(null), 400);
       setShowTimer(true);
     }
@@ -185,20 +261,19 @@ export default function WorkoutSession() {
       );
 
       if (allSets.length > 0) {
-        const { error: setError } = await supabase.from("set_logs").insert(allSets);
-        if (setError) throw setError;
+        const { error } = await supabase.from("set_logs").insert(allSets);
+        if (error) throw error;
       }
 
-      const { error: logError } = await supabase
+      const { error } = await supabase
         .from("workout_logs")
         .update({ completed_at: new Date().toISOString() })
         .eq("id", workoutLogId);
 
-      if (logError) throw logError;
+      if (error) throw error;
 
-      const duration = Math.round((Date.now() - startedAt.current.getTime()) / 60000);
       const volume = allSets.reduce((acc, s) => acc + s.weight * s.reps, 0);
-      setCompletion({ duration, sets: allSets.length, volume });
+      setCompletion({ duration: Math.round(elapsed / 60), sets: allSets.length, volume });
     } catch {
       toast({ title: "Errore", description: "Impossibile salvare l'allenamento", variant: "destructive" });
       setSaving(false);
@@ -210,15 +285,12 @@ export default function WorkoutSession() {
     return (
       <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background px-5">
         <div className="w-full max-w-sm text-center">
-          <div
-            className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6"
-            style={{ backgroundColor: workout.color + "22" }}
-          >
+          <div className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6"
+            style={{ backgroundColor: workout.color + "22" }}>
             <Trophy className="w-10 h-10" style={{ color: workout.color }} />
           </div>
           <h2 className="text-3xl font-bold mb-1">Ottimo lavoro!</h2>
           <p className="text-muted-foreground mb-8">{workout.label} — {workout.title}</p>
-
           <div className="grid grid-cols-3 gap-3 mb-10">
             <div className="bg-card rounded-2xl p-4 text-center">
               <p className="text-2xl font-bold">{completion.duration}</p>
@@ -230,16 +302,13 @@ export default function WorkoutSession() {
             </div>
             <div className="bg-card rounded-2xl p-4 text-center">
               <p className="text-2xl font-bold">
-                {completion.volume >= 1000
-                  ? `${(completion.volume / 1000).toFixed(1)}t`
-                  : `${completion.volume}`}
+                {completion.volume >= 1000 ? `${(completion.volume / 1000).toFixed(1)}t` : `${completion.volume}`}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
                 {completion.volume >= 1000 ? "tonnellate" : "kg vol."}
               </p>
             </div>
           </div>
-
           <button
             onClick={() => navigate("/")}
             className="w-full h-14 rounded-2xl font-bold text-white transition-transform active:scale-95"
@@ -257,6 +326,7 @@ export default function WorkoutSession() {
       {showTimer && (
         <RestTimer
           seconds={90}
+          color={workout.color}
           onComplete={() => setShowTimer(false)}
           onDismiss={() => setShowTimer(false)}
         />
@@ -271,7 +341,11 @@ export default function WorkoutSession() {
           <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{workout.label}</p>
           <p className="text-lg font-bold">{workout.title}</p>
         </div>
-        <span className="text-xs text-muted-foreground">{completedExercises}/{totalExercises}</span>
+        {/* Elapsed timer */}
+        <div className="flex items-center gap-1.5 bg-secondary rounded-xl px-3 py-1.5">
+          <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+          <span className="text-sm font-bold tabular-nums">{formatElapsed(elapsed)}</span>
+        </div>
       </div>
 
       {/* Progress bar */}
@@ -293,11 +367,9 @@ export default function WorkoutSession() {
               onClick={() => setCurrentExIdx(i)}
               className="px-3 py-1.5 rounded-full text-[11px] font-semibold transition-colors"
               style={
-                active
-                  ? { backgroundColor: workout.color, color: "#fff" }
-                  : done
-                  ? { backgroundColor: workout.color + "33", color: workout.color }
-                  : undefined
+                active ? { backgroundColor: workout.color, color: "#fff" }
+                : done ? { backgroundColor: workout.color + "33", color: workout.color }
+                : undefined
               }
               {...(!active && !done ? { className: "px-3 py-1.5 rounded-full text-[11px] font-semibold transition-colors bg-secondary text-secondary-foreground" } : {})}
             >
@@ -317,21 +389,9 @@ export default function WorkoutSession() {
         <div className="space-y-2">
           {exSets.map((s, i) => {
             const key = `${exercise.name}-${i}`;
-            const isPrevAvailable = !!prevSets[exercise.name]?.[i];
             return (
               <div key={i}>
-                {/* Previous session hint — only shown if not auto-filled */}
-                {isPrevAvailable && s.weight === "" && (
-                  <p className="text-[11px] text-muted-foreground ml-9 mb-1">
-                    Ultima volta: {prevSets[exercise.name][i].weight > 0
-                      ? `${prevSets[exercise.name][i].weight}kg × `
-                      : ""}
-                    {prevSets[exercise.name][i].reps} rep
-                  </p>
-                )}
-
                 <div className="flex items-center gap-2">
-                  {/* Set number / undo button */}
                   <button
                     onClick={() => s.done && toggleSet(i)}
                     className="w-7 shrink-0 flex items-center justify-center"
@@ -342,7 +402,6 @@ export default function WorkoutSession() {
                     }
                   </button>
 
-                  {/* Reps input */}
                   <input
                     type="number"
                     inputMode="numeric"
@@ -352,14 +411,11 @@ export default function WorkoutSession() {
                     className={`w-16 h-12 bg-secondary rounded-xl px-2 text-foreground text-base text-center placeholder:text-muted-foreground outline-none transition-opacity ${s.done ? "opacity-50" : ""}`}
                   />
 
-                  {/* Weight stepper */}
                   <div className={`flex items-center flex-1 bg-secondary rounded-xl overflow-hidden h-12 transition-opacity ${s.done ? "opacity-50" : ""}`}>
                     <button
                       onClick={() => adjustWeight(i, -2.5)}
                       className="h-full px-3 text-base font-bold text-muted-foreground active:bg-muted transition-colors"
-                    >
-                      −
-                    </button>
+                    >−</button>
                     <input
                       type="number"
                       inputMode="decimal"
@@ -371,12 +427,9 @@ export default function WorkoutSession() {
                     <button
                       onClick={() => adjustWeight(i, 2.5)}
                       className="h-full px-3 text-base font-bold text-muted-foreground active:bg-muted transition-colors"
-                    >
-                      +
-                    </button>
+                    >+</button>
                   </div>
 
-                  {/* Check / complete button */}
                   <button
                     onClick={() => toggleSet(i)}
                     className={`w-11 h-12 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200
