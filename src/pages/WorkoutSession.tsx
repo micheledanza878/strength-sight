@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { WORKOUT_DAYS } from "@/data/workouts";
 import RestTimer from "@/components/RestTimer";
 import { useToast } from "@/hooks/use-toast";
+import { getUserId } from "@/lib/user";
 
 interface SetEntry {
   reps: string;
@@ -38,20 +39,12 @@ export default function WorkoutSession() {
   const [showTimer, setShowTimer] = useState(false);
   const [workoutLogId, setWorkoutLogId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
   const [prevSets, setPrevSets] = useState<Record<string, { reps: number; weight: number }[]>>({});
   const [justDone, setJustDone] = useState<string | null>(null);
   const [completion, setCompletion] = useState<CompletionStats | null>(null);
 
   useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUserId(user.id);
-        if (workout) loadPrevSession(user.id, workout.id);
-      }
-    };
-    getUser();
+    if (workout) loadPrevSession(getUserId(), workout.id);
   }, []);
 
   // Init sets on load (for preview)
@@ -126,22 +119,12 @@ export default function WorkoutSession() {
 
   async function startWorkout() {
     if (!workout) return;
-
-    // Get user directly — avoids race condition with userId state
-    let uid = userId;
-    if (!uid) {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      uid = user.id;
-      setUserId(uid);
-    }
-
     startedAt.current = new Date();
     setPhase("active");
 
     const { data, error } = await supabase
       .from("workout_logs")
-      .insert({ workout_day: workout.id, user_id: uid })
+      .insert({ workout_day: workout.id, user_id: getUserId() })
       .select("id")
       .single();
 
@@ -255,14 +238,14 @@ export default function WorkoutSession() {
   }
 
   async function finishWorkout() {
-    if (!workoutLogId || !userId) return;
+    if (!workoutLogId) return;
     setSaving(true);
 
     try {
       const allSets = Object.entries(sets).flatMap(([exName, exSets]) =>
         exSets.filter((s) => s.done).map((s, i) => ({
           workout_log_id: workoutLogId,
-          user_id: userId,
+          user_id: getUserId(),
           exercise_name: exName,
           set_number: i + 1,
           reps: parseInt(s.reps) || 0,

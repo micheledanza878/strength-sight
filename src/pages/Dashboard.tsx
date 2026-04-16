@@ -9,6 +9,7 @@ import { ChevronRight, Flame } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
+import { getUserId } from "@/lib/user";
 import { WORKOUT_DAYS, getNextWorkoutDay } from "@/data/workouts";
 import type { WorkoutDay } from "@/data/workouts";
 
@@ -32,15 +33,7 @@ export default function Dashboard() {
   const [volumeChart, setVolumeChart] = useState<VolumePoint[]>([]);
 
   useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        loadData(user.id);
-      } else {
-        setLoading(false);
-      }
-    };
-    getUser();
+    loadData(getUserId());
   }, []);
 
   async function loadData(uid: string) {

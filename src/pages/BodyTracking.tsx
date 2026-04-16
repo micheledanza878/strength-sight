@@ -6,6 +6,7 @@ import { it } from "date-fns/locale";
 import { Plus, Check } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+import { getUserId } from "@/lib/user";
 
 interface Measurement {
   id: string;
@@ -24,41 +25,30 @@ export default function BodyTracking() {
   const [form, setForm] = useState({ weight: "", body_fat: "", arms: "", waist: "", legs: "" });
   const [saving, setSaving] = useState(false);
   const [activeChart, setActiveChart] = useState<"weight" | "body_fat" | "arms" | "waist" | "legs">("weight");
-  const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saveFeedback, setSaveFeedback] = useState(false);
 
   useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUserId(user.id);
-        loadData();
-      } else {
-        setLoading(false);
-      }
-    };
-    getUser();
+    loadData();
   }, []);
 
   async function loadData() {
-    if (!userId) return;
+    const uid = getUserId();
     const { data } = await supabase
       .from("body_measurements")
       .select("*")
-      .eq("user_id", userId)
+      .eq("user_id", uid)
       .order("measured_at", { ascending: true });
     if (data) setMeasurements(data as Measurement[]);
     setLoading(false);
   }
 
   async function saveMeasurement() {
-    if (!userId) return;
     setSaving(true);
 
     try {
       const { error } = await supabase.from("body_measurements").insert({
-        user_id: userId,
+        user_id: getUserId(),
         weight: form.weight ? parseFloat(form.weight) : null,
         body_fat: form.body_fat ? parseFloat(form.body_fat) : null,
         arms: form.arms ? parseFloat(form.arms) : null,

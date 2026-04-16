@@ -5,6 +5,7 @@ import { it } from "date-fns/locale";
 import { ChevronDown, ChevronUp, Trophy } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { WORKOUT_DAYS } from "@/data/workouts";
+import { getUserId } from "@/lib/user";
 
 interface SetLog {
   exercise_name: string;
@@ -28,15 +29,7 @@ export default function History() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        loadData(user.id);
-      } else {
-        setLoading(false);
-      }
-    };
-    getUser();
+    loadData(getUserId());
   }, []);
 
   async function loadData(uid: string) {
