@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { WORKOUT_DAYS } from "@/data/workouts";
 import type { Exercise } from "@/data/workouts";
 import RestTimer from "@/components/RestTimer";
+import { useToast } from "@/hooks/use-toast";
 
 interface SetEntry {
   reps: string;
@@ -15,6 +16,7 @@ interface SetEntry {
 export default function WorkoutSession() {
   const { dayId } = useParams();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const workout = WORKOUT_DAYS.find((d) => d.id === dayId);
 
   const [currentExIdx, setCurrentExIdx] = useState(0);
@@ -22,9 +24,19 @@ export default function WorkoutSession() {
   const [showTimer, setShowTimer] = useState(false);
   const [workoutLogId, setWorkoutLogId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!workout) return;
+    // Get current user
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) setUserId(user.id);
+    };
+    getUser();
+  }, []);
+
+  useEffect(() => {
+    if (!workout || !userId) return;
     // Init sets
     const init: Record<string, SetEntry[]> = {};
     workout.exercises.forEach((ex) => {
@@ -38,16 +50,36 @@ export default function WorkoutSession() {
 
     // Create workout log
     createWorkoutLog();
-  }, [workout]);
+  }, [workout, userId]);
 
   async function createWorkoutLog() {
-    if (!workout) return;
-    const { data } = await supabase
+    if (!workout || !userId) return;
+    const { data, error } = await supabase
       .from("workout_logs")
-      .insert({ workout_day: workout.id })
+      .insert({
+        workout_day: workout.id,
+        user_id: userId
+      })
       .select("id")
       .single();
-    if (data) setWorkoutLogId(data.id);
+
+    if (error) {
+      console.error("Errore creazione workout log:", error);
+      toast({
+        title: "Errore",
+        description: "Impossibile iniziare l'allenamento",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (data) {
+      setWorkoutLogId(data.id);
+      toast({
+        title: "Allenamento avviato ✓",
+        description: `${workout.label} - ${workout.title}`,
+      });
+    }
   }
 
   if (!workout) return <div className="p-5 pt-14 text-foreground">Scheda non trovata</div>;
@@ -79,35 +111,53 @@ export default function WorkoutSession() {
   ).length;
 
   async function finishWorkout() {
-    if (!workoutLogId) return;
+    if (!workoutLogId || !userId) return;
     setSaving(true);
 
-    // Save all set logs
-    const allSets = Object.entries(sets).flatMap(([exName, exSets]) =>
-      exSets.filter((s) => s.done).map((s, i) => ({
-        workout_log_id: workoutLogId,
-        exercise_name: exName,
-        set_number: i + 1,
-        reps: parseInt(s.reps) || 0,
-        weight: parseFloat(s.weight) || 0,
-      }))
-    );
+    try {
+      // Save all set logs
+      const allSets = Object.entries(sets).flatMap(([exName, exSets]) =>
+        exSets.filter((s) => s.done).map((s, i) => ({
+          workout_log_id: workoutLogId,
+          user_id: userId,
+          exercise_name: exName,
+          set_number: i + 1,
+          reps: parseInt(s.reps) || 0,
+          weight: parseFloat(s.weight) || 0,
+        }))
+      );
 
-    if (allSets.length > 0) {
-      await supabase.from("set_logs").insert(allSets);
+      if (allSets.length > 0) {
+        const { error: setError } = await supabase.from("set_logs").insert(allSets);
+        if (setError) throw setError;
+      }
+
+      const { error: logError } = await supabase
+        .from("workout_logs")
+        .update({ completed_at: new Date().toISOString() })
+        .eq("id", workoutLogId);
+
+      if (logError) throw logError;
+
+      toast({
+        title: "Allenamento completato! ✓",
+        description: `${allSets.length} serie salvate con successo`,
+      });
+
+      setTimeout(() => navigate("/"), 800);
+    } catch (error) {
+      console.error("Errore salvataggio allenamento:", error);
+      toast({
+        title: "Errore",
+        description: "Impossibile salvare l'allenamento",
+        variant: "destructive"
+      });
+      setSaving(false);
     }
-
-    await supabase
-      .from("workout_logs")
-      .update({ completed_at: new Date().toISOString() })
-      .eq("id", workoutLogId);
-
-    setSaving(false);
-    navigate("/");
   }
 
   return (
-    <div className="min-h-screen px-4 pt-14 pb-8 overflow-x-hidden">
+    <div className="min-h-screen px-5 pt-14 pb-24 max-w-full overflow-x-hidden">
       {showTimer && (
         <RestTimer
           seconds={90}
@@ -190,11 +240,11 @@ export default function WorkoutSession() {
       </div>
 
       {/* Navigation */}
-      <div className="flex gap-3">
+      <div className="flex gap-3 fixed bottom-24 left-4 right-4 max-w-[412px] mx-auto">
         {currentExIdx > 0 && (
           <button
             onClick={() => setCurrentExIdx((i) => i - 1)}
-            className="flex-1 h-14 rounded-2xl bg-secondary text-foreground font-semibold"
+            className="flex-1 h-14 rounded-2xl bg-secondary text-foreground font-semibold transition-transform active:scale-95"
           >
             Precedente
           </button>
@@ -202,7 +252,7 @@ export default function WorkoutSession() {
         {currentExIdx < totalExercises - 1 ? (
           <button
             onClick={() => setCurrentExIdx((i) => i + 1)}
-            className="flex-1 h-14 rounded-2xl bg-primary text-primary-foreground font-semibold"
+            className="flex-1 h-14 rounded-2xl bg-primary text-primary-foreground font-semibold transition-transform active:scale-95"
           >
             Prossimo
           </button>
@@ -210,9 +260,9 @@ export default function WorkoutSession() {
           <button
             onClick={finishWorkout}
             disabled={saving}
-            className="flex-1 h-14 rounded-2xl bg-success text-success-foreground font-bold"
+            className="flex-1 h-14 rounded-2xl bg-success text-success-foreground font-bold transition-all active:scale-95 disabled:opacity-60"
           >
-            {saving ? "Salvataggio..." : "Completa Allenamento"}
+            {saving ? "Salvataggio..." : "✓ Completa"}
           </button>
         )}
       </div>

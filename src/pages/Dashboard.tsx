@@ -13,16 +13,27 @@ export default function Dashboard() {
   const [nextWorkout, setNextWorkout] = useState<WorkoutDay>(WORKOUT_DAYS[0]);
   const [workoutDates, setWorkoutDates] = useState<Date[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    loadData();
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserId(user.id);
+        loadData();
+      }
+    };
+    getUser();
   }, []);
 
   async function loadData() {
+    if (!userId) return;
+
     // Last workout
     const { data: logs } = await supabase
       .from("workout_logs")
       .select("workout_day, started_at")
+      .eq("user_id", userId)
       .order("started_at", { ascending: false })
       .limit(1);
 
@@ -39,6 +50,7 @@ export default function Dashboard() {
     const { data: monthLogs } = await supabase
       .from("workout_logs")
       .select("started_at")
+      .eq("user_id", userId)
       .gte("started_at", start.toISOString())
       .lte("started_at", end.toISOString());
 

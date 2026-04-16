@@ -3,7 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from "recharts";
 import { format, parseISO } from "date-fns";
 import { it } from "date-fns/locale";
-import { Plus } from "lucide-react";
+import { Plus, Check } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface Measurement {
   id: string;
@@ -16,37 +17,74 @@ interface Measurement {
 }
 
 export default function BodyTracking() {
+  const { toast } = useToast();
   const [measurements, setMeasurements] = useState<Measurement[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ weight: "", body_fat: "", arms: "", waist: "", legs: "" });
   const [saving, setSaving] = useState(false);
   const [activeChart, setActiveChart] = useState<"weight" | "body_fat" | "arms" | "waist" | "legs">("weight");
+  const [userId, setUserId] = useState<string | null>(null);
+  const [saveFeedback, setSaveFeedback] = useState(false);
 
   useEffect(() => {
-    loadData();
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserId(user.id);
+        loadData();
+      }
+    };
+    getUser();
   }, []);
 
   async function loadData() {
+    if (!userId) return;
     const { data } = await supabase
       .from("body_measurements")
       .select("*")
+      .eq("user_id", userId)
       .order("measured_at", { ascending: true });
     if (data) setMeasurements(data as Measurement[]);
   }
 
   async function saveMeasurement() {
+    if (!userId) return;
     setSaving(true);
-    await supabase.from("body_measurements").insert({
-      weight: form.weight ? parseFloat(form.weight) : null,
-      body_fat: form.body_fat ? parseFloat(form.body_fat) : null,
-      arms: form.arms ? parseFloat(form.arms) : null,
-      waist: form.waist ? parseFloat(form.waist) : null,
-      legs: form.legs ? parseFloat(form.legs) : null,
-    });
-    setForm({ weight: "", body_fat: "", arms: "", waist: "", legs: "" });
-    setShowForm(false);
-    setSaving(false);
-    loadData();
+
+    try {
+      const { error } = await supabase.from("body_measurements").insert({
+        user_id: userId,
+        weight: form.weight ? parseFloat(form.weight) : null,
+        body_fat: form.body_fat ? parseFloat(form.body_fat) : null,
+        arms: form.arms ? parseFloat(form.arms) : null,
+        waist: form.waist ? parseFloat(form.waist) : null,
+        legs: form.legs ? parseFloat(form.legs) : null,
+      });
+
+      if (error) throw error;
+
+      // Show success feedback
+      setSaveFeedback(true);
+      setTimeout(() => setSaveFeedback(false), 2000);
+
+      toast({
+        title: "Misurazione salvata ✓",
+        description: "I tuoi dati sono stati sincronizzati",
+      });
+
+      setForm({ weight: "", body_fat: "", arms: "", waist: "", legs: "" });
+      setShowForm(false);
+      await loadData();
+    } catch (error) {
+      console.error("Errore salvataggio misurazione:", error);
+      toast({
+        title: "Errore",
+        description: "Impossibile salvare la misurazione",
+        variant: "destructive"
+      });
+    } finally {
+      setSaving(false);
+    }
   }
 
   const chartTabs = [
@@ -67,7 +105,7 @@ export default function BodyTracking() {
   const latest = measurements.length > 0 ? measurements[measurements.length - 1] : null;
 
   return (
-    <div className="px-4 pt-14 pb-24 min-h-screen overflow-x-hidden">
+    <div className="px-5 pt-14 pb-24 min-h-screen max-w-full overflow-x-hidden">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold">Corpo</h1>
@@ -85,21 +123,21 @@ export default function BodyTracking() {
       {latest && (
         <div className="grid grid-cols-3 gap-3 mb-6">
           {latest.weight && (
-            <div className="bg-card rounded-2xl p-4 text-center">
-              <p className="text-2xl font-bold">{latest.weight}</p>
-              <p className="text-xs text-muted-foreground">kg</p>
+            <div className="bg-card rounded-2xl p-5 text-center">
+              <p className="text-3xl font-bold">{latest.weight}</p>
+              <p className="text-xs text-muted-foreground mt-1">kg</p>
             </div>
           )}
           {latest.body_fat && (
-            <div className="bg-card rounded-2xl p-4 text-center">
-              <p className="text-2xl font-bold">{latest.body_fat}</p>
-              <p className="text-xs text-muted-foreground">% grasso</p>
+            <div className="bg-card rounded-2xl p-5 text-center">
+              <p className="text-3xl font-bold">{latest.body_fat}</p>
+              <p className="text-xs text-muted-foreground mt-1">% grasso</p>
             </div>
           )}
           {latest.arms && (
-            <div className="bg-card rounded-2xl p-4 text-center">
-              <p className="text-2xl font-bold">{latest.arms}</p>
-              <p className="text-xs text-muted-foreground">braccia cm</p>
+            <div className="bg-card rounded-2xl p-5 text-center">
+              <p className="text-3xl font-bold">{latest.arms}</p>
+              <p className="text-xs text-muted-foreground mt-1">braccia cm</p>
             </div>
           )}
         </div>
@@ -145,9 +183,9 @@ export default function BodyTracking() {
       {/* Add Form Modal */}
       {showForm && (
         <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex flex-col justify-end">
-          <div className="bg-card rounded-t-3xl p-5 pb-8 max-w-[428px] mx-auto w-full max-h-[80vh] flex flex-col safe-bottom">
-            <p className="text-lg font-bold mb-4">Nuova misurazione</p>
-            <div className="space-y-3 overflow-y-auto flex-1">
+          <div className="bg-card rounded-t-3xl p-6 pb-8 max-w-[428px] mx-auto w-full max-h-[85vh] flex flex-col overflow-hidden safe-bottom">
+            <p className="text-xl font-bold mb-6">Nuova misurazione</p>
+            <div className="space-y-3 overflow-y-auto flex-1 pr-2">
               {[
                 { key: "weight", label: "Peso (kg)", mode: "decimal" as const },
                 { key: "body_fat", label: "Grasso corporeo (%)", mode: "decimal" as const },
@@ -162,23 +200,34 @@ export default function BodyTracking() {
                   placeholder={f.label}
                   value={form[f.key as keyof typeof form]}
                   onChange={(e) => setForm((p) => ({ ...p, [f.key]: e.target.value }))}
-                  className="w-full h-13 bg-secondary rounded-2xl px-5 text-foreground text-base placeholder:text-muted-foreground outline-none"
+                  className="w-full h-14 bg-secondary rounded-2xl px-5 text-foreground text-base placeholder:text-muted-foreground outline-none"
                 />
               ))}
             </div>
-            <div className="flex gap-3 mt-4 shrink-0">
+            <div className="flex gap-3 mt-6 shrink-0">
               <button
                 onClick={() => setShowForm(false)}
-                className="flex-1 h-13 rounded-2xl bg-secondary text-foreground font-semibold"
+                className="flex-1 h-14 rounded-2xl bg-secondary text-foreground font-semibold transition-colors active:scale-95"
               >
                 Annulla
               </button>
               <button
                 onClick={saveMeasurement}
                 disabled={saving}
-                className="flex-1 h-13 rounded-2xl bg-primary text-primary-foreground font-bold"
+                className={`flex-1 h-14 rounded-2xl bg-primary text-primary-foreground font-bold transition-all active:scale-95 flex items-center justify-center gap-2 ${
+                  saveFeedback ? "bg-green-500" : ""
+                }`}
               >
-                {saving ? "..." : "Salva"}
+                {saveFeedback ? (
+                  <>
+                    <Check className="w-5 h-5" />
+                    Salvato
+                  </>
+                ) : saving ? (
+                  "..."
+                ) : (
+                  "Salva"
+                )}
               </button>
             </div>
           </div>
