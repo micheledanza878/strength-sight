@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { X } from "lucide-react";
 
 interface RestTimerProps {
@@ -17,15 +17,17 @@ function formatTime(s: number) {
 export default function RestTimer({ seconds, color = "hsl(var(--primary))", onComplete, onDismiss }: RestTimerProps) {
   const [remaining, setRemaining] = useState(seconds);
   const [total, setTotal] = useState(seconds);
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
 
   useEffect(() => {
     if (remaining <= 0) {
-      onComplete();
+      onCompleteRef.current();
       return;
     }
     const t = setTimeout(() => setRemaining((r) => r - 1), 1000);
     return () => clearTimeout(t);
-  }, [remaining, onComplete]);
+  }, [remaining]); // onComplete escluso dalle deps — il re-render del parent resettava il timeout
 
   function addTime(delta: number) {
     setRemaining((r) => Math.max(0, r + delta));
