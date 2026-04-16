@@ -55,6 +55,13 @@
     user-select: none;
     max-width: 428px;
     margin: 0 auto;
+    overflow-x: hidden;
+  }
+  
+  #root {
+    width: 100%;
+    min-height: 100vh;
+    overflow-x: hidden;
   }
 }
 
@@ -64,5 +71,12 @@
   }
   .safe-top {
     padding-top: env(safe-area-inset-top, 0px);
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 }
