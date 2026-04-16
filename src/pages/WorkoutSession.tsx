@@ -41,11 +41,10 @@ export default function WorkoutSession() {
   }, [workout]);
 
   async function createWorkoutLog() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user || !workout) return;
+    if (!workout) return;
     const { data } = await supabase
       .from("workout_logs")
-      .insert({ user_id: user.id, workout_day: workout.id })
+      .insert({ workout_day: workout.id })
       .select("id")
       .single();
     if (data) setWorkoutLogId(data.id);
@@ -82,13 +81,10 @@ export default function WorkoutSession() {
   async function finishWorkout() {
     if (!workoutLogId) return;
     setSaving(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
 
     // Save all set logs
     const allSets = Object.entries(sets).flatMap(([exName, exSets]) =>
       exSets.filter((s) => s.done).map((s, i) => ({
-        user_id: user.id,
         workout_log_id: workoutLogId,
         exercise_name: exName,
         set_number: i + 1,

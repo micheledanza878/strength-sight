@@ -27,22 +27,16 @@ export default function BodyTracking() {
   }, []);
 
   async function loadData() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
     const { data } = await supabase
       .from("body_measurements")
       .select("*")
-      .eq("user_id", user.id)
       .order("measured_at", { ascending: true });
     if (data) setMeasurements(data as Measurement[]);
   }
 
   async function saveMeasurement() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
     setSaving(true);
     await supabase.from("body_measurements").insert({
-      user_id: user.id,
       weight: form.weight ? parseFloat(form.weight) : null,
       body_fat: form.body_fat ? parseFloat(form.body_fat) : null,
       arms: form.arms ? parseFloat(form.arms) : null,

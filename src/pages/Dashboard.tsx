@@ -19,14 +19,10 @@ export default function Dashboard() {
   }, []);
 
   async function loadData() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
     // Last workout
     const { data: logs } = await supabase
       .from("workout_logs")
       .select("workout_day, started_at")
-      .eq("user_id", user.id)
       .order("started_at", { ascending: false })
       .limit(1);
 
@@ -43,7 +39,6 @@ export default function Dashboard() {
     const { data: monthLogs } = await supabase
       .from("workout_logs")
       .select("started_at")
-      .eq("user_id", user.id)
       .gte("started_at", start.toISOString())
       .lte("started_at", end.toISOString());
 
