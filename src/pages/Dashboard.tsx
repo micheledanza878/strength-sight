@@ -1,11 +1,21 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO } from "date-fns";
+import {
+  format, startOfMonth, endOfMonth, eachDayOfInterval,
+  isSameDay, parseISO, startOfWeek, subDays,
+} from "date-fns";
 import { it } from "date-fns/locale";
 import { ChevronRight, Flame } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { WORKOUT_DAYS, getNextWorkoutDay } from "@/data/workouts";
 import type { WorkoutDay } from "@/data/workouts";
+
+interface VolumePoint {
+  date: string;
+  volume: number;
+  day: string;
+}
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -13,49 +23,97 @@ export default function Dashboard() {
   const [nextWorkout, setNextWorkout] = useState<WorkoutDay>(WORKOUT_DAYS[0]);
   const [workoutDates, setWorkoutDates] = useState<Date[]>([]);
   const [loading, setLoading] = useState(true);
-  const [userId, setUserId] = useState<string | null>(null);
+
+  const [streak, setStreak] = useState(0);
+  const [weekCount, setWeekCount] = useState(0);
+  const [monthCount, setMonthCount] = useState(0);
+  const [monthVolume, setMonthVolume] = useState(0);
+  const [volumeChart, setVolumeChart] = useState<VolumePoint[]>([]);
 
   useEffect(() => {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUserId(user.id);
-        loadData();
-      }
+      if (user) loadData(user.id);
     };
     getUser();
   }, []);
 
-  async function loadData() {
-    if (!userId) return;
+  async function loadData(uid: string) {
+    const now = new Date();
+    const monthStart = startOfMonth(now);
+    const monthEnd = endOfMonth(now);
+    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
 
-    // Last workout
+    // All completed logs
     const { data: logs } = await supabase
       .from("workout_logs")
-      .select("workout_day, started_at")
-      .eq("user_id", userId)
-      .order("started_at", { ascending: false })
-      .limit(1);
+      .select("id, workout_day, started_at, completed_at")
+      .eq("user_id", uid)
+      .not("completed_at", "is", null)
+      .order("started_at", { ascending: false });
 
     if (logs && logs.length > 0) {
       setLastWorkout({ day: logs[0].workout_day, date: logs[0].started_at });
       setNextWorkout(getNextWorkoutDay(logs[0].workout_day));
+
+      // Calendar: this month
+      const monthLogs = logs.filter((l) => {
+        const d = parseISO(l.started_at);
+        return d >= monthStart && d <= monthEnd;
+      });
+      setWorkoutDates(monthLogs.map((l) => parseISO(l.started_at)));
+      setMonthCount(monthLogs.length);
+
+      // Week count
+      setWeekCount(logs.filter((l) => parseISO(l.started_at) >= weekStart).length);
+
+      // Streak
+      const daySet = new Set(logs.map((l) => format(parseISO(l.started_at), "yyyy-MM-dd")));
+      let s = 0;
+      let check = new Date();
+      if (!daySet.has(format(check, "yyyy-MM-dd"))) check = subDays(check, 1);
+      while (daySet.has(format(check, "yyyy-MM-dd"))) {
+        s++;
+        check = subDays(check, 1);
+      }
+      setStreak(s);
     }
 
-    // Calendar data - this month
-    const now = new Date();
-    const start = startOfMonth(now);
-    const end = endOfMonth(now);
+    // Monthly volume from set_logs
+    const { data: monthSets } = await supabase
+      .from("set_logs")
+      .select("weight, reps")
+      .eq("user_id", uid)
+      .gte("created_at", monthStart.toISOString())
+      .lte("created_at", monthEnd.toISOString());
 
-    const { data: monthLogs } = await supabase
+    if (monthSets) {
+      setMonthVolume(monthSets.reduce((acc, s) => acc + s.weight * s.reps, 0));
+    }
+
+    // Volume per session (last 8 completed)
+    const { data: recentLogs } = await supabase
       .from("workout_logs")
-      .select("started_at")
-      .eq("user_id", userId)
-      .gte("started_at", start.toISOString())
-      .lte("started_at", end.toISOString());
+      .select("id, workout_day, started_at, set_logs(weight, reps)")
+      .eq("user_id", uid)
+      .not("completed_at", "is", null)
+      .order("started_at", { ascending: false })
+      .limit(8);
 
-    if (monthLogs) {
-      setWorkoutDates(monthLogs.map((l) => parseISO(l.started_at)));
+    if (recentLogs) {
+      const points: VolumePoint[] = recentLogs
+        .map((log) => {
+          const sets = (log.set_logs as { weight: number; reps: number }[]) || [];
+          const vol = sets.reduce((acc, s) => acc + s.weight * s.reps, 0);
+          return {
+            date: format(parseISO(log.started_at), "d/M"),
+            volume: vol,
+            day: log.workout_day,
+          };
+        })
+        .filter((p) => p.volume > 0)
+        .reverse();
+      setVolumeChart(points);
     }
 
     setLoading(false);
@@ -63,11 +121,8 @@ export default function Dashboard() {
 
   const now = new Date();
   const monthDays = eachDayOfInterval({ start: startOfMonth(now), end: endOfMonth(now) });
-  const firstDayOffset = (startOfMonth(now).getDay() + 6) % 7; // Monday start
-
-  const lastDayData = lastWorkout
-    ? WORKOUT_DAYS.find((d) => d.id === lastWorkout.day)
-    : null;
+  const firstDayOffset = (startOfMonth(now).getDay() + 6) % 7;
+  const lastDayData = lastWorkout ? WORKOUT_DAYS.find((d) => d.id === lastWorkout.day) : null;
 
   return (
     <div className="px-5 pt-14 pb-24 min-h-screen">
@@ -95,14 +150,58 @@ export default function Dashboard() {
         </div>
       </button>
 
+      {/* Stats Row */}
+      {!loading && (
+        <div className="grid grid-cols-3 gap-3 mb-4">
+          <div className="bg-card rounded-2xl p-4 text-center">
+            <p className="text-2xl font-bold">{streak}</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">🔥 streak</p>
+          </div>
+          <div className="bg-card rounded-2xl p-4 text-center">
+            <p className="text-2xl font-bold">{weekCount}</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">questa sett.</p>
+          </div>
+          <div className="bg-card rounded-2xl p-4 text-center">
+            <p className="text-2xl font-bold">{monthCount}</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">questo mese</p>
+          </div>
+        </div>
+      )}
+
       {/* Last Workout */}
       {lastDayData && lastWorkout && (
-        <div className="bg-card rounded-2xl p-5 mb-6">
+        <div className="bg-card rounded-2xl p-5 mb-4">
           <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-1">Ultimo allenamento</p>
           <p className="text-lg font-semibold">{lastDayData.label} — {lastDayData.title}</p>
           <p className="text-sm text-muted-foreground">
             {format(parseISO(lastWorkout.date), "d MMMM, HH:mm", { locale: it })}
           </p>
+        </div>
+      )}
+
+      {/* Volume Chart */}
+      {volumeChart.length > 1 && (
+        <div className="bg-card rounded-2xl p-5 mb-4">
+          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-4">Volume per sessione</p>
+          <div className="h-36">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={volumeChart} barSize={20}>
+                <XAxis dataKey="date" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                <YAxis hide />
+                <Tooltip
+                  contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 10, fontSize: 11 }}
+                  labelStyle={{ color: "hsl(var(--foreground))" }}
+                  formatter={(v: number) => [`${v.toLocaleString()} kg`, "Volume"]}
+                />
+                <Bar dataKey="volume" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          {monthVolume > 0 && (
+            <p className="text-xs text-muted-foreground text-center mt-2">
+              {monthVolume.toLocaleString()} kg sollevati questo mese
+            </p>
+          )}
         </div>
       )}
 
