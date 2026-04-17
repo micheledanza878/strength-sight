@@ -181,24 +181,22 @@ export default function BodyTracking() {
           { key: "braccio_front_cm", label: "Braccio (cm)" },
           { key: "avambraccio_cm", label: "Avambraccio (cm)" },
           { key: "petto_torace_cm", label: "Petto (cm)" },
-          { key: "vita_cm", label: "Vita (cm)" },
-          { key: "fianchi_cm", label: "Fianchi (cm)" },
-          { key: "coscia_cm", label: "Coscia (cm)" },
-          { key: "polpaccio_cm", label: "Polpaccio (cm)" },
         ];
       case "upper-back":
         return [
           { key: "braccio_retro_cm", label: "Braccio (cm)" },
           { key: "schiena_altezza_dorsali_cm", label: "Schiena (cm)" },
           { key: "spalle_ampiezza_cm", label: "Spalle (cm)" },
+          { key: "vita_retro_cm", label: "Vita (cm)" },
+          { key: "fianchi_retro_cm", label: "Fianchi (cm)" },
         ];
       case "lower":
         return [
-          { key: "vita_retro_cm", label: "Vita (cm)" },
-          { key: "fianchi_retro_cm", label: "Fianchi (cm)" },
           { key: "glutei_circonferenza_cm", label: "Glutei (cm)" },
-          { key: "coscia_retro_cm", label: "Coscia (cm)" },
-          { key: "polpaccio_retro_cm", label: "Polpaccio (cm)" },
+          { key: "coscia_cm", label: "Coscia (cm)" },
+          { key: "coscia_retro_cm", label: "Coscia retro (cm)" },
+          { key: "polpaccio_cm", label: "Polpaccio (cm)" },
+          { key: "polpaccio_retro_cm", label: "Polpaccio retro (cm)" },
         ];
       default:
         return [];
