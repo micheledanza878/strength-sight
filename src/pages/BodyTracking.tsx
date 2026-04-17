@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from "recharts";
 import { format, parseISO } from "date-fns";
 import { it } from "date-fns/locale";
-import { Plus, Check, ChevronRight, X } from "lucide-react";
+import { Plus, Check, ChevronRight, X, ArrowLeft } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { getUserId } from "@/lib/user";
@@ -294,89 +294,93 @@ export default function BodyTracking() {
         </div>
       ) : null}
 
-      {/* Add Form Modal */}
+      {/* Add Form Fullscreen */}
       {showForm && (
-        <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex flex-col justify-end">
-          <div className="bg-card rounded-t-3xl p-6 pb-8 max-w-[428px] mx-auto w-full max-h-[85vh] flex flex-col overflow-hidden safe-bottom">
-            <div className="flex items-center justify-between mb-6">
-              <p className="text-xl font-bold">Nuova misurazione</p>
-              <button onClick={closeForm} className="text-muted-foreground">
-                <X className="w-5 h-5" />
-              </button>
+        <div className="fixed inset-0 z-50 bg-background px-5 pt-14 pb-24 flex flex-col overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center gap-3 mb-6">
+            <button onClick={closeForm} className="text-muted-foreground">
+              <ArrowLeft className="w-6 h-6" />
+            </button>
+            <div>
+              <h1 className="text-3xl font-bold">Nuova misurazione</h1>
+              <p className="text-xs text-muted-foreground mt-1">Step {["base", "upper-front", "upper-back", "lower"].indexOf(step) + 1} di 4</p>
             </div>
+          </div>
 
-            {/* Step progress */}
-            <div className="flex gap-2 mb-6">
-              {(["base", "upper-front", "upper-back", "lower"] as MeasurementStep[]).map((s) => (
-                <div
-                  key={s}
-                  className={`flex-1 h-1 rounded-full transition-colors ${
-                    step === s ? "bg-primary" : ["base", "upper-front", "upper-back", "lower"].indexOf(s) < ["base", "upper-front", "upper-back", "lower"].indexOf(step) ? "bg-primary/50" : "bg-secondary"
-                  }`}
-                />
-              ))}
-            </div>
+          {/* Step progress */}
+          <div className="flex gap-2 mb-6">
+            {(["base", "upper-front", "upper-back", "lower"] as MeasurementStep[]).map((s) => (
+              <div
+                key={s}
+                className={`flex-1 h-1 rounded-full transition-colors ${
+                  step === s ? "bg-primary" : ["base", "upper-front", "upper-back", "lower"].indexOf(s) < ["base", "upper-front", "upper-back", "lower"].indexOf(step) ? "bg-primary/50" : "bg-secondary"
+                }`}
+              />
+            ))}
+          </div>
 
-            {/* Current step label */}
-            <p className="text-xs text-muted-foreground font-semibold uppercase mb-4">
-              Step {["base", "upper-front", "upper-back", "lower"].indexOf(step) + 1} - {stepTitles[step]}
-            </p>
+          {/* Current step label */}
+          <p className="text-xs text-muted-foreground font-semibold uppercase mb-6">
+            {stepTitles[step]}
+          </p>
 
-            {/* Fields for current step */}
-            <div className="space-y-3 overflow-y-auto flex-1 pr-2">
-              {getStepFields().map((f) => (
+          {/* Fields for current step */}
+          <div className="space-y-4 overflow-y-auto flex-1 mb-6">
+            {getStepFields().map((f) => (
+              <div key={f.key}>
+                <label className="text-xs text-muted-foreground font-medium block mb-2">{f.label}</label>
                 <input
-                  key={f.key}
                   type="number"
                   inputMode={f.mode || "decimal"}
                   placeholder={f.label}
                   value={form[f.key as keyof typeof form]}
                   onChange={(e) => setForm((p) => ({ ...p, [f.key]: e.target.value }))}
-                  className="w-full h-12 bg-secondary rounded-xl px-4 text-foreground text-sm placeholder:text-muted-foreground outline-none"
+                  className="w-full h-12 bg-card border border-border rounded-xl px-4 text-foreground outline-none focus:border-primary"
                 />
-              ))}
-            </div>
+              </div>
+            ))}
+          </div>
 
-            {/* Navigation buttons */}
-            <div className="flex gap-3 mt-6 shrink-0">
-              {step !== "base" && (
-                <button
-                  onClick={prevStep}
-                  className="flex-1 h-12 rounded-xl bg-secondary text-foreground font-semibold transition-colors active:scale-95 text-sm"
-                >
-                  Indietro
-                </button>
-              )}
-              {step === "lower" ? (
-                <button
-                  onClick={saveMeasurement}
-                  disabled={saving}
-                  className={`flex-1 h-12 rounded-xl bg-primary text-primary-foreground font-bold transition-all active:scale-95 flex items-center justify-center gap-2 text-sm ${
-                    saving ? "opacity-70" : ""
-                  }`}
-                >
-                  {saving ? (
-                    <>
-                      <Check className="w-4 h-4 animate-spin" />
-                      Salvataggio...
-                    </>
-                  ) : (
-                    <>
-                      <Check className="w-4 h-4" />
-                      Salva
-                    </>
-                  )}
-                </button>
-              ) : (
-                <button
-                  onClick={nextStep}
-                  className="flex-1 h-12 rounded-xl bg-primary text-primary-foreground font-bold transition-colors active:scale-95 text-sm flex items-center justify-center gap-2"
-                >
-                  Avanti
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              )}
-            </div>
+          {/* Navigation buttons */}
+          <div className="flex gap-3 shrink-0">
+            {step !== "base" && (
+              <button
+                onClick={prevStep}
+                className="flex-1 h-14 rounded-2xl bg-secondary text-foreground font-bold transition-transform active:scale-95 text-sm"
+              >
+                Indietro
+              </button>
+            )}
+            {step === "lower" ? (
+              <button
+                onClick={saveMeasurement}
+                disabled={saving}
+                className={`flex-1 h-14 rounded-2xl bg-primary text-primary-foreground font-bold transition-all active:scale-95 flex items-center justify-center gap-2 text-sm ${
+                  saving ? "opacity-70" : ""
+                }`}
+              >
+                {saving ? (
+                  <>
+                    <Check className="w-5 h-5 animate-spin" />
+                    Salvataggio...
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-5 h-5" />
+                    Salva
+                  </>
+                )}
+              </button>
+            ) : (
+              <button
+                onClick={nextStep}
+                className="flex-1 h-14 rounded-2xl bg-primary text-primary-foreground font-bold transition-transform active:scale-95 text-sm flex items-center justify-center gap-2"
+              >
+                Avanti
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            )}
           </div>
         </div>
       )}
