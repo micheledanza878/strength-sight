@@ -42,6 +42,15 @@ export default function WorkoutSelect() {
     loadPlans();
   }, []);
 
+  useEffect(() => {
+    // Auto-select plan if activePlanId exists in localStorage
+    const activePlanId = localStorage.getItem('activePlanId');
+    if (activePlanId && plans.length > 0) {
+      setSelectedPlan(activePlanId);
+      loadDays(activePlanId);
+    }
+  }, [plans]);
+
   async function loadPlans() {
     try {
       const { data, error } = await supabase

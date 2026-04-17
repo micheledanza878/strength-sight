@@ -282,7 +282,7 @@ export default function WorkoutSession() {
     return (
       <div className="min-h-screen px-5 pt-14 pb-32 max-w-full overflow-x-hidden">
         <div className="flex items-center gap-3 mb-6">
-          <button onClick={() => navigate(-1)} className="text-muted-foreground">
+          <button onClick={() => navigate("/workout")} className="text-muted-foreground">
             <ArrowLeft className="w-6 h-6" />
           </button>
           <div>
