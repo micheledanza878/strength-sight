@@ -100,9 +100,13 @@ export default function History() {
     setLoading(false);
   }
 
-  // Compute PRs from all set_logs
+  // Filter logs by selected plan
+  const planDayNames = new Set(planDays.map((d) => d.day_name));
+  const filteredLogs = planDays.length > 0 ? logs.filter((log) => planDayNames.has(log.workout_day)) : logs;
+
+  // Compute PRs from filtered set_logs
   const prMap: Record<string, { weight: number; reps: number; date: string }> = {};
-  logs.forEach((log) => {
+  filteredLogs.forEach((log) => {
     log.set_logs.forEach((s) => {
       const cur = prMap[s.exercise_name];
       if (!cur || s.weight > cur.weight || (s.weight === cur.weight && s.reps > cur.reps)) {
@@ -164,8 +168,6 @@ export default function History() {
 
       {activeTab === "history" && !loading && (
         (() => {
-          const planDayNames = new Set(planDays.map((d) => d.day_name));
-          const filteredLogs = planDays.length > 0 ? logs.filter((log) => planDayNames.has(log.workout_day)) : logs;
           return filteredLogs.length === 0 ? (
             <div className="text-center text-muted-foreground text-sm py-12">Nessun allenamento completato</div>
           ) : (
