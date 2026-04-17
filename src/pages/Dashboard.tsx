@@ -382,17 +382,36 @@ export default function Dashboard() {
       {weeklyVolumeChart.length > 1 && (
         <div className="bg-card rounded-2xl p-5 mb-4">
           <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-4">Volume settimanale</p>
-          <div className="h-36">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={weeklyVolumeChart}>
-                <XAxis dataKey="week" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
-                <YAxis hide />
+          <div className="h-44">
+            <ResponsiveContainer width="95%" height="100%" style={{ margin: "0 auto" }}>
+              <LineChart data={weeklyVolumeChart} margin={{ top: 5, right: 10, left: -10, bottom: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis
+                  dataKey="week"
+                  tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                  axisLine={false}
+                  tickLine={false}
+                  angle={-45}
+                  textAnchor="end"
+                  height={60}
+                />
+                <YAxis
+                  tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                  width={40}
+                />
                 <Tooltip
                   contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 10, fontSize: 11 }}
                   labelStyle={{ color: "hsl(var(--foreground))" }}
                   formatter={(v: number) => [`${v.toLocaleString()} kg`, "Volume"]}
                 />
-                <Line type="monotone" dataKey="volume" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ fill: "hsl(var(--primary))", r: 3 }} />
+                <Line
+                  type="monotone"
+                  dataKey="volume"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth={3}
+                  dot={{ fill: "hsl(var(--primary))", r: 4 }}
+                  activeDot={{ r: 6 }}
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>
