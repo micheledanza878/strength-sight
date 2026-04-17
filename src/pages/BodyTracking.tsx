@@ -3,10 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from "recharts";
 import { format, parseISO } from "date-fns";
 import { it } from "date-fns/locale";
-import { Plus, Check } from "lucide-react";
+import { Plus, Check, ChevronRight, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { getUserId } from "@/lib/user";
+
+type MeasurementStep = "base" | "upper-front" | "upper-back" | "lower";
 
 interface Measurement {
   id: string;
@@ -37,6 +39,7 @@ export default function BodyTracking() {
   const { toast } = useToast();
   const [measurements, setMeasurements] = useState<Measurement[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [step, setStep] = useState<MeasurementStep>("base");
   const [form, setForm] = useState({
     weight: "", body_fat: "", height_cm: "", testata_cm: "", collo_cm: "",
     braccio_front_cm: "", braccio_retro_cm: "", avambraccio_cm: "",
@@ -48,7 +51,6 @@ export default function BodyTracking() {
   const [saving, setSaving] = useState(false);
   const [activeChart, setActiveChart] = useState<"weight" | "body_fat" | "petto_torace_cm" | "vita_cm" | "coscia_cm">("weight");
   const [loading, setLoading] = useState(true);
-  const [saveFeedback, setSaveFeedback] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -108,6 +110,7 @@ export default function BodyTracking() {
         schiena_altezza_dorsali_cm: "", spalle_ampiezza_cm: "", glutei_circonferenza_cm: "",
         coscia_cm: "", coscia_retro_cm: "", polpaccio_cm: "", polpaccio_retro_cm: ""
       });
+      setStep("base");
       setShowForm(false);
       await loadData();
     } catch (error) {
@@ -138,6 +141,69 @@ export default function BodyTracking() {
     }));
 
   const latest = measurements.length > 0 ? measurements[measurements.length - 1] : null;
+
+  function nextStep() {
+    if (step === "base") setStep("upper-front");
+    else if (step === "upper-front") setStep("upper-back");
+    else if (step === "upper-back") setStep("lower");
+  }
+
+  function prevStep() {
+    if (step === "upper-front") setStep("base");
+    else if (step === "upper-back") setStep("upper-front");
+    else if (step === "lower") setStep("upper-back");
+  }
+
+  function closeForm() {
+    setShowForm(false);
+    setStep("base");
+  }
+
+  const stepTitles = {
+    base: "Base",
+    "upper-front": "Upper Front",
+    "upper-back": "Upper Back",
+    lower: "Lower"
+  };
+
+  const getStepFields = () => {
+    switch (step) {
+      case "base":
+        return [
+          { key: "weight", label: "Peso (kg)", mode: "decimal" as const },
+          { key: "body_fat", label: "Grasso corporeo (%)", mode: "decimal" as const },
+          { key: "height_cm", label: "Altezza (cm)", mode: "decimal" as const },
+        ];
+      case "upper-front":
+        return [
+          { key: "testata_cm", label: "Testata (cm)" },
+          { key: "collo_cm", label: "Collo (cm)" },
+          { key: "braccio_front_cm", label: "Braccio (cm)" },
+          { key: "avambraccio_cm", label: "Avambraccio (cm)" },
+          { key: "petto_torace_cm", label: "Petto (cm)" },
+          { key: "vita_cm", label: "Vita (cm)" },
+          { key: "fianchi_cm", label: "Fianchi (cm)" },
+          { key: "coscia_cm", label: "Coscia (cm)" },
+          { key: "polpaccio_cm", label: "Polpaccio (cm)" },
+        ];
+      case "upper-back":
+        return [
+          { key: "braccio_retro_cm", label: "Braccio (cm)" },
+          { key: "schiena_altezza_dorsali_cm", label: "Schiena (cm)" },
+          { key: "spalle_ampiezza_cm", label: "Spalle (cm)" },
+        ];
+      case "lower":
+        return [
+          { key: "vita_retro_cm", label: "Vita (cm)" },
+          { key: "fianchi_retro_cm", label: "Fianchi (cm)" },
+          { key: "glutei_circonferenza_cm", label: "Glutei (cm)" },
+          { key: "coscia_retro_cm", label: "Coscia (cm)" },
+          { key: "polpaccio_retro_cm", label: "Polpaccio (cm)" },
+        ];
+      default:
+        return [];
+    }
+  };
 
   return (
     <div className="px-5 pt-14 pb-24 min-h-screen max-w-full overflow-x-hidden">
@@ -232,63 +298,37 @@ export default function BodyTracking() {
       {showForm && (
         <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex flex-col justify-end">
           <div className="bg-card rounded-t-3xl p-6 pb-8 max-w-[428px] mx-auto w-full max-h-[85vh] flex flex-col overflow-hidden safe-bottom">
-            <p className="text-xl font-bold mb-6">Nuova misurazione</p>
+            <div className="flex items-center justify-between mb-6">
+              <p className="text-xl font-bold">Nuova misurazione</p>
+              <button onClick={closeForm} className="text-muted-foreground">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Step progress */}
+            <div className="flex gap-2 mb-6">
+              {(["base", "upper-front", "upper-back", "lower"] as MeasurementStep[]).map((s) => (
+                <div
+                  key={s}
+                  className={`flex-1 h-1 rounded-full transition-colors ${
+                    step === s ? "bg-primary" : ["base", "upper-front", "upper-back", "lower"].indexOf(s) < ["base", "upper-front", "upper-back", "lower"].indexOf(step) ? "bg-primary/50" : "bg-secondary"
+                  }`}
+                />
+              ))}
+            </div>
+
+            {/* Current step label */}
+            <p className="text-xs text-muted-foreground font-semibold uppercase mb-4">
+              Step {["base", "upper-front", "upper-back", "lower"].indexOf(step) + 1} - {stepTitles[step]}
+            </p>
+
+            {/* Fields for current step */}
             <div className="space-y-3 overflow-y-auto flex-1 pr-2">
-              <p className="text-xs text-muted-foreground font-semibold uppercase mb-2">Base</p>
-              {[
-                { key: "weight", label: "Peso (kg)", mode: "decimal" as const },
-                { key: "body_fat", label: "Grasso corporeo (%)", mode: "decimal" as const },
-                { key: "height_cm", label: "Altezza (cm)", mode: "decimal" as const },
-              ].map((f) => (
+              {getStepFields().map((f) => (
                 <input
                   key={f.key}
                   type="number"
-                  inputMode={f.mode}
-                  placeholder={f.label}
-                  value={form[f.key as keyof typeof form]}
-                  onChange={(e) => setForm((p) => ({ ...p, [f.key]: e.target.value }))}
-                  className="w-full h-12 bg-secondary rounded-xl px-4 text-foreground text-sm placeholder:text-muted-foreground outline-none"
-                />
-              ))}
-
-              <p className="text-xs text-muted-foreground font-semibold uppercase mb-2 mt-4">Fronte</p>
-              {[
-                { key: "testata_cm", label: "Testata (cm)" },
-                { key: "collo_cm", label: "Collo (cm)" },
-                { key: "braccio_front_cm", label: "Braccio (cm)" },
-                { key: "avambraccio_cm", label: "Avambraccio (cm)" },
-                { key: "petto_torace_cm", label: "Petto (cm)" },
-                { key: "vita_cm", label: "Vita (cm)" },
-                { key: "fianchi_cm", label: "Fianchi (cm)" },
-                { key: "coscia_cm", label: "Coscia (cm)" },
-                { key: "polpaccio_cm", label: "Polpaccio (cm)" },
-              ].map((f) => (
-                <input
-                  key={f.key}
-                  type="number"
-                  inputMode="decimal"
-                  placeholder={f.label}
-                  value={form[f.key as keyof typeof form]}
-                  onChange={(e) => setForm((p) => ({ ...p, [f.key]: e.target.value }))}
-                  className="w-full h-12 bg-secondary rounded-xl px-4 text-foreground text-sm placeholder:text-muted-foreground outline-none"
-                />
-              ))}
-
-              <p className="text-xs text-muted-foreground font-semibold uppercase mb-2 mt-4">Retro</p>
-              {[
-                { key: "braccio_retro_cm", label: "Braccio (cm)" },
-                { key: "schiena_altezza_dorsali_cm", label: "Schiena (cm)" },
-                { key: "spalle_ampiezza_cm", label: "Spalle (cm)" },
-                { key: "vita_retro_cm", label: "Vita (cm)" },
-                { key: "fianchi_retro_cm", label: "Fianchi (cm)" },
-                { key: "glutei_circonferenza_cm", label: "Glutei (cm)" },
-                { key: "coscia_retro_cm", label: "Coscia (cm)" },
-                { key: "polpaccio_retro_cm", label: "Polpaccio (cm)" },
-              ].map((f) => (
-                <input
-                  key={f.key}
-                  type="number"
-                  inputMode="decimal"
+                  inputMode={f.mode || "decimal"}
                   placeholder={f.label}
                   value={form[f.key as keyof typeof form]}
                   onChange={(e) => setForm((p) => ({ ...p, [f.key]: e.target.value }))}
@@ -296,31 +336,46 @@ export default function BodyTracking() {
                 />
               ))}
             </div>
+
+            {/* Navigation buttons */}
             <div className="flex gap-3 mt-6 shrink-0">
-              <button
-                onClick={() => setShowForm(false)}
-                className="flex-1 h-12 rounded-xl bg-secondary text-foreground font-semibold transition-colors active:scale-95 text-sm"
-              >
-                Annulla
-              </button>
-              <button
-                onClick={saveMeasurement}
-                disabled={saving}
-                className={`flex-1 h-12 rounded-xl bg-primary text-primary-foreground font-bold transition-all active:scale-95 flex items-center justify-center gap-2 text-sm ${
-                  saveFeedback ? "bg-green-500" : ""
-                }`}
-              >
-                {saveFeedback ? (
-                  <>
-                    <Check className="w-4 h-4" />
-                    Salvato
-                  </>
-                ) : saving ? (
-                  "..."
-                ) : (
-                  "Salva"
-                )}
-              </button>
+              {step !== "base" && (
+                <button
+                  onClick={prevStep}
+                  className="flex-1 h-12 rounded-xl bg-secondary text-foreground font-semibold transition-colors active:scale-95 text-sm"
+                >
+                  Indietro
+                </button>
+              )}
+              {step === "lower" ? (
+                <button
+                  onClick={saveMeasurement}
+                  disabled={saving}
+                  className={`flex-1 h-12 rounded-xl bg-primary text-primary-foreground font-bold transition-all active:scale-95 flex items-center justify-center gap-2 text-sm ${
+                    saving ? "opacity-70" : ""
+                  }`}
+                >
+                  {saving ? (
+                    <>
+                      <Check className="w-4 h-4 animate-spin" />
+                      Salvataggio...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4" />
+                      Salva
+                    </>
+                  )}
+                </button>
+              ) : (
+                <button
+                  onClick={nextStep}
+                  className="flex-1 h-12 rounded-xl bg-primary text-primary-foreground font-bold transition-colors active:scale-95 text-sm flex items-center justify-center gap-2"
+                >
+                  Avanti
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              )}
             </div>
           </div>
         </div>
