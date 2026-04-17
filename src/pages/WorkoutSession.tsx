@@ -90,7 +90,7 @@ export default function WorkoutSession() {
       setExercises(exs || []);
 
       if (day) {
-        loadPrevSession(getUserId(), day.day_name);
+        loadPrevSession(day.day_name);
       }
     } catch (error) {
       console.error("Errore caricamento giorno:", error);
@@ -141,11 +141,10 @@ export default function WorkoutSession() {
     return () => clearInterval(interval);
   }, [phase]);
 
-  async function loadPrevSession(uid: string, workoutId: string) {
+  async function loadPrevSession(workoutId: string) {
     const { data: lastLog } = await supabase
       .from("workout_logs")
       .select("id")
-      .eq("user_id", uid)
       .eq("workout_day", workoutId)
       .not("completed_at", "is", null)
       .order("started_at", { ascending: false })
@@ -304,7 +303,6 @@ export default function WorkoutSession() {
     const allSets = Object.entries(sets).flatMap(([exName, exSets]) =>
       exSets.filter((s) => s.done).map((s, i) => ({
         workout_log_id: workoutLogId ?? "",
-        user_id: getUserId(),
         exercise_name: exName,
         set_number: i + 1,
         reps: parseInt(s.reps) || 0,

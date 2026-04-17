@@ -55,11 +55,9 @@ export default function BodyTracking() {
   }, []);
 
   async function loadData() {
-    const uid = getUserId();
     const { data } = await supabase
       .from("body_measurements")
       .select("*")
-      .eq("user_id", uid)
       .order("measured_at", { ascending: true });
     if (data) setMeasurements(data as Measurement[]);
     setLoading(false);
