@@ -374,8 +374,6 @@ export default function WorkoutSession() {
     if (!current.done) {
       setJustDone(`${exName}-${idx}`);
       setTimeout(() => setJustDone(null), 400);
-      setTimerKey((k) => k + 1);
-      setShowTimer(true);
 
       // Save when completing a set
       setSets((prev) => {
@@ -633,6 +631,21 @@ export default function WorkoutSession() {
             );
           })}
         </div>
+      </div>
+
+      {/* Rest Timer Button */}
+      <div className="mb-4">
+        <button
+          onClick={() => {
+            setTimerKey((k) => k + 1);
+            setShowTimer(true);
+          }}
+          className="w-full h-12 rounded-xl font-semibold text-white flex items-center justify-center gap-2"
+          style={{ backgroundColor: dayColor }}
+        >
+          <Play className="w-4 h-4 fill-white" />
+          Avvia riposo ({exercise?.rest_seconds || 90}s)
+        </button>
       </div>
 
       {/* Navigation */}
