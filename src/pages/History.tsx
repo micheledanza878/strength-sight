@@ -230,8 +230,9 @@ export default function History() {
                           </p>
                           <div className="flex flex-wrap gap-2">
                             {exSets.map((s, i) => (
-                              <span key={i} className="bg-secondary rounded-lg px-3 py-1.5 text-xs font-medium">
-                                {s.reps} rep @ {s.weight}kg
+                              <span key={i} className="bg-secondary rounded-lg px-3 py-2 text-xs">
+                                <p className="font-bold">{s.weight}kg</p>
+                                <p className="text-muted-foreground">{s.reps} rep</p>
                               </span>
                             ))}
                           </div>
@@ -260,11 +261,12 @@ export default function History() {
                     {format(parseISO(pr.date), "d MMM yyyy", { locale: it })}
                   </p>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-3 shrink-0">
                   <Trophy className="w-4 h-4 text-amber-400" />
-                  <p className="font-bold text-sm">
-                    {pr.reps} rep @ {pr.weight}kg
-                  </p>
+                  <div className="text-right">
+                    <p className="font-bold text-sm">{pr.weight}kg</p>
+                    <p className="text-xs text-muted-foreground">{pr.reps} rep</p>
+                  </div>
                 </div>
               </div>
             ))}
