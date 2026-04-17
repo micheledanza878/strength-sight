@@ -110,8 +110,8 @@ export default function WorkoutSelect() {
                 className="w-full bg-card rounded-2xl p-5 text-left flex items-center justify-between active:scale-[0.98] transition-transform"
               >
                 <div>
-                  <p className="font-semibold text-base">Giorno {day.day_number}</p>
-                  <p className="text-sm text-muted-foreground">{day.day_name}</p>
+                  <p className="font-semibold text-base">{day.day_name}</p>
+                  <p className="text-sm text-muted-foreground">Giorno {day.day_number}</p>
                 </div>
                 <ChevronRight className="w-5 h-5 text-muted-foreground" />
               </button>
