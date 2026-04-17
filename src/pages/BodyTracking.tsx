@@ -254,7 +254,7 @@ export default function BodyTracking() {
 
       {/* Chart */}
       {!loading && chartData.length > 1 ? (
-        <div className="bg-card rounded-2xl p-4 mb-4 h-52">
+        <div className="bg-card rounded-2xl p-4 mb-4 h-52 flex items-center justify-center">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
