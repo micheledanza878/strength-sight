@@ -6,7 +6,7 @@ import {
 } from "date-fns";
 import { it } from "date-fns/locale";
 import { ChevronRight, Flame, Trophy } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, LineChart, Line } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, LineChart, Line, CartesianGrid } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
