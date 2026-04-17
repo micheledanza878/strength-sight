@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ChevronRight, ArrowLeft, Loader } from "lucide-react";
+import { ChevronRight, ArrowLeft, Loader, Plus } from "lucide-react";
 
 interface WorkoutPlan {
   id: string;
@@ -117,7 +117,16 @@ export default function WorkoutSelect() {
 
   return (
     <div className="px-5 pt-14 pb-24 min-h-screen">
-      <h1 className="text-3xl font-bold mb-1">Schede</h1>
+      <div className="flex items-center justify-between mb-1">
+        <h1 className="text-3xl font-bold">Schede</h1>
+        <button
+          onClick={() => navigate("/create-plan")}
+          className="flex items-center gap-1.5 text-primary text-sm font-semibold"
+        >
+          <Plus className="w-5 h-5" />
+          Nuova
+        </button>
+      </div>
       <p className="text-muted-foreground text-sm mb-6">Scegli il tuo programma</p>
 
       {loading ? (
