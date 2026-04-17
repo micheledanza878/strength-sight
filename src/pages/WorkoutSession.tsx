@@ -371,6 +371,12 @@ export default function WorkoutSession() {
   function toggleSet(idx: number) {
     const exName = exercise?.exercise_name || "";
     const current = (sets[exName] || [])[idx];
+
+    if (!current) {
+      console.warn("Set non trovato:", exName, idx);
+      return;
+    }
+
     if (!current.done) {
       setJustDone(`${exName}-${idx}`);
       setTimeout(() => setJustDone(null), 400);
