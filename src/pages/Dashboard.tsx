@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval,
-  isSameDay, parseISO, startOfWeek, subDays, getWeek,
+  isSameDay, parseISO, startOfWeek, subDays, getWeek, differenceInDays,
 } from "date-fns";
 import { it } from "date-fns/locale";
-import { ChevronRight, Flame } from "lucide-react";
+import { ChevronRight, Flame, Trophy } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, LineChart, Line } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -52,6 +52,8 @@ export default function Dashboard() {
   const [monthVolume, setMonthVolume] = useState(0);
   const [volumeChart, setVolumeChart] = useState<VolumePoint[]>([]);
   const [weeklyVolumeChart, setWeeklyVolumeChart] = useState<{ week: string; volume: number }[]>([]);
+  const [topPRs, setTopPRs] = useState<{ exercise: string; weight: number; reps: number }[]>([]);
+  const [lastMeasurementDaysAgo, setLastMeasurementDaysAgo] = useState<number | null>(null);
 
   const [plans, setPlans] = useState<WorkoutPlan[]>([]);
   const [currentPlanId, setCurrentPlanId] = useState<string | null>(null);
@@ -219,6 +221,42 @@ export default function Dashboard() {
       setWeeklyVolumeChart(weeklyData);
     }
 
+    // Top 3 PRs
+    const { data: allLogs } = await supabase
+      .from("workout_logs")
+      .select("id, set_logs(exercise_name, weight, reps)")
+      .not("completed_at", "is", null);
+
+    if (allLogs) {
+      const prMap: Record<string, { weight: number; reps: number }> = {};
+      allLogs.forEach((log) => {
+        const sets = (log.set_logs as { exercise_name: string; weight: number; reps: number }[]) || [];
+        sets.forEach((s) => {
+          const cur = prMap[s.exercise_name];
+          if (!cur || s.weight > cur.weight || (s.weight === cur.weight && s.reps > cur.reps)) {
+            prMap[s.exercise_name] = { weight: s.weight, reps: s.reps };
+          }
+        });
+      });
+      const prs = Object.entries(prMap)
+        .map(([exercise, { weight, reps }]) => ({ exercise, weight, reps }))
+        .sort((a, b) => b.weight - a.weight)
+        .slice(0, 3);
+      setTopPRs(prs);
+    }
+
+    // Last measurement
+    const { data: measurements } = await supabase
+      .from("body_measurements")
+      .select("measured_at")
+      .order("measured_at", { ascending: false })
+      .limit(1);
+
+    if (measurements && measurements.length > 0) {
+      const days = differenceInDays(now, parseISO(measurements[0].measured_at));
+      setLastMeasurementDaysAgo(days);
+    }
+
     setLoading(false);
   }
 
@@ -288,6 +326,28 @@ export default function Dashboard() {
           <ChevronRight className="w-5 h-5 text-muted-foreground" />
         </div>
       </button>}
+
+      {/* Summary Card */}
+      {!loading && (
+        <div className="bg-card rounded-2xl p-5 mb-4">
+          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-4">Riassunto</p>
+          <div className="space-y-3">
+            {topPRs.length > 0 && (
+              <div>
+                <p className="text-xs text-muted-foreground mb-2">🏆 Top PR</p>
+                <p className="text-sm font-semibold">{topPRs[0].exercise}</p>
+                <p className="text-xs text-muted-foreground">{topPRs[0].weight}kg × {topPRs[0].reps} rep</p>
+              </div>
+            )}
+            {lastMeasurementDaysAgo !== null && (
+              <div className="pt-2 border-t border-border">
+                <p className="text-xs text-muted-foreground">📅 Ultima misurazione</p>
+                <p className="text-sm font-semibold">{lastMeasurementDaysAgo} giorni fa</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Stats Row */}
       {!loading && (
