@@ -22,6 +22,10 @@ export default function RestTimer({ seconds, color = "hsl(var(--primary))", onCo
 
   useEffect(() => {
     if (remaining <= 0) {
+      // Vibrazione quando il tempo finisce
+      if (navigator.vibrate) {
+        navigator.vibrate([100, 50, 100]); // 100ms vibrazione, 50ms pausa, 100ms vibrazione
+      }
       onCompleteRef.current();
       return;
     }
