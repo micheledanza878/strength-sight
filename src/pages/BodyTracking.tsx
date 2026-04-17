@@ -150,6 +150,32 @@ export default function BodyTracking() {
     }));
 
   const latest = measurements.length > 0 ? measurements[measurements.length - 1] : null;
+  const previous = measurements.length > 1 ? measurements[measurements.length - 2] : null;
+
+  function getTrend(key: keyof Measurement): "up" | "down" | "stable" {
+    if (!latest || !previous) return "stable";
+    const curr = latest[key];
+    const prev = previous[key];
+    if (typeof curr !== "number" || typeof prev !== "number") return "stable";
+    if (curr > prev) return "up";
+    if (curr < prev) return "down";
+    return "stable";
+  }
+
+  function getStats(key: keyof Measurement) {
+    const values = measurements
+      .map((m) => m[key])
+      .filter((v): v is number => typeof v === "number");
+    if (values.length === 0) return { min: 0, max: 0, avg: 0, change: 0 };
+    return {
+      min: Math.min(...values),
+      max: Math.max(...values),
+      avg: values.reduce((a, b) => a + b, 0) / values.length,
+      change: latest && previous && typeof latest[key] === "number" && typeof previous[key] === "number"
+        ? (latest[key] as number) - (previous[key] as number)
+        : 0,
+    };
+  }
 
   function nextStep() {
     if (step === "base") setStep("upper");
@@ -255,6 +281,85 @@ export default function BodyTracking() {
               <p className="text-xs text-muted-foreground mt-1">braccia cm</p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Detailed Progress Cards */}
+      {!loading && latest && (
+        <div className="space-y-3 mb-6">
+          {latest.weight && (
+            <div className="bg-card rounded-2xl p-4">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-semibold uppercase text-muted-foreground">Peso</p>
+                <span className={`text-lg ${getTrend("weight") === "down" ? "text-green-500" : getTrend("weight") === "up" ? "text-red-500" : "text-muted-foreground"}`}>
+                  {getTrend("weight") === "down" ? "↓" : getTrend("weight") === "up" ? "↑" : "→"}
+                </span>
+              </div>
+              <p className="text-2xl font-bold mb-1">{latest.weight} kg</p>
+              <div className="grid grid-cols-3 gap-2 text-xs">
+                <div>
+                  <p className="text-muted-foreground">Min</p>
+                  <p className="font-semibold">{getStats("weight").min} kg</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Avg</p>
+                  <p className="font-semibold">{getStats("weight").avg.toFixed(1)} kg</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Max</p>
+                  <p className="font-semibold">{getStats("weight").max} kg</p>
+                </div>
+              </div>
+              {previous && typeof latest.weight === "number" && typeof previous.weight === "number" && (
+                <p className={`text-xs mt-2 ${(latest.weight as number) - (previous.weight as number) < 0 ? "text-green-500" : "text-red-500"}`}>
+                  {(latest.weight as number) - (previous.weight as number) > 0 ? "+" : ""}{((latest.weight as number) - (previous.weight as number)).toFixed(1)} kg da ultima volta
+                </p>
+              )}
+            </div>
+          )}
+          {latest.braccio_front_cm && (
+            <div className="bg-card rounded-2xl p-4">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-semibold uppercase text-muted-foreground">Braccio</p>
+                <span className={`text-lg ${getTrend("braccio_front_cm") === "up" ? "text-green-500" : getTrend("braccio_front_cm") === "down" ? "text-red-500" : "text-muted-foreground"}`}>
+                  {getTrend("braccio_front_cm") === "up" ? "↑" : getTrend("braccio_front_cm") === "down" ? "↓" : "→"}
+                </span>
+              </div>
+              <p className="text-2xl font-bold mb-1">{latest.braccio_front_cm} cm</p>
+              <div className="grid grid-cols-3 gap-2 text-xs">
+                <div>
+                  <p className="text-muted-foreground">Min</p>
+                  <p className="font-semibold">{getStats("braccio_front_cm").min} cm</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Avg</p>
+                  <p className="font-semibold">{getStats("braccio_front_cm").avg.toFixed(1)} cm</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Max</p>
+                  <p className="font-semibold">{getStats("braccio_front_cm").max} cm</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Timeline */}
+      {!loading && measurements.length > 0 && (
+        <div className="bg-card rounded-2xl p-5 mb-6">
+          <p className="text-xs font-semibold uppercase text-muted-foreground mb-4">Cronologia misurazioni</p>
+          <div className="space-y-3">
+            {measurements.slice(-5).reverse().map((m, idx) => (
+              <div key={m.id} className="flex items-center justify-between pb-3 border-b border-border last:border-b-0">
+                <div>
+                  <p className="text-sm font-semibold">{format(parseISO(m.measured_at), "d MMM yyyy", { locale: it })}</p>
+                  {m.notes && <p className="text-xs text-muted-foreground italic mt-1">"{m.notes}"</p>}
+                </div>
+                {m.weight && <p className="text-sm font-bold">{m.weight} kg</p>}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
