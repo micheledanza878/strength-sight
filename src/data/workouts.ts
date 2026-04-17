@@ -16,8 +16,8 @@ export interface WorkoutDay {
 export const WORKOUT_DAYS: WorkoutDay[] = [
   {
     id: "A",
-    label: "Giorno A",
-    title: "Petto / Dorso",
+    label: "Petto / Dorso",
+    title: "A",
     color: "hsl(210, 100%, 50%)",
     exercises: [
       { name: "Push-up", sets: 4, reps: "Max" },
@@ -31,8 +31,8 @@ export const WORKOUT_DAYS: WorkoutDay[] = [
   },
   {
     id: "B",
-    label: "Giorno B",
-    title: "Spalle / Braccia",
+    label: "Spalle / Braccia",
+    title: "B",
     color: "hsl(38, 92%, 50%)",
     exercises: [
       { name: "Military Press", sets: 4, reps: "6-8", weight: "20kg" },
@@ -46,8 +46,8 @@ export const WORKOUT_DAYS: WorkoutDay[] = [
   },
   {
     id: "C",
-    label: "Giorno C",
-    title: "Petto / Braccia",
+    label: "Petto / Braccia",
+    title: "C",
     color: "hsl(145, 65%, 42%)",
     exercises: [
       { name: "Push Up", sets: 4, reps: "Max" },
@@ -62,8 +62,8 @@ export const WORKOUT_DAYS: WorkoutDay[] = [
   },
   {
     id: "D",
-    label: "Giorno D",
-    title: "Dorso / Spalle",
+    label: "Dorso / Spalle",
+    title: "D",
     color: "hsl(280, 70%, 55%)",
     exercises: [
       { name: "Trazioni elastico", sets: 4, reps: "Max" },
@@ -78,7 +78,7 @@ export const WORKOUT_DAYS: WorkoutDay[] = [
   {
     id: "Gambe",
     label: "Gambe",
-    title: "Gambe",
+    title: "E",
     color: "hsl(0, 72%, 51%)",
     exercises: [
       { name: "Affondi bulgari", sets: 4, reps: "8" },
