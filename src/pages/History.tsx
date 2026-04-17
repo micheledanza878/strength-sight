@@ -36,7 +36,6 @@ export default function History() {
     const { data } = await supabase
       .from("workout_logs")
       .select("id, workout_day, started_at, completed_at, set_logs (exercise_name, set_number, reps, weight)")
-      .eq("user_id", uid)
       .not("completed_at", "is", null)
       .order("started_at", { ascending: false });
 

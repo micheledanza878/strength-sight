@@ -41,7 +41,6 @@ export default function BodyMetricsModal({
 
     try {
       const { error } = await supabase.from("body_measurements").insert({
-        user_id: userId,
         weight: form.weight ? parseFloat(form.weight) : null,
         body_fat: form.body_fat ? parseFloat(form.body_fat) : null,
         arms: form.arms ? parseFloat(form.arms) : null,
