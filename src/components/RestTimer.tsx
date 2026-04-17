@@ -24,8 +24,41 @@ export default function RestTimer({ seconds, color = "hsl(var(--primary))", onCo
     if (remaining <= 0) {
       // Vibrazione quando il tempo finisce
       if (navigator.vibrate) {
-        navigator.vibrate([100, 50, 100]); // 100ms vibrazione, 50ms pausa, 100ms vibrazione
+        navigator.vibrate([100, 50, 100]);
       }
+
+      // Audio alert - funziona anche in background
+      try {
+        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+
+        // Primo beep
+        oscillator.frequency.value = 800;
+        oscillator.type = 'sine';
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.2);
+
+        // Secondo beep dopo pausa
+        const osc2 = audioContext.createOscillator();
+        osc2.connect(gainNode);
+        osc2.frequency.value = 800;
+        osc2.type = 'sine';
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime + 0.3);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+
+        osc2.start(audioContext.currentTime + 0.3);
+        osc2.stop(audioContext.currentTime + 0.5);
+      } catch (e) {
+        console.log("Audio non disponibile");
+      }
+
       onCompleteRef.current();
       return;
     }
