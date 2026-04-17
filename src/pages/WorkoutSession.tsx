@@ -380,15 +380,23 @@ export default function WorkoutSession() {
         const updated = [...(prev[exName] || [])];
         updated[idx] = { ...updated[idx], done: true };
 
-        // Save to DB
+        // Save to DB async
         if (workoutLogId && updated[idx].weight && updated[idx].reps) {
-          supabase.from("set_logs").insert({
-            workout_log_id: workoutLogId,
-            exercise_name: exName,
-            set_number: idx + 1,
-            reps: parseInt(updated[idx].reps) || 0,
-            weight: parseFloat(updated[idx].weight) || 0,
-          }).catch((error) => console.error("Errore salvataggio set:", error));
+          const reps = parseInt(updated[idx].reps);
+          const weight = parseFloat(updated[idx].weight);
+
+          if (!isNaN(reps) && !isNaN(weight)) {
+            supabase.from("set_logs").insert({
+              workout_log_id: workoutLogId,
+              exercise_name: exName,
+              set_number: idx + 1,
+              reps: reps,
+              weight: weight,
+            }).catch((error) => {
+              console.error("Errore salvataggio set:", error);
+              toast({ title: "Errore", description: "Impossibile salvare il set", variant: "destructive" });
+            });
+          }
         }
 
         return { ...prev, [exName]: updated };
