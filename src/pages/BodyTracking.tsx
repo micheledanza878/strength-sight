@@ -26,6 +26,7 @@ interface Measurement {
   coscia_cm: number | null;
   polpaccio_cm: number | null;
   measured_at: string;
+  notes: string | null;
 }
 
 export default function BodyTracking() {
@@ -39,7 +40,7 @@ export default function BodyTracking() {
     petto_torace_cm: "", vita_cm: "",
     fianchi_cm: "",
     schiena_altezza_dorsali_cm: "", spalle_ampiezza_cm: "", glutei_circonferenza_cm: "",
-    coscia_cm: "", polpaccio_cm: ""
+    coscia_cm: "", polpaccio_cm: "", notes: ""
   });
   const [saving, setSaving] = useState(false);
   const [activeChart, setActiveChart] = useState<"weight" | "petto_torace_cm" | "collo_cm" | "braccio_front_cm" | "avambraccio_cm" | "vita_cm" | "fianchi_cm" | "schiena_altezza_dorsali_cm" | "spalle_ampiezza_cm" | "glutei_circonferenza_cm" | "coscia_cm" | "polpaccio_cm">("weight");
@@ -77,6 +78,7 @@ export default function BodyTracking() {
         glutei_circonferenza_cm: form.glutei_circonferenza_cm ? parseFloat(form.glutei_circonferenza_cm) : null,
         coscia_cm: form.coscia_cm ? parseFloat(form.coscia_cm) : null,
         polpaccio_cm: form.polpaccio_cm ? parseFloat(form.polpaccio_cm) : null,
+        notes: form.notes || null,
       });
 
       if (error) throw error;
@@ -95,7 +97,7 @@ export default function BodyTracking() {
         petto_torace_cm: "", vita_cm: "",
         fianchi_cm: "",
         schiena_altezza_dorsali_cm: "", spalle_ampiezza_cm: "", glutei_circonferenza_cm: "",
-        coscia_cm: "", polpaccio_cm: ""
+        coscia_cm: "", polpaccio_cm: "", notes: ""
       });
       setStep("base");
       setShowForm(false);
@@ -378,6 +380,19 @@ export default function BodyTracking() {
                 />
               </div>
             ))}
+
+            {/* Notes field (only on last step) */}
+            {step === "lower" && (
+              <div>
+                <label className="text-xs text-muted-foreground font-medium block mb-2">Note (opzionale)</label>
+                <textarea
+                  placeholder="Es. Mi sento più snello, aumentato forza..."
+                  value={form.notes}
+                  onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
+                  className="w-full h-20 bg-card border border-border rounded-xl px-4 py-2 text-sm text-foreground outline-none focus:border-primary resize-none"
+                />
+              </div>
+            )}
           </div>
 
           {/* Navigation buttons */}
