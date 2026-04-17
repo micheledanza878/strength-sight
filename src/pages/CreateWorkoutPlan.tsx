@@ -387,7 +387,7 @@ export default function CreateWorkoutPlan() {
       )}
 
       {/* Bottom Buttons */}
-      <div className="fixed bottom-24 left-4 right-4 max-w-[412px] mx-auto flex gap-3">
+      <div className="fixed bottom-24 left-4 right-4 max-w-[412px] mx-auto flex gap-3 pb-2">
         {step === "plan" && (
           <button
             onClick={handlePlanNext}
