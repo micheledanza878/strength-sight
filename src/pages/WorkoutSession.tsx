@@ -24,6 +24,18 @@ function formatElapsed(seconds: number) {
   return `${m}:${s}`;
 }
 
+function getExerciseIcon(exerciseName: string): string {
+  const name = exerciseName.toLowerCase();
+  if (name.includes("squat") || name.includes("leg press") || name.includes("calf") || name.includes("leg") || name.includes("lunge")) return "🦵";
+  if (name.includes("curl") || name.includes("braccia") || name.includes("braccio")) return "💪";
+  if (name.includes("bench") || name.includes("petto") || name.includes("chest") || name.includes("push")) return "🏋️";
+  if (name.includes("row") || name.includes("pull") || name.includes("lat") || name.includes("schiena")) return "📌";
+  if (name.includes("shoulder") || name.includes("spalla") || name.includes("press")) return "🎯";
+  if (name.includes("dead") || name.includes("stacco")) return "⚡";
+  if (name.includes("plank") || name.includes("crunch") || name.includes("addominali") || name.includes("abs")) return "🫀";
+  return "🏋️";
+}
+
 interface PlanExercise {
   id: string;
   exercise_name: string;
@@ -222,10 +234,7 @@ export default function WorkoutSession() {
         <div className="space-y-2 mb-8">
           {exercises.map((ex, i) => (
             <div key={ex.id} className="bg-card rounded-2xl px-4 py-3 flex items-center gap-3">
-              <span className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0"
-                style={{ backgroundColor: "hsla(210, 100%, 50%, 0.13)", color: dayColor }}>
-                {i + 1}
-              </span>
+              <span className="text-xl">{getExerciseIcon(ex.exercise_name)}</span>
               <div className="flex-1">
                 <p className="font-medium text-sm">{ex.exercise_name}</p>
                 <p className="text-xs text-muted-foreground">
@@ -440,7 +449,10 @@ export default function WorkoutSession() {
 
       {/* Current exercise */}
       <div className="bg-card rounded-2xl p-5 mb-4" style={{ borderTop: `3px solid ${dayColor}` }}>
-        <p className="text-lg font-bold mb-1">{exercise.exercise_name}</p>
+        <div className="flex items-center gap-3 mb-1">
+          <span className="text-2xl">{getExerciseIcon(exercise.exercise_name)}</span>
+          <p className="text-lg font-bold">{exercise.exercise_name}</p>
+        </div>
         <p className="text-sm text-muted-foreground mb-4">
           {exercise.sets} × {exercise.reps_min}{exercise.reps_max && exercise.reps_max !== exercise.reps_min ? `-${exercise.reps_max}` : ""} reps
           {exercise.notes ? ` · ${exercise.notes}` : ""}
