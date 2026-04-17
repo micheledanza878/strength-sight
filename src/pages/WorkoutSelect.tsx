@@ -10,6 +10,11 @@ interface WorkoutPlan {
   duration_weeks: number | null;
 }
 
+interface State {
+  selectedPlan: string | null;
+  activePlanId: string | null;
+}
+
 interface WorkoutDay {
   id: string;
   day_number: number;
@@ -29,6 +34,7 @@ export default function WorkoutSelect() {
   const navigate = useNavigate();
   const [plans, setPlans] = useState<WorkoutPlan[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+  const [activePlanId, setActivePlanId] = useState<string | null>(null);
   const [days, setDays] = useState<WorkoutDay[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -45,6 +51,7 @@ export default function WorkoutSelect() {
 
       if (error) throw error;
       setPlans(data || []);
+      setActivePlanId(localStorage.getItem('activePlanId'));
     } catch (error) {
       console.error("Errore caricamento schede:", error);
     } finally {
@@ -134,14 +141,20 @@ export default function WorkoutSelect() {
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          {plans.map((plan) => (
+          {plans.map((plan) => {
+            const isActive = activePlanId === plan.id;
+            return (
             <button
               key={plan.id}
               onClick={() => {
                 setSelectedPlan(plan.id);
                 loadDays(plan.id);
               }}
-              className="w-full bg-card rounded-2xl p-5 text-left flex items-center justify-between active:scale-[0.98] transition-transform"
+              className={`w-full rounded-2xl p-5 text-left flex items-center justify-between active:scale-[0.98] transition-all ${
+                isActive
+                  ? "bg-primary/10 border-2 border-primary"
+                  : "bg-card border-2 border-transparent"
+              }`}
             >
               <div>
                 <p className="font-semibold text-base">{plan.name}</p>
@@ -151,7 +164,8 @@ export default function WorkoutSelect() {
               </div>
               <ChevronRight className="w-5 h-5 text-muted-foreground" />
             </button>
-          ))}
+          );
+          })}
         </div>
       )}
     </div>
