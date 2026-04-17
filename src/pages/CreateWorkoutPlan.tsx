@@ -203,7 +203,7 @@ export default function CreateWorkoutPlan() {
 
       {/* STEP 1: Plan Info */}
       {step === "plan" && (
-        <div className="space-y-4 mb-8">
+        <div className="space-y-4 mb-8 animate-in fade-in duration-300">
           <div>
             <label className="text-xs text-muted-foreground font-medium uppercase tracking-wider block mb-2">
               Nome scheda
@@ -251,7 +251,7 @@ export default function CreateWorkoutPlan() {
 
       {/* STEP 2: Days Configuration */}
       {step === "days" && (
-        <div className="space-y-3 mb-8">
+        <div className="space-y-3 mb-8 animate-in fade-in duration-300">
           {days.map((day, idx) => (
             <div key={idx} className="bg-card rounded-2xl p-4">
               <label className="text-xs text-muted-foreground font-medium uppercase tracking-wider block mb-2">
@@ -271,7 +271,7 @@ export default function CreateWorkoutPlan() {
 
       {/* STEP 3: Exercises */}
       {step === "exercises" && (
-        <div>
+        <div className="animate-in fade-in duration-300">
           {/* Day selector */}
           <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
             {days.map((day, idx) => (

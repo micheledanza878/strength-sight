@@ -362,7 +362,7 @@ export default function BodyTracking() {
           </p>
 
           {/* Fields for current step */}
-          <div className="space-y-4 overflow-y-auto flex-1 mb-6">
+          <div className="space-y-4 overflow-y-auto flex-1 mb-6 animate-in fade-in duration-300">
             {getStepFields().map((f) => (
               <div key={f.key}>
                 <label className="text-xs text-muted-foreground font-medium block mb-2">{f.label}</label>
