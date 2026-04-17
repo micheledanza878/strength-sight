@@ -633,21 +633,6 @@ export default function WorkoutSession() {
         </div>
       </div>
 
-      {/* Rest Timer Button */}
-      <div className="mb-4">
-        <button
-          onClick={() => {
-            setTimerKey((k) => k + 1);
-            setShowTimer(true);
-          }}
-          className="w-full h-12 rounded-xl font-semibold text-white flex items-center justify-center gap-2"
-          style={{ backgroundColor: dayColor }}
-        >
-          <Play className="w-4 h-4 fill-white" />
-          Avvia riposo ({exercise?.rest_seconds || 90}s)
-        </button>
-      </div>
-
       {/* Navigation */}
       <div className="flex gap-3 fixed bottom-24 left-4 right-4 max-w-[412px] mx-auto">
         {currentExIdx > 0 && (
