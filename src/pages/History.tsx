@@ -207,8 +207,8 @@ export default function History() {
                         className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
                         style={{ backgroundColor: (day?.color || "#888") + "22" }}
                       >
-                        <span className="text-sm font-bold" style={{ color: day?.color || "#888" }}>
-                          {log.workout_day.slice(0, 1)}
+                        <span className="text-lg">
+                          {day?.emoji || log.workout_day.slice(0, 1)}
                         </span>
                       </div>
                       <div>

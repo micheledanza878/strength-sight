@@ -10,6 +10,8 @@ export interface WorkoutDay {
   label: string;
   title: string;
   color: string; // tailwind color token
+  icon: string; // lucide icon name
+  emoji: string; // emoji for quick visual
   exercises: Exercise[];
 }
 
@@ -19,6 +21,8 @@ export const WORKOUT_DAYS: WorkoutDay[] = [
     label: "Petto / Dorso",
     title: "A",
     color: "hsl(210, 100%, 50%)",
+    icon: "Dumbbell",
+    emoji: "💪",
     exercises: [
       { name: "Push-up", sets: 4, reps: "Max" },
       { name: "Croci panca piana", sets: 4, reps: "10" },
@@ -34,6 +38,8 @@ export const WORKOUT_DAYS: WorkoutDay[] = [
     label: "Spalle / Braccia",
     title: "B",
     color: "hsl(38, 92%, 50%)",
+    icon: "Zap",
+    emoji: "⚡",
     exercises: [
       { name: "Military Press", sets: 4, reps: "6-8", weight: "20kg" },
       { name: "Alzate posteriori", sets: 4, reps: "10", weight: "12kg" },
@@ -49,6 +55,8 @@ export const WORKOUT_DAYS: WorkoutDay[] = [
     label: "Petto / Braccia",
     title: "C",
     color: "hsl(145, 65%, 42%)",
+    icon: "Flame",
+    emoji: "🔥",
     exercises: [
       { name: "Push Up", sets: 4, reps: "Max" },
       { name: "Spinta stretta", sets: 4, reps: "6-8" },
@@ -65,6 +73,8 @@ export const WORKOUT_DAYS: WorkoutDay[] = [
     label: "Dorso / Spalle",
     title: "D",
     color: "hsl(280, 70%, 55%)",
+    icon: "ArrowDown",
+    emoji: "🔙",
     exercises: [
       { name: "Trazioni elastico", sets: 4, reps: "Max" },
       { name: "Rematore panca", sets: 4, reps: "6-8" },
@@ -80,6 +90,8 @@ export const WORKOUT_DAYS: WorkoutDay[] = [
     label: "Gambe",
     title: "E",
     color: "hsl(0, 72%, 51%)",
+    icon: "Leg",
+    emoji: "🦵",
     exercises: [
       { name: "Affondi bulgari", sets: 4, reps: "8" },
       { name: "Stacco rumeno", sets: 4, reps: "8" },
