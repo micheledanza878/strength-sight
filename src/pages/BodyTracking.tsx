@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from "recharts";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, differenceInDays } from "date-fns";
 import { it } from "date-fns/locale";
 import { Plus, Check, ChevronRight, X, ArrowLeft } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -205,6 +205,11 @@ export default function BodyTracking() {
         <div>
           <h1 className="text-3xl font-bold">Corpo</h1>
           <p className="text-muted-foreground text-sm">Misurazioni e progresso</p>
+          {latest && (
+            <p className="text-xs text-muted-foreground mt-2">
+              📅 Ultima misurazione: {differenceInDays(new Date(), parseISO(latest.measured_at))} giorni fa
+            </p>
+          )}
         </div>
         <button
           onClick={() => setShowForm(true)}
