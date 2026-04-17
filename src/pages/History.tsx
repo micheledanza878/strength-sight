@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO, differenceInMinutes } from "date-fns";
 import { it } from "date-fns/locale";
-import { ChevronDown, ChevronUp, Trophy } from "lucide-react";
+import { ChevronDown, ChevronUp, Trophy, Plus } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
@@ -43,6 +44,7 @@ interface WorkoutPlan {
 }
 
 export default function History() {
+  const navigate = useNavigate();
   const [logs, setLogs] = useState<WorkoutLog[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"history" | "records">("history");
@@ -122,11 +124,20 @@ export default function History() {
       <p className="text-muted-foreground text-sm mb-4">I tuoi allenamenti</p>
 
       {/* Workout Plan Selector */}
-      {plans.length > 0 && (
-        <div className="mb-6">
-          <label className="text-xs text-muted-foreground font-medium uppercase tracking-wider block mb-2">
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-2">
+          <label className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
             Scheda allenamento
           </label>
+          <button
+            onClick={() => navigate("/create-plan")}
+            className="flex items-center gap-1.5 text-primary text-xs font-semibold"
+          >
+            <Plus className="w-4 h-4" />
+            Nuova
+          </button>
+        </div>
+        {plans.length > 0 ? (
           <Select value={currentPlanId || ""} onValueChange={changePlan}>
             <SelectTrigger className="w-full bg-card border-0 h-12">
               <SelectValue placeholder="Seleziona scheda" />
@@ -140,8 +151,10 @@ export default function History() {
               ))}
             </SelectContent>
           </Select>
-        </div>
-      )}
+        ) : (
+          <p className="text-sm text-muted-foreground py-3">Nessuna scheda. <button onClick={() => navigate("/create-plan")} className="text-primary font-semibold">Creane una</button></p>
+        )}
+      </div>
 
       <div className="flex gap-2 mb-6">
         <button
