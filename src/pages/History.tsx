@@ -231,7 +231,7 @@ export default function History() {
                           <div className="flex flex-wrap gap-2">
                             {exSets.map((s, i) => (
                               <span key={i} className="bg-secondary rounded-lg px-3 py-1.5 text-xs font-medium">
-                                {s.reps} rep{s.weight > 0 ? ` × ${s.weight}kg` : ""}
+                                {s.reps} rep @ {s.weight}kg
                               </span>
                             ))}
                           </div>
@@ -262,10 +262,9 @@ export default function History() {
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <Trophy className="w-4 h-4 text-amber-400" />
-                  <div className="text-right">
-                    {pr.weight > 0 && <p className="font-bold text-sm">{pr.weight} kg</p>}
-                    <p className="text-xs text-muted-foreground">{pr.reps} rep</p>
-                  </div>
+                  <p className="font-bold text-sm">
+                    {pr.weight > 0 ? `${pr.weight} kg × ${pr.reps} rep` : `${pr.reps} rep`}
+                  </p>
                 </div>
               </div>
             ))}
