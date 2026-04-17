@@ -43,6 +43,7 @@ export default function BodyTracking() {
   });
   const [saving, setSaving] = useState(false);
   const [activeChart, setActiveChart] = useState<"weight" | "petto_torace_cm" | "collo_cm" | "braccio_front_cm" | "avambraccio_cm" | "vita_cm" | "fianchi_cm" | "schiena_altezza_dorsali_cm" | "spalle_ampiezza_cm" | "glutei_circonferenza_cm" | "coscia_cm" | "polpaccio_cm">("weight");
+  const [chartGroup, setChartGroup] = useState<"weight" | "upper" | "lower">("weight");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -111,20 +112,28 @@ export default function BodyTracking() {
     }
   }
 
-  const chartTabs = [
-    { key: "weight" as const, label: "Peso", unit: "kg" },
+  const upperCharts = [
     { key: "collo_cm" as const, label: "Collo", unit: "cm" },
     { key: "braccio_front_cm" as const, label: "Braccio", unit: "cm" },
     { key: "avambraccio_cm" as const, label: "Avambraccio", unit: "cm" },
     { key: "petto_torace_cm" as const, label: "Petto", unit: "cm" },
     { key: "schiena_altezza_dorsali_cm" as const, label: "Schiena", unit: "cm" },
     { key: "spalle_ampiezza_cm" as const, label: "Spalle", unit: "cm" },
+  ];
+
+  const lowerCharts = [
     { key: "vita_cm" as const, label: "Vita", unit: "cm" },
     { key: "fianchi_cm" as const, label: "Fianchi", unit: "cm" },
     { key: "glutei_circonferenza_cm" as const, label: "Glutei", unit: "cm" },
     { key: "coscia_cm" as const, label: "Coscia", unit: "cm" },
     { key: "polpaccio_cm" as const, label: "Polpaccio", unit: "cm" },
   ];
+
+  const getChartTabs = () => {
+    if (chartGroup === "upper") return upperCharts;
+    if (chartGroup === "lower") return lowerCharts;
+    return [{ key: "weight" as const, label: "Peso", unit: "kg" }];
+  };
 
   const chartData = measurements
     .filter((m) => m[activeChart] != null)
@@ -237,20 +246,51 @@ export default function BodyTracking() {
         </div>
       )}
 
-      {/* Chart Tabs */}
-      {!loading && <div className="flex gap-2 overflow-x-auto pb-3 mb-4 no-scrollbar">
-        {chartTabs.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveChart(tab.key)}
-            className={`flex-shrink-0 px-4 py-2 rounded-full text-xs font-semibold transition-colors
-              ${activeChart === tab.key ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}
-            `}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>}
+      {/* Chart Group Selector */}
+      {!loading && (
+        <div className="space-y-4 mb-4">
+          {chartGroup === "weight" && (
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setChartGroup("upper"); setActiveChart("collo_cm"); }}
+                className="flex-1 h-12 rounded-2xl bg-primary text-primary-foreground font-bold text-sm transition-transform active:scale-95"
+              >
+                Upper
+              </button>
+              <button
+                onClick={() => { setChartGroup("lower"); setActiveChart("vita_cm"); }}
+                className="flex-1 h-12 rounded-2xl bg-primary text-primary-foreground font-bold text-sm transition-transform active:scale-95"
+              >
+                Lower
+              </button>
+            </div>
+          )}
+
+          {(chartGroup === "upper" || chartGroup === "lower") && (
+            <>
+              <button
+                onClick={() => { setChartGroup("weight"); setActiveChart("weight"); }}
+                className="w-full h-10 rounded-xl bg-secondary text-secondary-foreground font-semibold text-xs transition-colors active:scale-95"
+              >
+                ← Indietro
+              </button>
+              <div className="grid grid-cols-2 gap-2">
+                {getChartTabs().map((tab) => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveChart(tab.key)}
+                    className={`h-12 rounded-xl text-xs font-semibold transition-colors ${
+                      activeChart === tab.key ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Chart */}
       {!loading && chartData.length > 1 ? (
