@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval,
-  isSameDay, parseISO, startOfWeek, subDays,
+  isSameDay, parseISO, startOfWeek, subDays, getWeek,
 } from "date-fns";
 import { it } from "date-fns/locale";
 import { ChevronRight, Flame } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, LineChart, Line } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
@@ -51,6 +51,7 @@ export default function Dashboard() {
   const [monthCount, setMonthCount] = useState(0);
   const [monthVolume, setMonthVolume] = useState(0);
   const [volumeChart, setVolumeChart] = useState<VolumePoint[]>([]);
+  const [weeklyVolumeChart, setWeeklyVolumeChart] = useState<{ week: string; volume: number }[]>([]);
 
   const [plans, setPlans] = useState<WorkoutPlan[]>([]);
   const [currentPlanId, setCurrentPlanId] = useState<string | null>(null);
@@ -196,6 +197,28 @@ export default function Dashboard() {
       setVolumeChart(points);
     }
 
+    // Weekly volume (last 8 weeks)
+    const { data: allSets } = await supabase
+      .from("set_logs")
+      .select("weight, reps, workout_logs(started_at)")
+      .gte("created_at", subDays(now, 56).toISOString());
+
+    if (allSets) {
+      const weeklyMap: Record<string, number> = {};
+      allSets.forEach((s) => {
+        const logDate = (s.workout_logs as any)?.started_at;
+        if (logDate) {
+          const week = `W${getWeek(parseISO(logDate))}`;
+          weeklyMap[week] = (weeklyMap[week] || 0) + s.weight * s.reps;
+        }
+      });
+      const weeklyData = Object.entries(weeklyMap)
+        .sort()
+        .slice(-8)
+        .map(([week, volume]) => ({ week, volume }));
+      setWeeklyVolumeChart(weeklyData);
+    }
+
     setLoading(false);
   }
 
@@ -292,6 +315,27 @@ export default function Dashboard() {
           <p className="text-sm text-muted-foreground">
             {format(parseISO(lastWorkout.date), "d MMMM, HH:mm", { locale: it })}
           </p>
+        </div>
+      )}
+
+      {/* Weekly Volume Chart */}
+      {weeklyVolumeChart.length > 1 && (
+        <div className="bg-card rounded-2xl p-5 mb-4">
+          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-4">Volume settimanale</p>
+          <div className="h-36">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={weeklyVolumeChart}>
+                <XAxis dataKey="week" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                <YAxis hide />
+                <Tooltip
+                  contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 10, fontSize: 11 }}
+                  labelStyle={{ color: "hsl(var(--foreground))" }}
+                  formatter={(v: number) => [`${v.toLocaleString()} kg`, "Volume"]}
+                />
+                <Line type="monotone" dataKey="volume" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ fill: "hsl(var(--primary))", r: 3 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       )}
 
