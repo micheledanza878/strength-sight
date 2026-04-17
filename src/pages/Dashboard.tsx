@@ -180,7 +180,7 @@ export default function Dashboard() {
       {lastDayData && lastWorkout && (
         <div className="bg-card rounded-2xl p-5 mb-4">
           <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-1">Ultimo allenamento</p>
-          <p className="text-lg font-semibold">{lastDayData.label} — {lastDayData.title}</p>
+          <p className="text-lg font-semibold">{lastDayData.label}</p>
           <p className="text-sm text-muted-foreground">
             {format(parseISO(lastWorkout.date), "d MMMM, HH:mm", { locale: it })}
           </p>
