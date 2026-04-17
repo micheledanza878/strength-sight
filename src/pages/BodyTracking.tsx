@@ -307,7 +307,7 @@ export default function BodyTracking() {
       {!loading && chartData.length > 1 ? (
         <div className="bg-card rounded-2xl p-4 mb-4 h-52 flex justify-center">
           <ResponsiveContainer width="95%" height="100%">
-            <LineChart data={chartData}>
+            <LineChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis dataKey="date" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
               <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} domain={["auto", "auto"]} />
