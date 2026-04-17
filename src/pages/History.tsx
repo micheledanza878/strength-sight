@@ -65,7 +65,12 @@ export default function History() {
 
       if (data) {
         setPlans(data);
-        const activePlanId = localStorage.getItem('activePlanId');
+        let activePlanId = localStorage.getItem('activePlanId');
+        // Se non c'è una scheda attiva, usa l'ultima aggiunta (primo elemento)
+        if (!activePlanId && data.length > 0) {
+          activePlanId = data[0].id;
+          localStorage.setItem('activePlanId', activePlanId);
+        }
         setCurrentPlanId(activePlanId);
       }
     } catch (error) {
