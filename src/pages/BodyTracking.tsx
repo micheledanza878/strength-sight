@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { getUserId } from "@/lib/user";
 
-type MeasurementStep = "base" | "upper-front" | "upper-back" | "lower";
+type MeasurementStep = "base" | "upper" | "lower";
 
 interface Measurement {
   id: string;
@@ -143,15 +143,13 @@ export default function BodyTracking() {
   const latest = measurements.length > 0 ? measurements[measurements.length - 1] : null;
 
   function nextStep() {
-    if (step === "base") setStep("upper-front");
-    else if (step === "upper-front") setStep("upper-back");
-    else if (step === "upper-back") setStep("lower");
+    if (step === "base") setStep("upper");
+    else if (step === "upper") setStep("lower");
   }
 
   function prevStep() {
-    if (step === "upper-front") setStep("base");
-    else if (step === "upper-back") setStep("upper-front");
-    else if (step === "lower") setStep("upper-back");
+    if (step === "upper") setStep("base");
+    else if (step === "lower") setStep("upper");
   }
 
   function closeForm() {
@@ -161,8 +159,7 @@ export default function BodyTracking() {
 
   const stepTitles = {
     base: "Base",
-    "upper-front": "Upper Front",
-    "upper-back": "Upper Back",
+    upper: "Upper",
     lower: "Lower"
   };
 
@@ -174,21 +171,20 @@ export default function BodyTracking() {
           { key: "body_fat", label: "Grasso corporeo (%)", mode: "decimal" as const },
           { key: "height_cm", label: "Altezza (cm)", mode: "decimal" as const },
         ];
-      case "upper-front":
+      case "upper":
         return [
           { key: "testata_cm", label: "Testata (cm)" },
           { key: "collo_cm", label: "Collo (cm)" },
           { key: "braccio_front_cm", label: "Braccio (cm)" },
+          { key: "braccio_retro_cm", label: "Braccio retro (cm)" },
           { key: "avambraccio_cm", label: "Avambraccio (cm)" },
           { key: "petto_torace_cm", label: "Petto (cm)" },
-        ];
-      case "upper-back":
-        return [
-          { key: "braccio_retro_cm", label: "Braccio (cm)" },
           { key: "schiena_altezza_dorsali_cm", label: "Schiena (cm)" },
           { key: "spalle_ampiezza_cm", label: "Spalle (cm)" },
-          { key: "vita_retro_cm", label: "Vita (cm)" },
-          { key: "fianchi_retro_cm", label: "Fianchi (cm)" },
+          { key: "vita_cm", label: "Vita (cm)" },
+          { key: "vita_retro_cm", label: "Vita retro (cm)" },
+          { key: "fianchi_cm", label: "Fianchi (cm)" },
+          { key: "fianchi_retro_cm", label: "Fianchi retro (cm)" },
         ];
       case "lower":
         return [
@@ -302,17 +298,17 @@ export default function BodyTracking() {
             </button>
             <div>
               <h1 className="text-3xl font-bold">Nuova misurazione</h1>
-              <p className="text-xs text-muted-foreground mt-1">Step {["base", "upper-front", "upper-back", "lower"].indexOf(step) + 1} di 4</p>
+              <p className="text-xs text-muted-foreground mt-1">Step {["base", "upper", "lower"].indexOf(step) + 1} di 3</p>
             </div>
           </div>
 
           {/* Step progress */}
           <div className="flex gap-2 mb-6">
-            {(["base", "upper-front", "upper-back", "lower"] as MeasurementStep[]).map((s) => (
+            {(["base", "upper", "lower"] as MeasurementStep[]).map((s) => (
               <div
                 key={s}
                 className={`flex-1 h-1 rounded-full transition-colors ${
-                  step === s ? "bg-primary" : ["base", "upper-front", "upper-back", "lower"].indexOf(s) < ["base", "upper-front", "upper-back", "lower"].indexOf(step) ? "bg-primary/50" : "bg-secondary"
+                  step === s ? "bg-primary" : ["base", "upper", "lower"].indexOf(s) < ["base", "upper", "lower"].indexOf(step) ? "bg-primary/50" : "bg-secondary"
                 }`}
               />
             ))}
