@@ -42,7 +42,7 @@ export default function BodyTracking() {
     coscia_cm: "", polpaccio_cm: ""
   });
   const [saving, setSaving] = useState(false);
-  const [activeChart, setActiveChart] = useState<"weight" | "body_fat" | "petto_torace_cm" | "vita_cm" | "coscia_cm">("weight");
+  const [activeChart, setActiveChart] = useState<"weight" | "petto_torace_cm" | "collo_cm" | "braccio_front_cm" | "avambraccio_cm" | "vita_cm" | "fianchi_cm" | "schiena_altezza_dorsali_cm" | "spalle_ampiezza_cm" | "glutei_circonferenza_cm" | "coscia_cm" | "polpaccio_cm">("weight");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -113,10 +113,17 @@ export default function BodyTracking() {
 
   const chartTabs = [
     { key: "weight" as const, label: "Peso", unit: "kg" },
-    { key: "body_fat" as const, label: "Grasso %", unit: "%" },
+    { key: "collo_cm" as const, label: "Collo", unit: "cm" },
+    { key: "braccio_front_cm" as const, label: "Braccio", unit: "cm" },
+    { key: "avambraccio_cm" as const, label: "Avambraccio", unit: "cm" },
     { key: "petto_torace_cm" as const, label: "Petto", unit: "cm" },
+    { key: "schiena_altezza_dorsali_cm" as const, label: "Schiena", unit: "cm" },
+    { key: "spalle_ampiezza_cm" as const, label: "Spalle", unit: "cm" },
     { key: "vita_cm" as const, label: "Vita", unit: "cm" },
+    { key: "fianchi_cm" as const, label: "Fianchi", unit: "cm" },
+    { key: "glutei_circonferenza_cm" as const, label: "Glutei", unit: "cm" },
     { key: "coscia_cm" as const, label: "Coscia", unit: "cm" },
+    { key: "polpaccio_cm" as const, label: "Polpaccio", unit: "cm" },
   ];
 
   const chartData = measurements
