@@ -79,25 +79,6 @@ export default function Dashboard() {
         const nextIdx = (lastPlanIdx + 1) % planDays.length;
         setNextPlanDay(planDays[nextIdx]);
       }
-    } else {
-      // No logs yet - load first plan day
-      const activePlanId = localStorage.getItem('activePlanId');
-      let planDaysQuery = supabase
-        .from("workout_plan_days")
-        .select("*")
-        .order("day_number", { ascending: true })
-        .limit(1);
-
-      if (activePlanId) {
-        planDaysQuery = planDaysQuery.eq("workout_plan_id", activePlanId);
-      }
-
-      const { data: planDays } = await planDaysQuery;
-
-      if (planDays && planDays.length > 0) {
-        setNextPlanDay(planDays[0]);
-      }
-    }
 
       // Calendar: this month
       const monthLogs = logs.filter((l) => {
@@ -120,6 +101,24 @@ export default function Dashboard() {
         check = subDays(check, 1);
       }
       setStreak(s);
+    } else {
+      // No logs yet - load first plan day
+      const activePlanId = localStorage.getItem('activePlanId');
+      let planDaysQuery = supabase
+        .from("workout_plan_days")
+        .select("*")
+        .order("day_number", { ascending: true })
+        .limit(1);
+
+      if (activePlanId) {
+        planDaysQuery = planDaysQuery.eq("workout_plan_id", activePlanId);
+      }
+
+      const { data: planDays } = await planDaysQuery;
+
+      if (planDays && planDays.length > 0) {
+        setNextPlanDay(planDays[0]);
+      }
     }
 
     // Monthly volume from set_logs
