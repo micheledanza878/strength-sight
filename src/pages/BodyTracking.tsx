@@ -374,7 +374,7 @@ export default function BodyTracking() {
           </div>
 
           {/* Navigation buttons */}
-          <div className="flex gap-3 shrink-0">
+          <div className="flex gap-3 shrink-0 pb-2">
             {step !== "base" && (
               <button
                 onClick={prevStep}
