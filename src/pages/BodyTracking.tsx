@@ -176,7 +176,6 @@ export default function BodyTracking() {
           { key: "testata_cm", label: "Testata (cm)" },
           { key: "collo_cm", label: "Collo (cm)" },
           { key: "braccio_front_cm", label: "Braccio (cm)" },
-          { key: "braccio_retro_cm", label: "Braccio retro (cm)" },
           { key: "avambraccio_cm", label: "Avambraccio (cm)" },
           { key: "petto_torace_cm", label: "Petto (cm)" },
           { key: "schiena_altezza_dorsali_cm", label: "Schiena (cm)" },
@@ -185,14 +184,10 @@ export default function BodyTracking() {
       case "lower":
         return [
           { key: "vita_cm", label: "Vita (cm)" },
-          { key: "vita_retro_cm", label: "Vita retro (cm)" },
           { key: "fianchi_cm", label: "Fianchi (cm)" },
-          { key: "fianchi_retro_cm", label: "Fianchi retro (cm)" },
           { key: "glutei_circonferenza_cm", label: "Glutei (cm)" },
           { key: "coscia_cm", label: "Coscia (cm)" },
-          { key: "coscia_retro_cm", label: "Coscia retro (cm)" },
           { key: "polpaccio_cm", label: "Polpaccio (cm)" },
-          { key: "polpaccio_retro_cm", label: "Polpaccio retro (cm)" },
         ];
       default:
         return [];
