@@ -96,7 +96,10 @@ export default function WorkoutSelect() {
             {days.map((day) => (
               <button
                 key={day.id}
-                onClick={() => navigate(`/session/${day.id}`)}
+                onClick={() => {
+                  localStorage.setItem('activePlanId', selectedPlan);
+                  navigate(`/session/${day.id}`);
+                }}
                 className="w-full bg-card rounded-2xl p-5 text-left flex items-center justify-between active:scale-[0.98] transition-transform"
               >
                 <div>

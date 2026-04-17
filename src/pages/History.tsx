@@ -22,11 +22,19 @@ interface WorkoutLog {
   set_logs: SetLog[];
 }
 
+interface PlanDay {
+  id: string;
+  day_number: number;
+  day_name: string;
+  workout_plan_id: string;
+}
+
 export default function History() {
   const [logs, setLogs] = useState<WorkoutLog[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"history" | "records">("history");
   const [loading, setLoading] = useState(true);
+  const [planDays, setPlanDays] = useState<PlanDay[]>([]);
 
   useEffect(() => {
     loadData(getUserId());
@@ -38,6 +46,16 @@ export default function History() {
       .select("id, workout_day, started_at, completed_at, set_logs (exercise_name, set_number, reps, weight)")
       .not("completed_at", "is", null)
       .order("started_at", { ascending: false });
+
+    // Load plan days for filtering
+    const activePlanId = localStorage.getItem('activePlanId');
+    if (activePlanId) {
+      const { data: days } = await supabase
+        .from("workout_plan_days")
+        .select("*")
+        .eq("workout_plan_id", activePlanId);
+      if (days) setPlanDays(days);
+    }
 
     if (data) setLogs(data as WorkoutLog[]);
     setLoading(false);
@@ -84,11 +102,14 @@ export default function History() {
       )}
 
       {activeTab === "history" && !loading && (
-        logs.length === 0 ? (
-          <div className="text-center text-muted-foreground text-sm py-12">Nessun allenamento completato</div>
-        ) : (
-          <div className="space-y-3">
-            {logs.map((log) => {
+        (() => {
+          const planDayNames = new Set(planDays.map((d) => d.day_name));
+          const filteredLogs = planDays.length > 0 ? logs.filter((log) => planDayNames.has(log.workout_day)) : logs;
+          return filteredLogs.length === 0 ? (
+            <div className="text-center text-muted-foreground text-sm py-12">Nessun allenamento completato</div>
+          ) : (
+            <div className="space-y-3">
+              {filteredLogs.map((log) => {
               const day = WORKOUT_DAYS.find((d) => d.id === log.workout_day);
               const duration = differenceInMinutes(parseISO(log.completed_at), parseISO(log.started_at));
               const totalSets = log.set_logs.length;
@@ -159,7 +180,8 @@ export default function History() {
               );
             })}
           </div>
-        )
+          );
+        })()
       )}
 
       {activeTab === "records" && !loading && (

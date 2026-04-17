@@ -61,10 +61,17 @@ export default function Dashboard() {
       setNextWorkout(getNextWorkoutDay(logs[0].workout_day));
 
       // Load next plan day from database
-      const { data: planDays } = await supabase
+      const activePlanId = localStorage.getItem('activePlanId');
+      let planDaysQuery = supabase
         .from("workout_plan_days")
         .select("*")
         .order("day_number", { ascending: true });
+
+      if (activePlanId) {
+        planDaysQuery = planDaysQuery.eq("workout_plan_id", activePlanId);
+      }
+
+      const { data: planDays } = await planDaysQuery;
 
       if (planDays && planDays.length > 0) {
         const lastDayName = logs[0].workout_day;
@@ -74,11 +81,18 @@ export default function Dashboard() {
       }
     } else {
       // No logs yet - load first plan day
-      const { data: planDays } = await supabase
+      const activePlanId = localStorage.getItem('activePlanId');
+      let planDaysQuery = supabase
         .from("workout_plan_days")
         .select("*")
         .order("day_number", { ascending: true })
         .limit(1);
+
+      if (activePlanId) {
+        planDaysQuery = planDaysQuery.eq("workout_plan_id", activePlanId);
+      }
+
+      const { data: planDays } = await planDaysQuery;
 
       if (planDays && planDays.length > 0) {
         setNextPlanDay(planDays[0]);
