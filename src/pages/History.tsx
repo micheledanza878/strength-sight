@@ -4,6 +4,13 @@ import { format, parseISO, differenceInMinutes } from "date-fns";
 import { it } from "date-fns/locale";
 import { ChevronDown, ChevronUp, Trophy } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { WORKOUT_DAYS } from "@/data/workouts";
 import { getUserId } from "@/lib/user";
 
@@ -29,16 +36,48 @@ interface PlanDay {
   workout_plan_id: string;
 }
 
+interface WorkoutPlan {
+  id: string;
+  name: string;
+  duration_weeks: number | null;
+}
+
 export default function History() {
   const [logs, setLogs] = useState<WorkoutLog[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"history" | "records">("history");
   const [loading, setLoading] = useState(true);
   const [planDays, setPlanDays] = useState<PlanDay[]>([]);
+  const [plans, setPlans] = useState<WorkoutPlan[]>([]);
+  const [currentPlanId, setCurrentPlanId] = useState<string | null>(null);
 
   useEffect(() => {
+    loadPlans();
     loadData(getUserId());
   }, []);
+
+  async function loadPlans() {
+    try {
+      const { data } = await supabase
+        .from("workout_plans")
+        .select("id, name, duration_weeks")
+        .order("created_at", { ascending: false });
+
+      if (data) {
+        setPlans(data);
+        const activePlanId = localStorage.getItem('activePlanId');
+        setCurrentPlanId(activePlanId);
+      }
+    } catch (error) {
+      console.error("Errore caricamento schede:", error);
+    }
+  }
+
+  async function changePlan(planId: string) {
+    localStorage.setItem('activePlanId', planId);
+    setCurrentPlanId(planId);
+    loadData(getUserId());
+  }
 
   async function loadData(uid: string) {
     const { data } = await supabase
@@ -76,7 +115,29 @@ export default function History() {
   return (
     <div className="px-5 pt-14 pb-24 min-h-screen">
       <h1 className="text-3xl font-bold mb-1">Storico</h1>
-      <p className="text-muted-foreground text-sm mb-6">I tuoi allenamenti</p>
+      <p className="text-muted-foreground text-sm mb-4">I tuoi allenamenti</p>
+
+      {/* Workout Plan Selector */}
+      {plans.length > 0 && (
+        <div className="mb-6">
+          <label className="text-xs text-muted-foreground font-medium uppercase tracking-wider block mb-2">
+            Scheda allenamento
+          </label>
+          <Select value={currentPlanId || ""} onValueChange={changePlan}>
+            <SelectTrigger className="w-full bg-card border-0 h-12">
+              <SelectValue placeholder="Seleziona scheda" />
+            </SelectTrigger>
+            <SelectContent>
+              {plans.map((plan) => (
+                <SelectItem key={plan.id} value={plan.id}>
+                  {plan.name}
+                  {plan.duration_weeks && ` • ${plan.duration_weeks} sett.`}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       <div className="flex gap-2 mb-6">
         <button
