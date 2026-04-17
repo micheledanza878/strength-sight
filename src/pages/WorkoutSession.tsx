@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Check, Trophy, RotateCcw, Clock, Play } from "lucide-react";
+import { ArrowLeft, Check, Trophy, RotateCcw, Clock, Play, Loader } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { WORKOUT_DAYS } from "@/data/workouts";
 import RestTimer from "@/components/RestTimer";
 import { useToast } from "@/hooks/use-toast";
 import { getUserId } from "@/lib/user";
@@ -25,12 +24,33 @@ function formatElapsed(seconds: number) {
   return `${m}:${s}`;
 }
 
+interface PlanExercise {
+  id: string;
+  exercise_name: string;
+  order_number: number;
+  sets: number;
+  reps_min: number | null;
+  reps_max: number | null;
+  rest_seconds: number | null;
+  notes: string | null;
+}
+
+interface PlanDay {
+  id: string;
+  day_number: number;
+  day_name: string;
+  workout_plan_id: string;
+}
+
 export default function WorkoutSession() {
   const { dayId } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const workout = WORKOUT_DAYS.find((d) => d.id === dayId);
   const startedAt = useRef<Date>(new Date());
+
+  const [dayData, setDayData] = useState<PlanDay | null>(null);
+  const [exercises, setExercises] = useState<PlanExercise[]>([]);
+  const [dayLoading, setDayLoading] = useState(true);
 
   const [phase, setPhase] = useState<"preview" | "active">("preview");
   const [elapsed, setElapsed] = useState(0);
@@ -45,22 +65,54 @@ export default function WorkoutSession() {
   const [completion, setCompletion] = useState<CompletionStats | null>(null);
 
   useEffect(() => {
-    if (workout) loadPrevSession(getUserId(), workout.id);
-  }, []);
+    loadDayData();
+  }, [dayId]);
+
+  async function loadDayData() {
+    if (!dayId) return;
+    try {
+      const { data: day, error: dayError } = await supabase
+        .from("workout_plan_days")
+        .select("*")
+        .eq("id", dayId)
+        .single();
+
+      if (dayError) throw dayError;
+      setDayData(day);
+
+      const { data: exs, error: exError } = await supabase
+        .from("workout_plan_exercises")
+        .select("*")
+        .eq("workout_plan_day_id", dayId)
+        .order("order_number", { ascending: true });
+
+      if (exError) throw exError;
+      setExercises(exs || []);
+
+      if (day) {
+        loadPrevSession(getUserId(), day.day_name);
+      }
+    } catch (error) {
+      console.error("Errore caricamento giorno:", error);
+      toast({ title: "Errore", description: "Impossibile caricare il giorno", variant: "destructive" });
+    } finally {
+      setDayLoading(false);
+    }
+  }
 
   // Init sets on load (for preview)
   useEffect(() => {
-    if (!workout) return;
+    if (exercises.length === 0) return;
     const init: Record<string, SetEntry[]> = {};
-    workout.exercises.forEach((ex) => {
-      init[ex.name] = Array.from({ length: ex.sets }, () => ({
-        reps: ex.reps === "Max" ? "" : ex.reps.split("-")[0],
-        weight: ex.weight?.replace("kg", "") || "",
+    exercises.forEach((ex) => {
+      init[ex.exercise_name] = Array.from({ length: ex.sets }, () => ({
+        reps: ex.reps_min ? String(ex.reps_min) : "",
+        weight: "",
         done: false,
       }));
     });
     setSets(init);
-  }, [workout]);
+  }, [exercises]);
 
   // Auto-fill from previous session
   useEffect(() => {
@@ -119,13 +171,13 @@ export default function WorkoutSession() {
   }
 
   async function startWorkout() {
-    if (!workout) return;
+    if (!dayData) return;
     startedAt.current = new Date();
     setPhase("active");
 
     const { data, error } = await supabase
       .from("workout_logs")
-      .insert({ workout_day: workout.id, user_id: getUserId() })
+      .insert({ workout_day: dayData.day_name })
       .select("id")
       .single();
 
@@ -136,7 +188,11 @@ export default function WorkoutSession() {
     if (data) setWorkoutLogId(data.id);
   }
 
-  if (!workout) return <div className="p-5 pt-14 text-foreground">Scheda non trovata</div>;
+  if (dayLoading) return <div className="p-5 pt-14 text-foreground">Caricamento...</div>;
+  if (!dayData) return <div className="p-5 pt-14 text-foreground">Giorno non trovato</div>;
+
+  // Colore di default per il giorno
+  const dayColor = "hsl(210, 100%, 50%)";
 
   // ── PREVIEW SCREEN ──────────────────────────────────────────────
   if (phase === "preview") {
@@ -147,35 +203,35 @@ export default function WorkoutSession() {
             <ArrowLeft className="w-6 h-6" />
           </button>
           <div>
-            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{workout.label}</p>
-            <p className="text-xl font-bold">{workout.title}</p>
+            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Giorno {dayData.day_number}</p>
+            <p className="text-xl font-bold">{dayData.day_name}</p>
           </div>
         </div>
 
         {/* Color accent banner */}
-        <div className="rounded-2xl p-4 mb-6 flex items-center gap-4" style={{ backgroundColor: workout.color + "18" }}>
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold shrink-0" style={{ backgroundColor: workout.color + "33", color: workout.color }}>
-            {workout.id}
+        <div className="rounded-2xl p-4 mb-6 flex items-center gap-4" style={{ backgroundColor: dayColor + "18" }}>
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold shrink-0" style={{ backgroundColor: dayColor + "33", color: dayColor }}>
+            {dayData.day_number}
           </div>
           <div>
-            <p className="font-bold" style={{ color: workout.color }}>{workout.exercises.length} esercizi</p>
+            <p className="font-bold" style={{ color: dayColor }}>{exercises.length} esercizi</p>
             <p className="text-xs text-muted-foreground">Scorri per vedere il programma</p>
           </div>
         </div>
 
         {/* Exercise list */}
         <div className="space-y-2 mb-8">
-          {workout.exercises.map((ex, i) => (
-            <div key={ex.name} className="bg-card rounded-2xl px-4 py-3 flex items-center gap-3">
+          {exercises.map((ex, i) => (
+            <div key={ex.id} className="bg-card rounded-2xl px-4 py-3 flex items-center gap-3">
               <span className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0"
-                style={{ backgroundColor: workout.color + "22", color: workout.color }}>
+                style={{ backgroundColor: dayColor + "22", color: dayColor }}>
                 {i + 1}
               </span>
               <div className="flex-1">
-                <p className="font-medium text-sm">{ex.name}</p>
+                <p className="font-medium text-sm">{ex.exercise_name}</p>
                 <p className="text-xs text-muted-foreground">
-                  {ex.sets} serie × {ex.reps}
-                  {prevSets[ex.name]?.[0]?.weight > 0 ? ` · ${prevSets[ex.name][0].weight}kg` : ex.weight ? ` · ${ex.weight}` : ""}
+                  {ex.sets} serie × {ex.reps_min}{ex.reps_max && ex.reps_max !== ex.reps_min ? `-${ex.reps_max}` : ""} reps
+                  {prevSets[ex.exercise_name]?.[0]?.weight > 0 ? ` · ${prevSets[ex.exercise_name][0].weight}kg` : ""}
                 </p>
               </div>
             </div>
@@ -187,7 +243,7 @@ export default function WorkoutSession() {
           <button
             onClick={startWorkout}
             className="w-full h-16 rounded-2xl font-bold text-white text-lg flex items-center justify-center gap-3 transition-transform active:scale-95"
-            style={{ backgroundColor: workout.color }}
+            style={{ backgroundColor: dayColor }}
           >
             <Play className="w-5 h-5 fill-white" />
             Inizia allenamento
@@ -198,44 +254,47 @@ export default function WorkoutSession() {
   }
 
   // ── ACTIVE WORKOUT ───────────────────────────────────────────────
-  const exercise = workout.exercises[currentExIdx];
-  const exSets = sets[exercise.name] || [];
-  const totalExercises = workout.exercises.length;
-  const completedExercises = workout.exercises.filter((ex) =>
-    (sets[ex.name] || []).every((s) => s.done)
+  const exercise = exercises[currentExIdx];
+  const exSets = sets[exercise?.exercise_name || ""] || [];
+  const totalExercises = exercises.length;
+  const completedExercises = exercises.filter((ex) =>
+    (sets[ex.exercise_name] || []).every((s) => s.done)
   ).length;
   const progressPct = totalExercises > 0 ? (completedExercises / totalExercises) * 100 : 0;
 
   function updateSet(idx: number, field: "reps" | "weight", val: string) {
     setSets((prev) => {
-      const updated = [...(prev[exercise.name] || [])];
+      const exName = exercise?.exercise_name || "";
+      const updated = [...(prev[exName] || [])];
       updated[idx] = { ...updated[idx], [field]: val };
-      return { ...prev, [exercise.name]: updated };
+      return { ...prev, [exName]: updated };
     });
   }
 
   function adjustWeight(idx: number, delta: number) {
     setSets((prev) => {
-      const updated = [...(prev[exercise.name] || [])];
+      const exName = exercise?.exercise_name || "";
+      const updated = [...(prev[exName] || [])];
       const current = parseFloat(updated[idx].weight) || 0;
       const next = Math.max(0, current + delta);
       updated[idx] = { ...updated[idx], weight: next % 1 === 0 ? String(next) : next.toFixed(1) };
-      return { ...prev, [exercise.name]: updated };
+      return { ...prev, [exName]: updated };
     });
   }
 
   function toggleSet(idx: number) {
-    const current = (sets[exercise.name] || [])[idx];
+    const exName = exercise?.exercise_name || "";
+    const current = (sets[exName] || [])[idx];
     if (!current.done) {
-      setJustDone(`${exercise.name}-${idx}`);
+      setJustDone(`${exName}-${idx}`);
       setTimeout(() => setJustDone(null), 400);
       setTimerKey((k) => k + 1);
       setShowTimer(true);
     }
     setSets((prev) => {
-      const updated = [...(prev[exercise.name] || [])];
+      const updated = [...(prev[exName] || [])];
       updated[idx] = { ...updated[idx], done: !updated[idx].done };
-      return { ...prev, [exercise.name]: updated };
+      return { ...prev, [exName]: updated };
     });
   }
 
@@ -279,11 +338,11 @@ export default function WorkoutSession() {
       <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background px-5">
         <div className="w-full max-w-sm text-center">
           <div className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6"
-            style={{ backgroundColor: workout.color + "22" }}>
-            <Trophy className="w-10 h-10" style={{ color: workout.color }} />
+            style={{ backgroundColor: dayColor + "22" }}>
+            <Trophy className="w-10 h-10" style={{ color: dayColor }} />
           </div>
           <h2 className="text-3xl font-bold mb-1">Ottimo lavoro!</h2>
-          <p className="text-muted-foreground mb-8">{workout.label} — {workout.title}</p>
+          <p className="text-muted-foreground mb-8">Giorno {dayData.day_number} — {dayData.day_name}</p>
           <div className="grid grid-cols-3 gap-3 mb-10">
             <div className="bg-card rounded-2xl p-4 text-center">
               <p className="text-2xl font-bold">{completion.duration}</p>
@@ -305,7 +364,7 @@ export default function WorkoutSession() {
           <button
             onClick={() => navigate("/")}
             className="w-full h-14 rounded-2xl font-bold text-white transition-transform active:scale-95"
-            style={{ backgroundColor: workout.color }}
+            style={{ backgroundColor: dayColor }}
           >
             Torna alla home
           </button>
@@ -314,13 +373,15 @@ export default function WorkoutSession() {
     );
   }
 
+  if (!exercise) return <div className="p-5 pt-14 text-foreground">Esercizio non trovato</div>;
+
   return (
     <div className="min-h-screen px-5 pt-14 pb-24 max-w-full overflow-x-hidden">
       {showTimer && (
         <RestTimer
           key={timerKey}
-          seconds={90}
-          color={workout.color}
+          seconds={exercise?.rest_seconds || 90}
+          color={dayColor}
           onComplete={() => setShowTimer(false)}
           onDismiss={() => setShowTimer(false)}
         />
@@ -332,8 +393,8 @@ export default function WorkoutSession() {
           <ArrowLeft className="w-6 h-6" />
         </button>
         <div className="flex-1">
-          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{workout.label}</p>
-          <p className="text-lg font-bold">{workout.title}</p>
+          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Giorno {dayData.day_number}</p>
+          <p className="text-lg font-bold">{dayData.day_name}</p>
         </div>
         {/* Elapsed timer */}
         <div className="flex items-center gap-1.5 bg-secondary rounded-xl px-3 py-1.5">
@@ -346,38 +407,39 @@ export default function WorkoutSession() {
       <div className="h-1.5 w-full bg-secondary rounded-full mb-5 overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-500"
-          style={{ width: `${progressPct}%`, backgroundColor: workout.color }}
+          style={{ width: `${progressPct}%`, backgroundColor: dayColor }}
         />
       </div>
 
       {/* Exercise selector */}
       <div className="flex flex-wrap gap-2 pb-3 mb-5">
-        {workout.exercises.map((ex, i) => {
-          const done = (sets[ex.name] || []).every((s) => s.done);
+        {exercises.map((ex, i) => {
+          const done = (sets[ex.exercise_name] || []).every((s) => s.done);
           const active = i === currentExIdx;
           return (
             <button
-              key={ex.name}
+              key={ex.id}
               onClick={() => setCurrentExIdx(i)}
               className="px-3 py-1.5 rounded-full text-[11px] font-semibold transition-colors"
               style={
-                active ? { backgroundColor: workout.color, color: "#fff" }
-                : done ? { backgroundColor: workout.color + "33", color: workout.color }
+                active ? { backgroundColor: dayColor, color: "#fff" }
+                : done ? { backgroundColor: dayColor + "33", color: dayColor }
                 : undefined
               }
               {...(!active && !done ? { className: "px-3 py-1.5 rounded-full text-[11px] font-semibold transition-colors bg-secondary text-secondary-foreground" } : {})}
             >
-              {ex.name.length > 12 ? ex.name.slice(0, 12) + "…" : ex.name}
+              {ex.exercise_name.length > 12 ? ex.exercise_name.slice(0, 12) + "…" : ex.exercise_name}
             </button>
           );
         })}
       </div>
 
       {/* Current exercise */}
-      <div className="bg-card rounded-2xl p-5 mb-4" style={{ borderTop: `3px solid ${workout.color}` }}>
-        <p className="text-lg font-bold mb-1">{exercise.name}</p>
+      <div className="bg-card rounded-2xl p-5 mb-4" style={{ borderTop: `3px solid ${dayColor}` }}>
+        <p className="text-lg font-bold mb-1">{exercise.exercise_name}</p>
         <p className="text-sm text-muted-foreground mb-4">
-          {exercise.sets} × {exercise.reps} {exercise.weight ? `· ${exercise.weight}` : ""}
+          {exercise.sets} × {exercise.reps_min}{exercise.reps_max && exercise.reps_max !== exercise.reps_min ? `-${exercise.reps_max}` : ""} reps
+          {exercise.notes ? ` · ${exercise.notes}` : ""}
         </p>
 
         <div className="space-y-2">
@@ -455,7 +517,7 @@ export default function WorkoutSession() {
           <button
             onClick={() => setCurrentExIdx((i) => i + 1)}
             className="flex-1 h-14 rounded-2xl font-semibold transition-transform active:scale-95 text-white"
-            style={{ backgroundColor: workout.color }}
+            style={{ backgroundColor: dayColor }}
           >
             Prossimo
           </button>
@@ -464,7 +526,7 @@ export default function WorkoutSession() {
             onClick={finishWorkout}
             disabled={saving}
             className="flex-1 h-14 rounded-2xl font-bold transition-all active:scale-95 disabled:opacity-60 text-white"
-            style={{ backgroundColor: workout.color }}
+            style={{ backgroundColor: dayColor }}
           >
             {saving ? "Salvataggio..." : "✓ Completa"}
           </button>

@@ -12,9 +12,24 @@ interface Measurement {
   id: string;
   weight: number | null;
   body_fat: number | null;
-  arms: number | null;
-  waist: number | null;
-  legs: number | null;
+  height_cm: number | null;
+  testata_cm: number | null;
+  collo_cm: number | null;
+  braccio_front_cm: number | null;
+  braccio_retro_cm: number | null;
+  avambraccio_cm: number | null;
+  petto_torace_cm: number | null;
+  vita_cm: number | null;
+  vita_retro_cm: number | null;
+  fianchi_cm: number | null;
+  fianchi_retro_cm: number | null;
+  schiena_altezza_dorsali_cm: number | null;
+  spalle_ampiezza_cm: number | null;
+  glutei_circonferenza_cm: number | null;
+  coscia_cm: number | null;
+  coscia_retro_cm: number | null;
+  polpaccio_cm: number | null;
+  polpaccio_retro_cm: number | null;
   measured_at: string;
 }
 
@@ -22,9 +37,16 @@ export default function BodyTracking() {
   const { toast } = useToast();
   const [measurements, setMeasurements] = useState<Measurement[]>([]);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ weight: "", body_fat: "", arms: "", waist: "", legs: "" });
+  const [form, setForm] = useState({
+    weight: "", body_fat: "", height_cm: "", testata_cm: "", collo_cm: "",
+    braccio_front_cm: "", braccio_retro_cm: "", avambraccio_cm: "",
+    petto_torace_cm: "", vita_cm: "", vita_retro_cm: "",
+    fianchi_cm: "", fianchi_retro_cm: "",
+    schiena_altezza_dorsali_cm: "", spalle_ampiezza_cm: "", glutei_circonferenza_cm: "",
+    coscia_cm: "", coscia_retro_cm: "", polpaccio_cm: "", polpaccio_retro_cm: ""
+  });
   const [saving, setSaving] = useState(false);
-  const [activeChart, setActiveChart] = useState<"weight" | "body_fat" | "arms" | "waist" | "legs">("weight");
+  const [activeChart, setActiveChart] = useState<"weight" | "body_fat" | "petto_torace_cm" | "vita_cm" | "coscia_cm">("weight");
   const [loading, setLoading] = useState(true);
   const [saveFeedback, setSaveFeedback] = useState(false);
 
@@ -48,17 +70,30 @@ export default function BodyTracking() {
 
     try {
       const { error } = await supabase.from("body_measurements").insert({
-        user_id: getUserId(),
         weight: form.weight ? parseFloat(form.weight) : null,
         body_fat: form.body_fat ? parseFloat(form.body_fat) : null,
-        arms: form.arms ? parseFloat(form.arms) : null,
-        waist: form.waist ? parseFloat(form.waist) : null,
-        legs: form.legs ? parseFloat(form.legs) : null,
+        height_cm: form.height_cm ? parseFloat(form.height_cm) : null,
+        testata_cm: form.testata_cm ? parseFloat(form.testata_cm) : null,
+        collo_cm: form.collo_cm ? parseFloat(form.collo_cm) : null,
+        braccio_front_cm: form.braccio_front_cm ? parseFloat(form.braccio_front_cm) : null,
+        braccio_retro_cm: form.braccio_retro_cm ? parseFloat(form.braccio_retro_cm) : null,
+        avambraccio_cm: form.avambraccio_cm ? parseFloat(form.avambraccio_cm) : null,
+        petto_torace_cm: form.petto_torace_cm ? parseFloat(form.petto_torace_cm) : null,
+        vita_cm: form.vita_cm ? parseFloat(form.vita_cm) : null,
+        vita_retro_cm: form.vita_retro_cm ? parseFloat(form.vita_retro_cm) : null,
+        fianchi_cm: form.fianchi_cm ? parseFloat(form.fianchi_cm) : null,
+        fianchi_retro_cm: form.fianchi_retro_cm ? parseFloat(form.fianchi_retro_cm) : null,
+        schiena_altezza_dorsali_cm: form.schiena_altezza_dorsali_cm ? parseFloat(form.schiena_altezza_dorsali_cm) : null,
+        spalle_ampiezza_cm: form.spalle_ampiezza_cm ? parseFloat(form.spalle_ampiezza_cm) : null,
+        glutei_circonferenza_cm: form.glutei_circonferenza_cm ? parseFloat(form.glutei_circonferenza_cm) : null,
+        coscia_cm: form.coscia_cm ? parseFloat(form.coscia_cm) : null,
+        coscia_retro_cm: form.coscia_retro_cm ? parseFloat(form.coscia_retro_cm) : null,
+        polpaccio_cm: form.polpaccio_cm ? parseFloat(form.polpaccio_cm) : null,
+        polpaccio_retro_cm: form.polpaccio_retro_cm ? parseFloat(form.polpaccio_retro_cm) : null,
       });
 
       if (error) throw error;
 
-      // Show success feedback
       setSaveFeedback(true);
       setTimeout(() => setSaveFeedback(false), 2000);
 
@@ -67,7 +102,14 @@ export default function BodyTracking() {
         description: "I tuoi dati sono stati sincronizzati",
       });
 
-      setForm({ weight: "", body_fat: "", arms: "", waist: "", legs: "" });
+      setForm({
+        weight: "", body_fat: "", height_cm: "", testata_cm: "", collo_cm: "",
+        braccio_front_cm: "", braccio_retro_cm: "", avambraccio_cm: "",
+        petto_torace_cm: "", vita_cm: "", vita_retro_cm: "",
+        fianchi_cm: "", fianchi_retro_cm: "",
+        schiena_altezza_dorsali_cm: "", spalle_ampiezza_cm: "", glutei_circonferenza_cm: "",
+        coscia_cm: "", coscia_retro_cm: "", polpaccio_cm: "", polpaccio_retro_cm: ""
+      });
       setShowForm(false);
       await loadData();
     } catch (error) {
@@ -85,9 +127,9 @@ export default function BodyTracking() {
   const chartTabs = [
     { key: "weight" as const, label: "Peso", unit: "kg" },
     { key: "body_fat" as const, label: "Grasso %", unit: "%" },
-    { key: "arms" as const, label: "Braccia", unit: "cm" },
-    { key: "waist" as const, label: "Vita", unit: "cm" },
-    { key: "legs" as const, label: "Gambe", unit: "cm" },
+    { key: "petto_torace_cm" as const, label: "Petto", unit: "cm" },
+    { key: "vita_cm" as const, label: "Vita", unit: "cm" },
+    { key: "coscia_cm" as const, label: "Coscia", unit: "cm" },
   ];
 
   const chartData = measurements
@@ -194,12 +236,11 @@ export default function BodyTracking() {
           <div className="bg-card rounded-t-3xl p-6 pb-8 max-w-[428px] mx-auto w-full max-h-[85vh] flex flex-col overflow-hidden safe-bottom">
             <p className="text-xl font-bold mb-6">Nuova misurazione</p>
             <div className="space-y-3 overflow-y-auto flex-1 pr-2">
+              <p className="text-xs text-muted-foreground font-semibold uppercase mb-2">Base</p>
               {[
                 { key: "weight", label: "Peso (kg)", mode: "decimal" as const },
                 { key: "body_fat", label: "Grasso corporeo (%)", mode: "decimal" as const },
-                { key: "arms", label: "Braccia (cm)", mode: "decimal" as const },
-                { key: "waist", label: "Vita (cm)", mode: "decimal" as const },
-                { key: "legs", label: "Gambe (cm)", mode: "decimal" as const },
+                { key: "height_cm", label: "Altezza (cm)", mode: "decimal" as const },
               ].map((f) => (
                 <input
                   key={f.key}
@@ -208,27 +249,72 @@ export default function BodyTracking() {
                   placeholder={f.label}
                   value={form[f.key as keyof typeof form]}
                   onChange={(e) => setForm((p) => ({ ...p, [f.key]: e.target.value }))}
-                  className="w-full h-14 bg-secondary rounded-2xl px-5 text-foreground text-base placeholder:text-muted-foreground outline-none"
+                  className="w-full h-12 bg-secondary rounded-xl px-4 text-foreground text-sm placeholder:text-muted-foreground outline-none"
+                />
+              ))}
+
+              <p className="text-xs text-muted-foreground font-semibold uppercase mb-2 mt-4">Fronte</p>
+              {[
+                { key: "testata_cm", label: "Testata (cm)" },
+                { key: "collo_cm", label: "Collo (cm)" },
+                { key: "braccio_front_cm", label: "Braccio (cm)" },
+                { key: "avambraccio_cm", label: "Avambraccio (cm)" },
+                { key: "petto_torace_cm", label: "Petto (cm)" },
+                { key: "vita_cm", label: "Vita (cm)" },
+                { key: "fianchi_cm", label: "Fianchi (cm)" },
+                { key: "coscia_cm", label: "Coscia (cm)" },
+                { key: "polpaccio_cm", label: "Polpaccio (cm)" },
+              ].map((f) => (
+                <input
+                  key={f.key}
+                  type="number"
+                  inputMode="decimal"
+                  placeholder={f.label}
+                  value={form[f.key as keyof typeof form]}
+                  onChange={(e) => setForm((p) => ({ ...p, [f.key]: e.target.value }))}
+                  className="w-full h-12 bg-secondary rounded-xl px-4 text-foreground text-sm placeholder:text-muted-foreground outline-none"
+                />
+              ))}
+
+              <p className="text-xs text-muted-foreground font-semibold uppercase mb-2 mt-4">Retro</p>
+              {[
+                { key: "braccio_retro_cm", label: "Braccio (cm)" },
+                { key: "schiena_altezza_dorsali_cm", label: "Schiena (cm)" },
+                { key: "spalle_ampiezza_cm", label: "Spalle (cm)" },
+                { key: "vita_retro_cm", label: "Vita (cm)" },
+                { key: "fianchi_retro_cm", label: "Fianchi (cm)" },
+                { key: "glutei_circonferenza_cm", label: "Glutei (cm)" },
+                { key: "coscia_retro_cm", label: "Coscia (cm)" },
+                { key: "polpaccio_retro_cm", label: "Polpaccio (cm)" },
+              ].map((f) => (
+                <input
+                  key={f.key}
+                  type="number"
+                  inputMode="decimal"
+                  placeholder={f.label}
+                  value={form[f.key as keyof typeof form]}
+                  onChange={(e) => setForm((p) => ({ ...p, [f.key]: e.target.value }))}
+                  className="w-full h-12 bg-secondary rounded-xl px-4 text-foreground text-sm placeholder:text-muted-foreground outline-none"
                 />
               ))}
             </div>
             <div className="flex gap-3 mt-6 shrink-0">
               <button
                 onClick={() => setShowForm(false)}
-                className="flex-1 h-14 rounded-2xl bg-secondary text-foreground font-semibold transition-colors active:scale-95"
+                className="flex-1 h-12 rounded-xl bg-secondary text-foreground font-semibold transition-colors active:scale-95 text-sm"
               >
                 Annulla
               </button>
               <button
                 onClick={saveMeasurement}
                 disabled={saving}
-                className={`flex-1 h-14 rounded-2xl bg-primary text-primary-foreground font-bold transition-all active:scale-95 flex items-center justify-center gap-2 ${
+                className={`flex-1 h-12 rounded-xl bg-primary text-primary-foreground font-bold transition-all active:scale-95 flex items-center justify-center gap-2 text-sm ${
                   saveFeedback ? "bg-green-500" : ""
                 }`}
               >
                 {saveFeedback ? (
                   <>
-                    <Check className="w-5 h-5" />
+                    <Check className="w-4 h-4" />
                     Salvato
                   </>
                 ) : saving ? (

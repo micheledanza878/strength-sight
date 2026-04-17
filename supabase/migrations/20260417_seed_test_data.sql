@@ -1,0 +1,81 @@
+-- Dati di test per il database
+-- Copia e incolla OGNI QUERY SINGOLARMENTE in Supabase SQL Editor
+
+-- 1. Misura corporea di base
+INSERT INTO public.body_measurements (weight, body_fat, height_cm, testata_cm, collo_cm, braccio_front_cm, braccio_retro_cm, avambraccio_cm, petto_torace_cm, vita_cm, vita_retro_cm, fianchi_cm, fianchi_retro_cm, schiena_altezza_dorsali_cm, spalle_ampiezza_cm, glutei_circonferenza_cm, coscia_cm, coscia_retro_cm, polpaccio_cm, polpaccio_retro_cm, measured_at) VALUES (82.5, 14.2, 183, 56.0, 39.0, 37.0, 36.0, 29.0, 103.0, 82.0, 82.0, 96.0, 96.0, 62.0, 115.0, 98.0, 58.0, 57.0, 39.0, 39.0, CURRENT_DATE);
+
+-- 2. Scheda PPL 6 Giorni
+INSERT INTO public.workout_plans (name, description, duration_weeks) VALUES ('PPL 6 Giorni', 'Programma Push/Pull/Legs su 6 giorni settimanali', 12);
+
+-- 3. Giorni della scheda
+INSERT INTO public.workout_plan_days (workout_plan_id, day_number, day_name) VALUES ((SELECT id FROM public.workout_plans WHERE name = 'PPL 6 Giorni'), 1, 'Push A (Petto/Spalle)');
+INSERT INTO public.workout_plan_days (workout_plan_id, day_number, day_name) VALUES ((SELECT id FROM public.workout_plans WHERE name = 'PPL 6 Giorni'), 2, 'Pull A (Dorso/Bicipiti)');
+INSERT INTO public.workout_plan_days (workout_plan_id, day_number, day_name) VALUES ((SELECT id FROM public.workout_plans WHERE name = 'PPL 6 Giorni'), 3, 'Legs A (Gambe)');
+INSERT INTO public.workout_plan_days (workout_plan_id, day_number, day_name) VALUES ((SELECT id FROM public.workout_plans WHERE name = 'PPL 6 Giorni'), 4, 'Push B (Petto/Spalle)');
+INSERT INTO public.workout_plan_days (workout_plan_id, day_number, day_name) VALUES ((SELECT id FROM public.workout_plans WHERE name = 'PPL 6 Giorni'), 5, 'Pull B (Dorso/Bicipiti)');
+INSERT INTO public.workout_plan_days (workout_plan_id, day_number, day_name) VALUES ((SELECT id FROM public.workout_plans WHERE name = 'PPL 6 Giorni'), 6, 'Legs B (Gambe)');
+
+-- 4. Esercizi Giorno 1 (Push A)
+INSERT INTO public.workout_plan_exercises (workout_plan_day_id, exercise_name, order_number, sets, reps_min, reps_max, rest_seconds, notes) VALUES ((SELECT id FROM public.workout_plan_days WHERE day_number = 1 AND workout_plan_id = (SELECT id FROM public.workout_plans WHERE name = 'PPL 6 Giorni')), 'Spinte panca piana', 1, 4, 6, 8, 90, 'Peso: 40kg');
+INSERT INTO public.workout_plan_exercises (workout_plan_day_id, exercise_name, order_number, sets, reps_min, reps_max, rest_seconds, notes) VALUES ((SELECT id FROM public.workout_plan_days WHERE day_number = 1 AND workout_plan_id = (SELECT id FROM public.workout_plans WHERE name = 'PPL 6 Giorni')), 'Croci panca piana', 2, 4, 10, 12, 90, 'Peso: 15kg');
+INSERT INTO public.workout_plan_exercises (workout_plan_day_id, exercise_name, order_number, sets, reps_min, reps_max, rest_seconds, notes) VALUES ((SELECT id FROM public.workout_plan_days WHERE day_number = 1 AND workout_plan_id = (SELECT id FROM public.workout_plans WHERE name = 'PPL 6 Giorni')), 'Spinte panca inclinata', 3, 4, 6, 8, 90, 'Peso: 35kg');
+INSERT INTO public.workout_plan_exercises (workout_plan_day_id, exercise_name, order_number, sets, reps_min, reps_max, rest_seconds, notes) VALUES ((SELECT id FROM public.workout_plan_days WHERE day_number = 1 AND workout_plan_id = (SELECT id FROM public.workout_plans WHERE name = 'PPL 6 Giorni')), 'Alzate laterali 45°', 4, 4, 10, 12, 90, 'Peso: 10kg');
+INSERT INTO public.workout_plan_exercises (workout_plan_day_id, exercise_name, order_number, sets, reps_min, reps_max, rest_seconds, notes) VALUES ((SELECT id FROM public.workout_plan_days WHERE day_number = 1 AND workout_plan_id = (SELECT id FROM public.workout_plans WHERE name = 'PPL 6 Giorni')), 'Croci inclinate', 5, 4, 10, 12, 90, 'Peso: 10kg');
+
+-- 5. Esercizi Giorno 2 (Pull A)
+INSERT INTO public.workout_plan_exercises (workout_plan_day_id, exercise_name, order_number, sets, reps_min, reps_max, rest_seconds, notes) VALUES ((SELECT id FROM public.workout_plan_days WHERE day_number = 2 AND workout_plan_id = (SELECT id FROM public.workout_plans WHERE name = 'PPL 6 Giorni')), 'Rematore panca', 1, 4, 6, 8, 90, 'Peso: 50kg');
+INSERT INTO public.workout_plan_exercises (workout_plan_day_id, exercise_name, order_number, sets, reps_min, reps_max, rest_seconds, notes) VALUES ((SELECT id FROM public.workout_plan_days WHERE day_number = 2 AND workout_plan_id = (SELECT id FROM public.workout_plans WHERE name = 'PPL 6 Giorni')), 'Trazioni elastico', 2, 4, 6, 8, 90, 'Con elastico leggero');
+INSERT INTO public.workout_plan_exercises (workout_plan_day_id, exercise_name, order_number, sets, reps_min, reps_max, rest_seconds, notes) VALUES ((SELECT id FROM public.workout_plan_days WHERE day_number = 2 AND workout_plan_id = (SELECT id FROM public.workout_plans WHERE name = 'PPL 6 Giorni')), 'Rematore 45°', 3, 4, 8, 10, 90, 'Peso: 50kg');
+INSERT INTO public.workout_plan_exercises (workout_plan_day_id, exercise_name, order_number, sets, reps_min, reps_max, rest_seconds, notes) VALUES ((SELECT id FROM public.workout_plan_days WHERE day_number = 2 AND workout_plan_id = (SELECT id FROM public.workout_plans WHERE name = 'PPL 6 Giorni')), 'Hammer Curl', 4, 4, 6, 8, 90, 'Peso: 12kg');
+INSERT INTO public.workout_plan_exercises (workout_plan_day_id, exercise_name, order_number, sets, reps_min, reps_max, rest_seconds, notes) VALUES ((SELECT id FROM public.workout_plan_days WHERE day_number = 2 AND workout_plan_id = (SELECT id FROM public.workout_plans WHERE name = 'PPL 6 Giorni')), 'Curl EZ', 5, 4, 8, 10, 90, 'Peso: 15kg');
+
+-- 6. Esercizi Giorno 3 (Legs A)
+INSERT INTO public.workout_plan_exercises (workout_plan_day_id, exercise_name, order_number, sets, reps_min, reps_max, rest_seconds, notes) VALUES ((SELECT id FROM public.workout_plan_days WHERE day_number = 3 AND workout_plan_id = (SELECT id FROM public.workout_plans WHERE name = 'PPL 6 Giorni')), 'Squat', 1, 4, 6, 8, 120, 'Peso: 60kg');
+INSERT INTO public.workout_plan_exercises (workout_plan_day_id, exercise_name, order_number, sets, reps_min, reps_max, rest_seconds, notes) VALUES ((SELECT id FROM public.workout_plan_days WHERE day_number = 3 AND workout_plan_id = (SELECT id FROM public.workout_plans WHERE name = 'PPL 6 Giorni')), 'Leg Press', 2, 4, 8, 10, 120, 'Peso: 150kg');
+INSERT INTO public.workout_plan_exercises (workout_plan_day_id, exercise_name, order_number, sets, reps_min, reps_max, rest_seconds, notes) VALUES ((SELECT id FROM public.workout_plan_days WHERE day_number = 3 AND workout_plan_id = (SELECT id FROM public.workout_plans WHERE name = 'PPL 6 Giorni')), 'Leg Curl', 3, 4, 8, 10, 120, 'Peso: 40kg');
+INSERT INTO public.workout_plan_exercises (workout_plan_day_id, exercise_name, order_number, sets, reps_min, reps_max, rest_seconds, notes) VALUES ((SELECT id FROM public.workout_plan_days WHERE day_number = 3 AND workout_plan_id = (SELECT id FROM public.workout_plans WHERE name = 'PPL 6 Giorni')), 'Calf Raise', 4, 4, 12, 15, 120, 'Peso: 30kg');
+
+-- 7. Esercizi Giorno 4 (Push B)
+INSERT INTO public.workout_plan_exercises (workout_plan_day_id, exercise_name, order_number, sets, reps_min, reps_max, rest_seconds, notes) VALUES ((SELECT id FROM public.workout_plan_days WHERE day_number = 4 AND workout_plan_id = (SELECT id FROM public.workout_plans WHERE name = 'PPL 6 Giorni')), 'Military Press', 1, 4, 6, 8, 90, 'Peso: 30kg');
+INSERT INTO public.workout_plan_exercises (workout_plan_day_id, exercise_name, order_number, sets, reps_min, reps_max, rest_seconds, notes) VALUES ((SELECT id FROM public.workout_plan_days WHERE day_number = 4 AND workout_plan_id = (SELECT id FROM public.workout_plans WHERE name = 'PPL 6 Giorni')), 'Dips', 2, 4, 8, 10, 90, 'A corpo libero');
+INSERT INTO public.workout_plan_exercises (workout_plan_day_id, exercise_name, order_number, sets, reps_min, reps_max, rest_seconds, notes) VALUES ((SELECT id FROM public.workout_plan_days WHERE day_number = 4 AND workout_plan_id = (SELECT id FROM public.workout_plans WHERE name = 'PPL 6 Giorni')), 'Spinta stretta', 3, 4, 8, 10, 90, 'Peso: 30kg');
+INSERT INTO public.workout_plan_exercises (workout_plan_day_id, exercise_name, order_number, sets, reps_min, reps_max, rest_seconds, notes) VALUES ((SELECT id FROM public.workout_plan_days WHERE day_number = 4 AND workout_plan_id = (SELECT id FROM public.workout_plans WHERE name = 'PPL 6 Giorni')), 'Alzate posteriori', 4, 4, 10, 12, 90, 'Peso: 12kg');
+INSERT INTO public.workout_plan_exercises (workout_plan_day_id, exercise_name, order_number, sets, reps_min, reps_max, rest_seconds, notes) VALUES ((SELECT id FROM public.workout_plan_days WHERE day_number = 4 AND workout_plan_id = (SELECT id FROM public.workout_plans WHERE name = 'PPL 6 Giorni')), 'French Press', 5, 4, 8, 10, 90, 'Peso: 15kg');
+
+-- 8. Esercizi Giorno 5 (Pull B)
+INSERT INTO public.workout_plan_exercises (workout_plan_day_id, exercise_name, order_number, sets, reps_min, reps_max, rest_seconds, notes) VALUES ((SELECT id FROM public.workout_plan_days WHERE day_number = 5 AND workout_plan_id = (SELECT id FROM public.workout_plans WHERE name = 'PPL 6 Giorni')), 'Lat Pulldown', 1, 4, 8, 10, 90, 'Peso: 60kg');
+INSERT INTO public.workout_plan_exercises (workout_plan_day_id, exercise_name, order_number, sets, reps_min, reps_max, rest_seconds, notes) VALUES ((SELECT id FROM public.workout_plan_days WHERE day_number = 5 AND workout_plan_id = (SELECT id FROM public.workout_plans WHERE name = 'PPL 6 Giorni')), 'Australian Row', 2, 4, 8, 10, 90, 'A corpo libero');
+INSERT INTO public.workout_plan_exercises (workout_plan_day_id, exercise_name, order_number, sets, reps_min, reps_max, rest_seconds, notes) VALUES ((SELECT id FROM public.workout_plan_days WHERE day_number = 5 AND workout_plan_id = (SELECT id FROM public.workout_plans WHERE name = 'PPL 6 Giorni')), 'Face Pull', 3, 4, 12, 15, 90, 'Peso: 8kg');
+INSERT INTO public.workout_plan_exercises (workout_plan_day_id, exercise_name, order_number, sets, reps_min, reps_max, rest_seconds, notes) VALUES ((SELECT id FROM public.workout_plan_days WHERE day_number = 5 AND workout_plan_id = (SELECT id FROM public.workout_plans WHERE name = 'PPL 6 Giorni')), 'Curl concentrato', 4, 4, 8, 10, 90, 'Peso: 10kg');
+INSERT INTO public.workout_plan_exercises (workout_plan_day_id, exercise_name, order_number, sets, reps_min, reps_max, rest_seconds, notes) VALUES ((SELECT id FROM public.workout_plan_days WHERE day_number = 5 AND workout_plan_id = (SELECT id FROM public.workout_plans WHERE name = 'PPL 6 Giorni')), 'Spider Curl', 5, 4, 10, 12, 90, 'Peso: 8kg');
+
+-- 9. Esercizi Giorno 6 (Legs B)
+INSERT INTO public.workout_plan_exercises (workout_plan_day_id, exercise_name, order_number, sets, reps_min, reps_max, rest_seconds, notes) VALUES ((SELECT id FROM public.workout_plan_days WHERE day_number = 6 AND workout_plan_id = (SELECT id FROM public.workout_plans WHERE name = 'PPL 6 Giorni')), 'Stacco rumeno', 1, 4, 6, 8, 120, 'Peso: 80kg');
+INSERT INTO public.workout_plan_exercises (workout_plan_day_id, exercise_name, order_number, sets, reps_min, reps_max, rest_seconds, notes) VALUES ((SELECT id FROM public.workout_plan_days WHERE day_number = 6 AND workout_plan_id = (SELECT id FROM public.workout_plans WHERE name = 'PPL 6 Giorni')), 'Hip Thrust', 2, 4, 8, 10, 120, 'Peso: 60kg');
+INSERT INTO public.workout_plan_exercises (workout_plan_day_id, exercise_name, order_number, sets, reps_min, reps_max, rest_seconds, notes) VALUES ((SELECT id FROM public.workout_plan_days WHERE day_number = 6 AND workout_plan_id = (SELECT id FROM public.workout_plans WHERE name = 'PPL 6 Giorni')), 'Affondi bulgari', 3, 4, 8, 10, 120, 'Peso: 12kg per lato');
+INSERT INTO public.workout_plan_exercises (workout_plan_day_id, exercise_name, order_number, sets, reps_min, reps_max, rest_seconds, notes) VALUES ((SELECT id FROM public.workout_plan_days WHERE day_number = 6 AND workout_plan_id = (SELECT id FROM public.workout_plans WHERE name = 'PPL 6 Giorni')), 'Leg Extension', 4, 4, 10, 12, 120, 'Peso: 50kg');
+
+-- 10. Attiva la scheda
+INSERT INTO public.active_workout_plan (workout_plan_id, started_at) VALUES ((SELECT id FROM public.workout_plans WHERE name = 'PPL 6 Giorni'), now());
+
+-- 11. Workout logs
+INSERT INTO public.workout_logs (workout_day, started_at, completed_at) VALUES ('Push A (Petto/Spalle)', now() - INTERVAL '5 days', now() - INTERVAL '5 days' + INTERVAL '1.5 hours');
+INSERT INTO public.workout_logs (workout_day, started_at, completed_at) VALUES ('Pull A (Dorso/Bicipiti)', now() - INTERVAL '4 days', now() - INTERVAL '4 days' + INTERVAL '1.5 hours');
+INSERT INTO public.workout_logs (workout_day, started_at, completed_at) VALUES ('Legs A (Gambe)', now() - INTERVAL '3 days', now() - INTERVAL '3 days' + INTERVAL '2 hours');
+INSERT INTO public.workout_logs (workout_day, started_at, completed_at) VALUES ('Push B (Petto/Spalle)', now() - INTERVAL '2 days', now() - INTERVAL '2 days' + INTERVAL '1.5 hours');
+INSERT INTO public.workout_logs (workout_day, started_at, completed_at) VALUES ('Pull B (Dorso/Bicipiti)', now() - INTERVAL '1 day', now() - INTERVAL '1 day' + INTERVAL '1.5 hours');
+
+-- 12. Set logs per ultimo allenamento
+INSERT INTO public.set_logs (workout_log_id, exercise_name, set_number, reps, weight) VALUES ((SELECT id FROM public.workout_logs ORDER BY created_at DESC LIMIT 1), 'Spinte panca piana', 1, 8, 40);
+INSERT INTO public.set_logs (workout_log_id, exercise_name, set_number, reps, weight) VALUES ((SELECT id FROM public.workout_logs ORDER BY created_at DESC LIMIT 1), 'Spinte panca piana', 2, 7, 40);
+INSERT INTO public.set_logs (workout_log_id, exercise_name, set_number, reps, weight) VALUES ((SELECT id FROM public.workout_logs ORDER BY created_at DESC LIMIT 1), 'Spinte panca piana', 3, 6, 40);
+INSERT INTO public.set_logs (workout_log_id, exercise_name, set_number, reps, weight) VALUES ((SELECT id FROM public.workout_logs ORDER BY created_at DESC LIMIT 1), 'Spinte panca piana', 4, 6, 40);
+INSERT INTO public.set_logs (workout_log_id, exercise_name, set_number, reps, weight) VALUES ((SELECT id FROM public.workout_logs ORDER BY created_at DESC LIMIT 1), 'Croci panca piana', 1, 12, 15);
+INSERT INTO public.set_logs (workout_log_id, exercise_name, set_number, reps, weight) VALUES ((SELECT id FROM public.workout_logs ORDER BY created_at DESC LIMIT 1), 'Croci panca piana', 2, 12, 15);
+INSERT INTO public.set_logs (workout_log_id, exercise_name, set_number, reps, weight) VALUES ((SELECT id FROM public.workout_logs ORDER BY created_at DESC LIMIT 1), 'Croci panca piana', 3, 11, 15);
+INSERT INTO public.set_logs (workout_log_id, exercise_name, set_number, reps, weight) VALUES ((SELECT id FROM public.workout_logs ORDER BY created_at DESC LIMIT 1), 'Croci panca piana', 4, 10, 15);
+
+-- 13. Misurazioni storiche
+INSERT INTO public.body_measurements (weight, body_fat, height_cm, testata_cm, collo_cm, braccio_front_cm, braccio_retro_cm, avambraccio_cm, petto_torace_cm, vita_cm, vita_retro_cm, fianchi_cm, fianchi_retro_cm, schiena_altezza_dorsali_cm, spalle_ampiezza_cm, glutei_circonferenza_cm, coscia_cm, coscia_retro_cm, polpaccio_cm, polpaccio_retro_cm, measured_at) VALUES (81.8, 14.5, 183, 56.0, 39.0, 36.8, 35.8, 28.9, 102.5, 81.8, 81.8, 95.8, 95.8, 61.9, 114.8, 97.8, 57.8, 56.8, 38.9, 38.9, CURRENT_DATE - INTERVAL '7 days');
+INSERT INTO public.body_measurements (weight, body_fat, height_cm, testata_cm, collo_cm, braccio_front_cm, braccio_retro_cm, avambraccio_cm, petto_torace_cm, vita_cm, vita_retro_cm, fianchi_cm, fianchi_retro_cm, schiena_altezza_dorsali_cm, spalle_ampiezza_cm, glutei_circonferenza_cm, coscia_cm, coscia_retro_cm, polpaccio_cm, polpaccio_retro_cm, measured_at) VALUES (81.2, 14.8, 183, 55.8, 38.9, 36.5, 35.5, 28.7, 102.0, 81.5, 81.5, 95.5, 95.5, 61.8, 114.5, 97.5, 57.5, 56.5, 38.8, 38.8, CURRENT_DATE - INTERVAL '14 days');
+INSERT INTO public.body_measurements (weight, body_fat, height_cm, testata_cm, collo_cm, braccio_front_cm, braccio_retro_cm, avambraccio_cm, petto_torace_cm, vita_cm, vita_retro_cm, fianchi_cm, fianchi_retro_cm, schiena_altezza_dorsali_cm, spalle_ampiezza_cm, glutei_circonferenza_cm, coscia_cm, coscia_retro_cm, polpaccio_cm, polpaccio_retro_cm, measured_at) VALUES (80.5, 15.2, 183, 55.5, 38.8, 36.2, 35.2, 28.5, 101.5, 81.0, 81.0, 95.0, 95.0, 61.5, 114.0, 97.0, 57.0, 56.0, 38.5, 38.5, CURRENT_DATE - INTERVAL '21 days');
