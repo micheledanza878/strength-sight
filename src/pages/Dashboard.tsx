@@ -60,8 +60,7 @@ export default function Dashboard() {
   const [selectedMonth, setSelectedMonth] = useState(new Date());
 
   useEffect(() => {
-    loadPlans();
-    loadData(getUserId());
+    loadPlans().then(() => loadData(getUserId()));
   }, []);
 
   async function loadPlans() {

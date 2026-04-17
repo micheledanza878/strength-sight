@@ -52,8 +52,7 @@ export default function History() {
   const [currentPlanId, setCurrentPlanId] = useState<string | null>(null);
 
   useEffect(() => {
-    loadPlans();
-    loadData(getUserId());
+    loadPlans().then(() => loadData(getUserId()));
   }, []);
 
   async function loadPlans() {
