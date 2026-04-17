@@ -120,7 +120,7 @@ export default function History() {
                         </span>
                       </div>
                       <div>
-                        <p className="font-semibold text-sm">{day?.label} — {day?.title}</p>
+                        <p className="font-semibold text-sm">{day?.label}</p>
                         <p className="text-xs text-muted-foreground">
                           {format(parseISO(log.started_at), "d MMMM yyyy", { locale: it })}
                         </p>
