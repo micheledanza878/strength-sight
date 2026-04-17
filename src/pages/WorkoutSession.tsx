@@ -496,7 +496,7 @@ export default function WorkoutSession() {
     );
   }
 
-  if (!exercise) return <div className="p-5 pt-14 text-foreground">Esercizio non trovato</div>;
+  if (!exercise || !dayData) return <div className="p-5 pt-14 text-foreground">Caricamento...</div>;
 
   return (
     <div className="min-h-screen px-5 pt-14 pb-24 max-w-full overflow-x-hidden">
