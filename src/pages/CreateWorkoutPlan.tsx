@@ -372,7 +372,7 @@ export default function CreateWorkoutPlan() {
       </div>
 
       {/* Save Button */}
-      <div className="fixed bottom-8 left-4 right-4 max-w-[412px] mx-auto">
+      <div className="fixed bottom-24 left-4 right-4 max-w-[412px] mx-auto">
         <button
           onClick={savePlan}
           disabled={saving}
