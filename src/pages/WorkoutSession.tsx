@@ -281,6 +281,12 @@ export default function WorkoutSession() {
     });
   }
 
+  function isNewPR(exName: string, weight: number, reps: number): boolean {
+    const prevReps = prevSets[exName]?.[0]?.reps ?? 0;
+    const prevWeight = prevSets[exName]?.[0]?.weight ?? 0;
+    return weight > prevWeight || (weight === prevWeight && reps > prevReps);
+  }
+
   function toggleSet(idx: number) {
     const exName = exercise?.exercise_name || "";
     const current = (sets[exName] || [])[idx];
@@ -494,6 +500,10 @@ export default function WorkoutSession() {
                   >
                     <Check className="w-5 h-5" />
                   </button>
+
+                  {s.done && isNewPR(exercise?.exercise_name || "", parseFloat(s.weight) || 0, parseInt(s.reps) || 0) && (
+                    <div className="text-amber-400 text-xs font-bold">🏆 PR</div>
+                  )}
                 </div>
               </div>
             );
