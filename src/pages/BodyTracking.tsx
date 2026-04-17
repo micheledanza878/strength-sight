@@ -173,7 +173,6 @@ export default function BodyTracking() {
         ];
       case "upper":
         return [
-          { key: "testata_cm", label: "Testata (cm)" },
           { key: "collo_cm", label: "Collo (cm)" },
           { key: "braccio_front_cm", label: "Braccio (cm)" },
           { key: "avambraccio_cm", label: "Avambraccio (cm)" },
