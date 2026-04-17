@@ -8,6 +8,13 @@ import { it } from "date-fns/locale";
 import { ChevronRight, Flame } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { getUserId } from "@/lib/user";
 import { WORKOUT_DAYS, getNextWorkoutDay } from "@/data/workouts";
@@ -25,6 +32,12 @@ interface PlanDay {
   day_name: string;
 }
 
+interface WorkoutPlan {
+  id: string;
+  name: string;
+  duration_weeks: number | null;
+}
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const [lastWorkout, setLastWorkout] = useState<{ day: string; date: string } | null>(null);
@@ -39,9 +52,36 @@ export default function Dashboard() {
   const [monthVolume, setMonthVolume] = useState(0);
   const [volumeChart, setVolumeChart] = useState<VolumePoint[]>([]);
 
+  const [plans, setPlans] = useState<WorkoutPlan[]>([]);
+  const [currentPlanId, setCurrentPlanId] = useState<string | null>(null);
+
   useEffect(() => {
+    loadPlans();
     loadData(getUserId());
   }, []);
+
+  async function loadPlans() {
+    try {
+      const { data } = await supabase
+        .from("workout_plans")
+        .select("id, name, duration_weeks")
+        .order("created_at", { ascending: false });
+
+      if (data) {
+        setPlans(data);
+        const activePlanId = localStorage.getItem('activePlanId');
+        setCurrentPlanId(activePlanId);
+      }
+    } catch (error) {
+      console.error("Errore caricamento schede:", error);
+    }
+  }
+
+  async function changePlan(planId: string) {
+    localStorage.setItem('activePlanId', planId);
+    setCurrentPlanId(planId);
+    loadData(getUserId());
+  }
 
   async function loadData(uid: string) {
     const now = new Date();
@@ -164,12 +204,36 @@ export default function Dashboard() {
   const firstDayOffset = (startOfMonth(now).getDay() + 6) % 7;
   const lastDayData = lastWorkout ? WORKOUT_DAYS.find((d) => d.id === lastWorkout.day) : null;
 
+  const currentPlan = plans.find(p => p.id === currentPlanId);
+
   return (
     <div className="px-5 pt-14 pb-24 min-h-screen">
       <h1 className="text-3xl font-bold mb-1">Workout</h1>
-      <p className="text-muted-foreground text-sm mb-6">
+      <p className="text-muted-foreground text-sm mb-4">
         {format(now, "EEEE d MMMM", { locale: it })}
       </p>
+
+      {/* Workout Plan Selector */}
+      {plans.length > 0 && (
+        <div className="mb-6">
+          <label className="text-xs text-muted-foreground font-medium uppercase tracking-wider block mb-2">
+            Scheda allenamento
+          </label>
+          <Select value={currentPlanId || ""} onValueChange={changePlan}>
+            <SelectTrigger className="w-full bg-card border-0 h-12">
+              <SelectValue placeholder="Seleziona scheda" />
+            </SelectTrigger>
+            <SelectContent>
+              {plans.map((plan) => (
+                <SelectItem key={plan.id} value={plan.id}>
+                  {plan.name}
+                  {plan.duration_weeks && ` • ${plan.duration_weeks} sett.`}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {/* Next Workout Card skeleton */}
       {loading && (
