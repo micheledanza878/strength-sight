@@ -19,10 +19,17 @@ interface VolumePoint {
   day: string;
 }
 
+interface PlanDay {
+  id: string;
+  day_number: number;
+  day_name: string;
+}
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const [lastWorkout, setLastWorkout] = useState<{ day: string; date: string } | null>(null);
   const [nextWorkout, setNextWorkout] = useState<WorkoutDay>(WORKOUT_DAYS[0]);
+  const [nextPlanDay, setNextPlanDay] = useState<PlanDay | null>(null);
   const [workoutDates, setWorkoutDates] = useState<Date[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -52,6 +59,31 @@ export default function Dashboard() {
     if (logs && logs.length > 0) {
       setLastWorkout({ day: logs[0].workout_day, date: logs[0].started_at });
       setNextWorkout(getNextWorkoutDay(logs[0].workout_day));
+
+      // Load next plan day from database
+      const { data: planDays } = await supabase
+        .from("workout_plan_days")
+        .select("*")
+        .order("day_number", { ascending: true });
+
+      if (planDays && planDays.length > 0) {
+        const lastDayName = logs[0].workout_day;
+        const lastPlanIdx = planDays.findIndex((d) => d.day_name === lastDayName);
+        const nextIdx = (lastPlanIdx + 1) % planDays.length;
+        setNextPlanDay(planDays[nextIdx]);
+      }
+    } else {
+      // No logs yet - load first plan day
+      const { data: planDays } = await supabase
+        .from("workout_plan_days")
+        .select("*")
+        .order("day_number", { ascending: true })
+        .limit(1);
+
+      if (planDays && planDays.length > 0) {
+        setNextPlanDay(planDays[0]);
+      }
+    }
 
       // Calendar: this month
       const monthLogs = logs.filter((l) => {
@@ -140,19 +172,18 @@ export default function Dashboard() {
       )}
 
       {/* Next Workout Card */}
-      {!loading && <button
-        onClick={() => navigate(`/session/${nextWorkout.id}`)}
+      {!loading && nextPlanDay && <button
+        onClick={() => navigate(`/session/${nextPlanDay.id}`)}
         className="w-full bg-card rounded-2xl p-5 mb-4 text-left flex items-center justify-between active:scale-[0.98] transition-transform"
       >
         <div>
           <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-1">Prossimo</p>
-          <p className="text-xl font-bold">{nextWorkout.label}</p>
-          <p className="text-sm text-muted-foreground">{nextWorkout.title}</p>
-          <p className="text-xs text-muted-foreground mt-1">{nextWorkout.exercises.length} esercizi</p>
+          <p className="text-xl font-bold">{nextPlanDay.day_name}</p>
+          <p className="text-xs text-muted-foreground mt-1">Giorno {nextPlanDay.day_number}</p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: nextWorkout.color + "22" }}>
-            <Flame className="w-6 h-6" style={{ color: nextWorkout.color }} />
+          <div className="w-12 h-12 rounded-full flex items-center justify-center bg-primary/10">
+            <Flame className="w-6 h-6 text-primary" />
           </div>
           <ChevronRight className="w-5 h-5 text-muted-foreground" />
         </div>
