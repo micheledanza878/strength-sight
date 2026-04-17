@@ -490,7 +490,7 @@ export default function WorkoutSession() {
                       ${justDone === key ? "scale-110" : "scale-100"}
                       ${s.done ? "text-white" : "bg-secondary text-muted-foreground"}
                     `}
-                    style={s.done ? { backgroundColor: workout.color } : undefined}
+                    style={s.done ? { backgroundColor: dayColor } : undefined}
                   >
                     <Check className="w-5 h-5" />
                   </button>
