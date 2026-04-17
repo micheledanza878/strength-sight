@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval,
-  isSameDay, parseISO, startOfWeek, subDays, getWeek, differenceInDays,
+  isSameDay, parseISO, startOfWeek, subDays, getWeek, differenceInDays, addMonths, subMonths,
 } from "date-fns";
 import { it } from "date-fns/locale";
-import { ChevronRight, Flame, Trophy } from "lucide-react";
+import { ChevronRight, Flame, Trophy, ChevronLeft } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, LineChart, Line, CartesianGrid } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -57,6 +57,7 @@ export default function Dashboard() {
 
   const [plans, setPlans] = useState<WorkoutPlan[]>([]);
   const [currentPlanId, setCurrentPlanId] = useState<string | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState(new Date());
 
   useEffect(() => {
     loadPlans();
@@ -261,8 +262,8 @@ export default function Dashboard() {
   }
 
   const now = new Date();
-  const monthDays = eachDayOfInterval({ start: startOfMonth(now), end: endOfMonth(now) });
-  const firstDayOffset = (startOfMonth(now).getDay() + 6) % 7;
+  const monthDays = eachDayOfInterval({ start: startOfMonth(selectedMonth), end: endOfMonth(selectedMonth) });
+  const firstDayOffset = (startOfMonth(selectedMonth).getDay() + 6) % 7;
   const lastDayData = lastWorkout ? WORKOUT_DAYS.find((d) => d.id === lastWorkout.day) : null;
 
   const currentPlan = plans.find(p => p.id === currentPlanId);
@@ -446,9 +447,23 @@ export default function Dashboard() {
 
       {/* Compact Calendar */}
       <div className="bg-card rounded-2xl p-5">
-        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-3">
-          {format(now, "MMMM yyyy", { locale: it })}
-        </p>
+        <div className="flex items-center justify-between mb-3">
+          <button
+            onClick={() => setSelectedMonth(subMonths(selectedMonth, 1))}
+            className="text-muted-foreground hover:text-foreground transition-colors p-1"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+            {format(selectedMonth, "MMMM yyyy", { locale: it })}
+          </p>
+          <button
+            onClick={() => setSelectedMonth(addMonths(selectedMonth, 1))}
+            className="text-muted-foreground hover:text-foreground transition-colors p-1"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
         <div className="grid grid-cols-7 gap-1 text-center">
           {["L", "M", "M", "G", "V", "S", "D"].map((d, i) => (
             <span key={i} className="text-[10px] text-muted-foreground font-medium pb-1">{d}</span>
