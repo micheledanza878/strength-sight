@@ -75,6 +75,7 @@ export default function WorkoutSession() {
   const [prevSets, setPrevSets] = useState<Record<string, { reps: number; weight: number }[]>>({});
   const [justDone, setJustDone] = useState<string | null>(null);
   const [completion, setCompletion] = useState<CompletionStats | null>(null);
+  const [resumeDialog, setResumeDialog] = useState<string | null>(null);
 
   useEffect(() => {
     loadDayData();
@@ -103,6 +104,20 @@ export default function WorkoutSession() {
 
       if (day) {
         loadPrevSession(day.day_name);
+
+        // Check for in-progress workout
+        const { data: inProgressLog } = await supabase
+          .from("workout_logs")
+          .select("id")
+          .eq("workout_day", day.day_name)
+          .is("completed_at", null)
+          .order("started_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (inProgressLog) {
+          setResumeDialog(inProgressLog.id);
+        }
       }
     } catch (error) {
       console.error("Errore caricamento giorno:", error);
@@ -153,6 +168,31 @@ export default function WorkoutSession() {
     return () => clearInterval(interval);
   }, [phase]);
 
+  // Save workout on page exit
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (phase === "active" && !completion) {
+        e.preventDefault();
+        e.returnValue = "";
+        return "";
+      }
+    };
+
+    const handleUnload = () => {
+      if (phase === "active" && !completion) {
+        savePartialWorkout();
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("unload", handleUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("unload", handleUnload);
+    };
+  }, [phase, completion, sets, workoutLogId]);
+
   async function loadPrevSession(workoutId: string) {
     const { data: lastLog } = await supabase
       .from("workout_logs")
@@ -201,6 +241,38 @@ export default function WorkoutSession() {
 
   if (dayLoading) return <div className="p-5 pt-14 text-foreground">Caricamento...</div>;
   if (!dayData) return <div className="p-5 pt-14 text-foreground">Giorno non trovato</div>;
+
+  // Resume dialog
+  if (resumeDialog && phase === "preview") {
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background px-5">
+        <div className="w-full max-w-sm text-center">
+          <p className="text-2xl mb-4">⏸️</p>
+          <h2 className="text-xl font-bold mb-2">Allenamento in corso</h2>
+          <p className="text-muted-foreground text-sm mb-6">Vuoi riprendere l'allenamento precedente?</p>
+          <div className="flex gap-3">
+            <button
+              onClick={() => {
+                setResumeDialog(null);
+                setWorkoutLogId(resumeDialog);
+                setPhase("active");
+                startedAt.current = new Date();
+              }}
+              className="flex-1 h-12 rounded-xl bg-primary text-primary-foreground font-semibold transition-transform active:scale-95"
+            >
+              Riprendi
+            </button>
+            <button
+              onClick={() => setResumeDialog(null)}
+              className="flex-1 h-12 rounded-xl bg-secondary text-secondary-foreground font-semibold transition-transform active:scale-95"
+            >
+              Nuovo
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Colore di default per il giorno
   const dayColor = "hsl(210, 100%, 50%)";
@@ -304,12 +376,52 @@ export default function WorkoutSession() {
       setTimeout(() => setJustDone(null), 400);
       setTimerKey((k) => k + 1);
       setShowTimer(true);
+
+      // Save when completing a set
+      setSets((prev) => {
+        const updated = [...(prev[exName] || [])];
+        updated[idx] = { ...updated[idx], done: true };
+
+        // Save to DB
+        if (workoutLogId && updated[idx].weight && updated[idx].reps) {
+          supabase.from("set_logs").insert({
+            workout_log_id: workoutLogId,
+            exercise_name: exName,
+            set_number: idx + 1,
+            reps: parseInt(updated[idx].reps) || 0,
+            weight: parseFloat(updated[idx].weight) || 0,
+          }).catch((error) => console.error("Errore salvataggio set:", error));
+        }
+
+        return { ...prev, [exName]: updated };
+      });
+    } else {
+      setSets((prev) => {
+        const updated = [...(prev[exName] || [])];
+        updated[idx] = { ...updated[idx], done: false };
+        return { ...prev, [exName]: updated };
+      });
     }
-    setSets((prev) => {
-      const updated = [...(prev[exName] || [])];
-      updated[idx] = { ...updated[idx], done: !updated[idx].done };
-      return { ...prev, [exName]: updated };
-    });
+  }
+
+  async function savePartialWorkout() {
+    const allSets = Object.entries(sets).flatMap(([exName, exSets]) =>
+      exSets.filter((s) => s.done).map((s, i) => ({
+        workout_log_id: workoutLogId ?? "",
+        exercise_name: exName,
+        set_number: i + 1,
+        reps: parseInt(s.reps) || 0,
+        weight: parseFloat(s.weight) || 0,
+      }))
+    );
+
+    if (workoutLogId && allSets.length > 0) {
+      try {
+        await supabase.from("set_logs").insert(allSets);
+      } catch (error) {
+        console.error("Errore salvataggio parziale:", error);
+      }
+    }
   }
 
   async function finishWorkout() {
