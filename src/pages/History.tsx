@@ -169,7 +169,11 @@ export default function History() {
       {activeTab === "history" && !loading && (
         (() => {
           return filteredLogs.length === 0 ? (
-            <div className="text-center text-muted-foreground text-sm py-12">Nessun allenamento completato</div>
+            <div className="bg-card rounded-2xl p-8 text-center py-16">
+              <p className="text-3xl mb-3">🏋️</p>
+              <p className="text-muted-foreground text-sm font-medium">Nessun allenamento completato</p>
+              <p className="text-muted-foreground text-xs mt-2">Inizia il tuo primo allenamento per vedere i dati qui</p>
+            </div>
           ) : (
             <div className="space-y-3">
               {filteredLogs.map((log) => {
@@ -250,7 +254,11 @@ export default function History() {
 
       {activeTab === "records" && !loading && (
         prs.length === 0 ? (
-          <div className="text-center text-muted-foreground text-sm py-12">Completa almeno un allenamento per vedere i record</div>
+          <div className="bg-card rounded-2xl p-8 text-center py-16">
+            <p className="text-3xl mb-3">🏆</p>
+            <p className="text-muted-foreground text-sm font-medium">Nessun record ancora</p>
+            <p className="text-muted-foreground text-xs mt-2">Completa un allenamento per registrare i tuoi PR</p>
+          </div>
         ) : (
           <div className="space-y-2">
             {prs.map(([exercise, pr]) => (

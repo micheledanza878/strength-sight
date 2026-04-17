@@ -326,7 +326,9 @@ export default function BodyTracking() {
         </div>
       ) : !loading ? (
         <div className="bg-card rounded-2xl p-8 text-center mb-4">
-          <p className="text-muted-foreground text-sm">Aggiungi almeno 2 misurazioni per vedere il grafico</p>
+          <p className="text-2xl mb-3">📊</p>
+          <p className="text-muted-foreground text-sm font-medium">Nessun grafico disponibile</p>
+          <p className="text-muted-foreground text-xs mt-2">Aggiungi almeno 2 misurazioni per visualizzare il progresso</p>
         </div>
       ) : null}
 
