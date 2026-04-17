@@ -208,8 +208,8 @@ export default function WorkoutSession() {
         </div>
 
         {/* Color accent banner */}
-        <div className="rounded-2xl p-4 mb-6 flex items-center gap-4" style={{ backgroundColor: dayColor + "18" }}>
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold shrink-0" style={{ backgroundColor: dayColor + "33", color: dayColor }}>
+        <div className="rounded-2xl p-4 mb-6 flex items-center gap-4" style={{ backgroundColor: "hsla(210, 100%, 50%, 0.08)" }}>
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold shrink-0" style={{ backgroundColor: "hsla(210, 100%, 50%, 0.15)", color: dayColor }}>
             {dayData.day_number}
           </div>
           <div>
@@ -223,7 +223,7 @@ export default function WorkoutSession() {
           {exercises.map((ex, i) => (
             <div key={ex.id} className="bg-card rounded-2xl px-4 py-3 flex items-center gap-3">
               <span className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0"
-                style={{ backgroundColor: dayColor + "22", color: dayColor }}>
+                style={{ backgroundColor: "hsla(210, 100%, 50%, 0.13)", color: dayColor }}>
                 {i + 1}
               </span>
               <div className="flex-1">
@@ -336,7 +336,7 @@ export default function WorkoutSession() {
       <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background px-5">
         <div className="w-full max-w-sm text-center">
           <div className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6"
-            style={{ backgroundColor: dayColor + "22" }}>
+            style={{ backgroundColor: "hsla(210, 100%, 50%, 0.13)" }}>
             <Trophy className="w-10 h-10" style={{ color: dayColor }} />
           </div>
           <h2 className="text-3xl font-bold mb-1">Ottimo lavoro!</h2>
@@ -421,7 +421,7 @@ export default function WorkoutSession() {
               className="px-3 py-1.5 rounded-full text-[11px] font-semibold transition-colors"
               style={
                 active ? { backgroundColor: dayColor, color: "#fff" }
-                : done ? { backgroundColor: dayColor + "33", color: dayColor }
+                : done ? { backgroundColor: "hsla(210, 100%, 50%, 0.2)", color: dayColor }
                 : undefined
               }
               {...(!active && !done ? { className: "px-3 py-1.5 rounded-full text-[11px] font-semibold transition-colors bg-secondary text-secondary-foreground" } : {})}
