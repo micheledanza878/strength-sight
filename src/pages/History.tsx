@@ -263,7 +263,7 @@ export default function History() {
                 <div className="flex items-center gap-2 shrink-0">
                   <Trophy className="w-4 h-4 text-amber-400" />
                   <p className="font-bold text-sm">
-                    {pr.weight > 0 ? `${pr.weight} kg × ${pr.reps} rep` : `${pr.reps} rep`}
+                    {pr.reps} rep @ {pr.weight}kg
                   </p>
                 </div>
               </div>
