@@ -168,7 +168,6 @@ export default function BodyTracking() {
       case "base":
         return [
           { key: "weight", label: "Peso (kg)", mode: "decimal" as const },
-          { key: "body_fat", label: "Grasso corporeo (%)", mode: "decimal" as const },
           { key: "height_cm", label: "Altezza (cm)", mode: "decimal" as const },
         ];
       case "upper":
