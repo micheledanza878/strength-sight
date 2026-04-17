@@ -229,8 +229,6 @@ export default function WorkoutSession() {
     if (!current.done) {
       setJustDone(`${exercise.name}-${idx}`);
       setTimeout(() => setJustDone(null), 400);
-      setTimerKey((k) => k + 1);
-      setShowTimer(true);
     }
     setSets((prev) => {
       const updated = [...(prev[exercise.name] || [])];
@@ -336,8 +334,8 @@ export default function WorkoutSession() {
           <p className="text-lg font-bold">{workout.title}</p>
         </div>
         {/* Elapsed timer */}
-        <div className="flex items-center gap-1.5 bg-secondary rounded-xl px-3 py-1.5">
-          <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+        <div className="flex items-center gap-1.5 text-muted-foreground">
+          <Clock className="w-4 h-4" />
           <span className="text-sm font-bold tabular-nums">{formatElapsed(elapsed)}</span>
         </div>
       </div>
@@ -439,6 +437,21 @@ export default function WorkoutSession() {
             );
           })}
         </div>
+      </div>
+
+      {/* Rest Timer Button */}
+      <div className="mb-4">
+        <button
+          onClick={() => {
+            setTimerKey((k) => k + 1);
+            setShowTimer(true);
+          }}
+          className="w-full h-12 rounded-xl font-semibold text-white flex items-center justify-center gap-2"
+          style={{ backgroundColor: workout.color }}
+        >
+          <Play className="w-4 h-4 fill-white" />
+          Avvia riposo (90s)
+        </button>
       </div>
 
       {/* Navigation */}
