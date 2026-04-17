@@ -121,10 +121,9 @@ export default function WorkoutSelect() {
         <h1 className="text-3xl font-bold">Schede</h1>
         <button
           onClick={() => navigate("/create-plan")}
-          className="flex items-center gap-1.5 text-primary text-sm font-semibold"
+          className="w-11 h-11 rounded-full bg-primary flex items-center justify-center"
         >
-          <Plus className="w-5 h-5" />
-          Nuova
+          <Plus className="w-5 h-5 text-primary-foreground" />
         </button>
       </div>
       <p className="text-muted-foreground text-sm mb-6">Scegli il tuo programma</p>
