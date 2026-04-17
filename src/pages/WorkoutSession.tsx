@@ -286,8 +286,8 @@ export default function WorkoutSession() {
             <ArrowLeft className="w-6 h-6" />
           </button>
           <div>
-            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Giorno {dayData.day_number}</p>
             <p className="text-xl font-bold">{dayData.day_name}</p>
+            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Giorno {dayData.day_number}</p>
           </div>
         </div>
 
@@ -518,8 +518,8 @@ export default function WorkoutSession() {
           <ArrowLeft className="w-6 h-6" />
         </button>
         <div className="flex-1">
-          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Giorno {dayData.day_number}</p>
           <p className="text-lg font-bold">{dayData.day_name}</p>
+          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Giorno {dayData.day_number}</p>
         </div>
         {/* Elapsed timer */}
         <div className="flex items-center gap-1.5 bg-secondary rounded-xl px-3 py-1.5">
