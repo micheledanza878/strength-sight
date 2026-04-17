@@ -260,30 +260,6 @@ export default function BodyTracking() {
         </div>
       )}
 
-      {/* Latest Stats */}
-      {!loading && latest && (
-        <div className="grid grid-cols-3 gap-3 mb-6">
-          {latest.weight && (
-            <div className="bg-card rounded-2xl p-5 text-center">
-              <p className="text-3xl font-bold">{latest.weight}</p>
-              <p className="text-xs text-muted-foreground mt-1">kg</p>
-            </div>
-          )}
-          {latest.body_fat && (
-            <div className="bg-card rounded-2xl p-5 text-center">
-              <p className="text-3xl font-bold">{latest.body_fat}</p>
-              <p className="text-xs text-muted-foreground mt-1">% grasso</p>
-            </div>
-          )}
-          {latest.arms && (
-            <div className="bg-card rounded-2xl p-5 text-center">
-              <p className="text-3xl font-bold">{latest.arms}</p>
-              <p className="text-xs text-muted-foreground mt-1">braccia cm</p>
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Detailed Progress Cards */}
       {!loading && latest && (
         <div className="space-y-3 mb-6">
@@ -315,31 +291,6 @@ export default function BodyTracking() {
                   {(latest.weight as number) - (previous.weight as number) > 0 ? "+" : ""}{((latest.weight as number) - (previous.weight as number)).toFixed(1)} kg da ultima volta
                 </p>
               )}
-            </div>
-          )}
-          {latest.braccio_front_cm && (
-            <div className="bg-card rounded-2xl p-4">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-xs font-semibold uppercase text-muted-foreground">Braccio</p>
-                <span className={`text-lg ${getTrend("braccio_front_cm") === "up" ? "text-green-500" : getTrend("braccio_front_cm") === "down" ? "text-red-500" : "text-muted-foreground"}`}>
-                  {getTrend("braccio_front_cm") === "up" ? "↑" : getTrend("braccio_front_cm") === "down" ? "↓" : "→"}
-                </span>
-              </div>
-              <p className="text-2xl font-bold mb-1">{latest.braccio_front_cm} cm</p>
-              <div className="grid grid-cols-3 gap-2 text-xs">
-                <div>
-                  <p className="text-muted-foreground">Min</p>
-                  <p className="font-semibold">{getStats("braccio_front_cm").min} cm</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Avg</p>
-                  <p className="font-semibold">{getStats("braccio_front_cm").avg.toFixed(1)} cm</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Max</p>
-                  <p className="font-semibold">{getStats("braccio_front_cm").max} cm</p>
-                </div>
-              </div>
             </div>
           )}
         </div>
