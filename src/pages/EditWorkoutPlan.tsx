@@ -192,35 +192,54 @@ export default function EditWorkoutPlan() {
 
       for (let dayIdx = 0; dayIdx < days.length; dayIdx++) {
         const day = days[dayIdx];
-        if (day.id) {
+        let dayId = day.id;
+
+        if (dayId) {
+          // Update existing day
           await supabase
             .from("workout_plan_days")
             .update({ day_name: day.day_name })
-            .eq("id", day.id);
-
-          const exercisesToDelete = await supabase
-            .from("workout_plan_exercises")
+            .eq("id", dayId);
+        } else {
+          // Insert new day
+          const { data: newDayData, error: newDayError } = await supabase
+            .from("workout_plan_days")
+            .insert({
+              workout_plan_id: planId,
+              day_number: dayIdx + 1,
+              day_name: day.day_name,
+            })
             .select("id")
-            .eq("workout_plan_day_id", day.id);
+            .single();
 
-          for (const ex of exercisesToDelete.data || []) {
-            await supabase.from("workout_plan_exercises").delete().eq("id", ex.id);
-          }
+          if (newDayError) throw newDayError;
+          if (!newDayData) throw new Error("Failed to create day");
+          dayId = newDayData.id;
+        }
 
-          const exercisesToInsert = day.exercises.map((ex, exIdx) => ({
-            workout_plan_day_id: day.id,
-            exercise_name: ex.exercise_name,
-            order_number: exIdx + 1,
-            sets: ex.sets,
-            reps_min: ex.reps_min,
-            reps_max: ex.reps_max,
-            rest_seconds: ex.rest_seconds,
-            notes: ex.notes || null,
-          }));
+        // Delete and re-insert exercises
+        const exercisesToDelete = await supabase
+          .from("workout_plan_exercises")
+          .select("id")
+          .eq("workout_plan_day_id", dayId);
 
-          if (exercisesToInsert.length > 0) {
-            await supabase.from("workout_plan_exercises").insert(exercisesToInsert);
-          }
+        for (const ex of exercisesToDelete.data || []) {
+          await supabase.from("workout_plan_exercises").delete().eq("id", ex.id);
+        }
+
+        const exercisesToInsert = day.exercises.map((ex, exIdx) => ({
+          workout_plan_day_id: dayId,
+          exercise_name: ex.exercise_name,
+          order_number: exIdx + 1,
+          sets: ex.sets,
+          reps_min: ex.reps_min,
+          reps_max: ex.reps_max,
+          rest_seconds: ex.rest_seconds,
+          notes: ex.notes || null,
+        }));
+
+        if (exercisesToInsert.length > 0) {
+          await supabase.from("workout_plan_exercises").insert(exercisesToInsert);
         }
       }
 
