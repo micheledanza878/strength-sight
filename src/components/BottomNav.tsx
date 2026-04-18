@@ -13,10 +13,11 @@ export default function BottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Hide nav during active workout session and during edit
+  // Hide nav during active workout session, during edit, and during creation
   if (location.pathname.startsWith("/session") ||
       location.pathname.startsWith("/edit-plan") ||
-      location.pathname.startsWith("/edit-day")) return null;
+      location.pathname.startsWith("/edit-day") ||
+      location.pathname.startsWith("/create-plan")) return null;
 
   return (
     <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[428px] bg-card/80 backdrop-blur-xl border-t border-border safe-bottom z-50">
