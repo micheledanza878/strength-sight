@@ -653,7 +653,7 @@ export default function BodyTracking() {
 
       {/* Add Form Fullscreen */}
       {showForm && (
-        <div className="fixed inset-0 z-50 bg-background px-5 pt-14 pb-24 flex flex-col overflow-hidden">
+        <div className="fixed inset-0 bg-background px-5 pt-14 pb-32 flex flex-col overflow-y-auto" style={{ zIndex: 51 }}>
           {/* Header */}
           <div className="flex items-center gap-3 mb-6">
             <button onClick={closeForm} className="text-muted-foreground">
