@@ -148,6 +148,25 @@ export default function EditWorkoutPlan() {
     setDays(updated);
   }
 
+  function addDay() {
+    const maxDayNumber = days.length > 0 ? Math.max(...days.map(d => d.day_number)) : 0;
+    const newDay: WorkoutDay = {
+      day_name: `Giorno ${maxDayNumber + 1}`,
+      day_number: maxDayNumber + 1,
+      exercises: [],
+    };
+    setDays([...days, newDay]);
+  }
+
+  function removeDay(idx: number) {
+    if (days.length === 1) {
+      toast({ title: "Errore", description: "Deve esserci almeno un giorno", variant: "destructive" });
+      return;
+    }
+    const updated = days.filter((_, i) => i !== idx);
+    setDays(updated);
+  }
+
   async function savePlan() {
     for (let i = 0; i < days.length; i++) {
       if (days[i].exercises.length === 0) {
@@ -276,9 +295,19 @@ export default function EditWorkoutPlan() {
         <div className="space-y-3 mb-8 animate-in fade-in duration-300">
           {days.map((day, idx) => (
             <div key={idx}>
-              <label className="text-xs text-muted-foreground font-medium uppercase tracking-wider block mb-2">
-                Giorno {idx + 1}
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+                  Giorno {idx + 1}
+                </label>
+                {days.length > 1 && (
+                  <button
+                    onClick={() => removeDay(idx)}
+                    className="text-red-500 hover:bg-red-500/10 p-1 rounded-lg transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
               <input
                 type="text"
                 value={day.day_name}
@@ -287,6 +316,14 @@ export default function EditWorkoutPlan() {
               />
             </div>
           ))}
+
+          <button
+            onClick={addDay}
+            className="w-full h-12 rounded-xl bg-secondary text-secondary-foreground font-semibold flex items-center justify-center gap-2 transition-colors hover:bg-secondary/80 mt-4"
+          >
+            <Plus className="w-5 h-5" />
+            Aggiungi Giorno
+          </button>
         </div>
       )}
 
