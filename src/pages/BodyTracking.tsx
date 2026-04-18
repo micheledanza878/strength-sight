@@ -66,7 +66,6 @@ export default function BodyTracking() {
     const { data } = await supabase
       .from("body_measurements")
       .select("*")
-      .eq("user_id", getUserId())
       .order("measured_at", { ascending: true });
     if (data) setMeasurements(data as Measurement[]);
     setLoading(false);
@@ -77,7 +76,6 @@ export default function BodyTracking() {
 
     try {
       const { error } = await supabase.from("body_measurements").insert({
-        user_id: getUserId(),
         measured_at: new Date().toISOString(),
         weight: form.weight ? parseFloat(form.weight) : null,
         height_cm: form.height_cm ? parseFloat(form.height_cm) : null,
