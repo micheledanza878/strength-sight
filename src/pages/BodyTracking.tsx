@@ -93,7 +93,10 @@ export default function BodyTracking() {
         notes: form.notes || null,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Dettagli errore Supabase:", error);
+        throw error;
+      }
 
       setSaveFeedback(true);
       setTimeout(() => setSaveFeedback(false), 2000);
