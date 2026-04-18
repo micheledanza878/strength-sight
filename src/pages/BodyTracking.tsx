@@ -683,7 +683,7 @@ export default function BodyTracking() {
           </p>
 
           {/* Fields for current step */}
-          <div className="space-y-4 overflow-y-auto flex-1 mb-6 animate-in fade-in duration-300">
+          <div className="space-y-4 overflow-y-auto flex-1 animate-in fade-in duration-300">
             {getStepFields().map((f) => (
               <div key={f.key}>
                 <label className="text-xs text-muted-foreground font-medium block mb-2">{f.label}</label>
@@ -713,7 +713,7 @@ export default function BodyTracking() {
           </div>
 
           {/* Navigation buttons */}
-          <div className="flex gap-3 shrink-0 pb-2">
+          <div className="fixed bottom-8 left-4 right-4 max-w-[412px] mx-auto flex gap-3 shrink-0">
             {step !== "base" && (
               <button
                 onClick={prevStep}
