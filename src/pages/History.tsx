@@ -224,26 +224,6 @@ export default function History() {
         </div>
       )}
 
-      {/* Muscle Group Filter */}
-      <div className="mb-6">
-        <label className="text-xs text-muted-foreground font-medium uppercase tracking-wider block mb-2">
-          Filtro muscoli
-        </label>
-        <Select value={selectedMuscle || "all"} onValueChange={(val) => setSelectedMuscle(val === "all" ? null : val)}>
-          <SelectTrigger className="w-full bg-card border-0 h-12">
-            <SelectValue placeholder="Tutti i muscoli" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tutti i muscoli</SelectItem>
-            {uniqueMuscles.map((muscle) => (
-              <SelectItem key={muscle} value={muscle}>
-                {muscle}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
       <div className="flex gap-2 mb-6">
         <button
           onClick={() => setActiveTab("history")}
@@ -354,7 +334,28 @@ export default function History() {
       )}
 
       {activeTab === "records" && !loading && (
-        prs.length === 0 ? (
+        <>
+          {/* Muscle Group Filter */}
+          <div className="mb-6">
+            <label className="text-xs text-muted-foreground font-medium uppercase tracking-wider block mb-2">
+              Filtro muscoli
+            </label>
+            <Select value={selectedMuscle || "all"} onValueChange={(val) => setSelectedMuscle(val === "all" ? null : val)}>
+              <SelectTrigger className="w-full bg-card border-0 h-12">
+                <SelectValue placeholder="Tutti i muscoli" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tutti i muscoli</SelectItem>
+                {uniqueMuscles.map((muscle) => (
+                  <SelectItem key={muscle} value={muscle}>
+                    {muscle}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {prs.length === 0 ? (
           <div className="bg-card rounded-2xl p-8 text-center py-16">
             <p className="text-3xl mb-3">🏆</p>
             <p className="text-muted-foreground text-sm font-medium">Nessun record ancora</p>
@@ -381,6 +382,8 @@ export default function History() {
             ))}
           </div>
         )
+          }
+        </>
       )}
     </div>
   );
