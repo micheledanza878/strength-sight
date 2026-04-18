@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO, differenceInMinutes } from "date-fns";
 import { it } from "date-fns/locale";
-import { ChevronDown, ChevronUp, Trophy } from "lucide-react";
+import { ChevronDown, ChevronUp, Trophy, Filter } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
@@ -13,6 +13,70 @@ import {
 } from "@/components/ui/select";
 import { WORKOUT_DAYS } from "@/data/workouts";
 import { getUserId } from "@/lib/user";
+
+// Mapping esercizi → gruppo muscolare
+const MUSCLE_GROUPS: Record<string, string> = {
+  // Petto
+  "Bench Press": "Petto",
+  "Panca piana": "Petto",
+  "Incline Press": "Petto",
+  "Panca inclinata": "Petto",
+  "Push up": "Petto",
+  "Dip": "Petto",
+
+  // Schiena
+  "Pull up": "Schiena",
+  "Lat pulldown": "Schiena",
+  "Row": "Schiena",
+  "Rematore": "Schiena",
+  "Deadlift": "Schiena",
+  "Stacco da terra": "Schiena",
+  "Barbell Row": "Schiena",
+
+  // Spalle
+  "Shoulder Press": "Spalle",
+  "Military Press": "Spalle",
+  "Pike Push up": "Spalle",
+  "Lateral Raise": "Spalle",
+  "Alzata laterale": "Spalle",
+
+  // Braccia
+  "Curl": "Braccia",
+  "Curl bilanciere EZ": "Braccia",
+  "Barbell Curl": "Braccia",
+  "Tricep Dips": "Braccia",
+  "Skull Crusher": "Braccia",
+  "Tricep Extension": "Braccia",
+
+  // Gambe
+  "Squat": "Gambe",
+  "Leg Press": "Gambe",
+  "Hack Squat": "Gambe",
+  "Bulgarian Split Squat": "Gambe",
+  "Leg Curl": "Gambe",
+  "Leg Extension": "Gambe",
+  "Calf Raise": "Gambe",
+  "Croci panca inclinata": "Gambe",
+  "Spalle Braccia": "Gambe",
+  "Petto Dorso": "Gambe",
+  "Dorso Spalle": "Gambe",
+  "Gambe": "Gambe",
+
+  // Core/Addominali
+  "Crunch": "Core",
+  "Ab Wheel": "Core",
+  "Plank": "Core",
+  "Addominali": "Core",
+  "Kickback manubrio": "Core",
+
+  // Vari
+  "French press": "Braccia",
+  "Spider Curl": "Braccia",
+};
+
+function getMuscleGroup(exerciseName: string): string {
+  return MUSCLE_GROUPS[exerciseName] || "Altro";
+}
 
 interface SetLog {
   exercise_name: string;
@@ -50,6 +114,7 @@ export default function History() {
   const [planDays, setPlanDays] = useState<PlanDay[]>([]);
   const [plans, setPlans] = useState<WorkoutPlan[]>([]);
   const [currentPlanId, setCurrentPlanId] = useState<string | null>(null);
+  const [selectedMuscle, setSelectedMuscle] = useState<string | null>(null);
 
   useEffect(() => {
     loadPlans().then(() => loadData(getUserId()));
@@ -106,7 +171,19 @@ export default function History() {
 
   // Filter logs by selected plan
   const planDayNames = new Set(planDays.map((d) => d.day_name));
-  const filteredLogs = planDays.length > 0 ? logs.filter((log) => planDayNames.has(log.workout_day)) : logs;
+  let filteredLogs = planDays.length > 0 ? logs.filter((log) => planDayNames.has(log.workout_day)) : logs;
+
+  // Filter by muscle group if selected
+  if (selectedMuscle) {
+    filteredLogs = filteredLogs.map((log) => ({
+      ...log,
+      set_logs: log.set_logs.filter((set) => getMuscleGroup(set.exercise_name) === selectedMuscle),
+    })).filter((log) => log.set_logs.length > 0);
+  }
+
+  // Get unique muscle groups from all exercises
+  const uniqueMuscles = Array.from(new Set(logs.flatMap((log) => log.set_logs.map((set) => getMuscleGroup(set.exercise_name)))));
+  uniqueMuscles.sort();
 
   // Compute PRs from filtered set_logs
   const prMap: Record<string, { weight: number; reps: number; date: string }> = {};
@@ -146,6 +223,26 @@ export default function History() {
           </Select>
         </div>
       )}
+
+      {/* Muscle Group Filter */}
+      <div className="mb-6">
+        <label className="text-xs text-muted-foreground font-medium uppercase tracking-wider block mb-2">
+          Filtro muscoli
+        </label>
+        <Select value={selectedMuscle || ""} onValueChange={(val) => setSelectedMuscle(val || null)}>
+          <SelectTrigger className="w-full bg-card border-0 h-12">
+            <SelectValue placeholder="Tutti i muscoli" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">Tutti i muscoli</SelectItem>
+            {uniqueMuscles.map((muscle) => (
+              <SelectItem key={muscle} value={muscle}>
+                {muscle}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
       <div className="flex gap-2 mb-6">
         <button
