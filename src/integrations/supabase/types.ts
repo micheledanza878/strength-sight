@@ -24,6 +24,19 @@ export type Database = {
           measured_at: string
           waist: number | null
           weight: number | null
+          height_cm: number | null
+          collo_cm: number | null
+          braccio_front_cm: number | null
+          avambraccio_cm: number | null
+          petto_torace_cm: number | null
+          vita_cm: number | null
+          fianchi_cm: number | null
+          schiena_altezza_dorsali_cm: number | null
+          spalle_ampiezza_cm: number | null
+          glutei_circonferenza_cm: number | null
+          coscia_cm: number | null
+          polpaccio_cm: number | null
+          notes: string | null
         }
         Insert: {
           arms?: number | null
@@ -34,6 +47,19 @@ export type Database = {
           measured_at?: string
           waist?: number | null
           weight?: number | null
+          height_cm?: number | null
+          collo_cm?: number | null
+          braccio_front_cm?: number | null
+          avambraccio_cm?: number | null
+          petto_torace_cm?: number | null
+          vita_cm?: number | null
+          fianchi_cm?: number | null
+          schiena_altezza_dorsali_cm?: number | null
+          spalle_ampiezza_cm?: number | null
+          glutei_circonferenza_cm?: number | null
+          coscia_cm?: number | null
+          polpaccio_cm?: number | null
+          notes?: string | null
         }
         Update: {
           arms?: number | null
@@ -44,6 +70,19 @@ export type Database = {
           measured_at?: string
           waist?: number | null
           weight?: number | null
+          height_cm?: number | null
+          collo_cm?: number | null
+          braccio_front_cm?: number | null
+          avambraccio_cm?: number | null
+          petto_torace_cm?: number | null
+          vita_cm?: number | null
+          fianchi_cm?: number | null
+          schiena_altezza_dorsali_cm?: number | null
+          spalle_ampiezza_cm?: number | null
+          glutei_circonferenza_cm?: number | null
+          coscia_cm?: number | null
+          polpaccio_cm?: number | null
+          notes?: string | null
         }
         Relationships: []
       }
