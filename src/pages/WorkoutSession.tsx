@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Check, Trophy, RotateCcw, Clock, Play, Loader } from "lucide-react";
+import { ArrowLeft, Check, Trophy, RotateCcw, Clock, Play, Loader, Edit2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import RestTimer from "@/components/RestTimer";
 import { useToast } from "@/hooks/use-toast";
@@ -513,11 +513,20 @@ export default function WorkoutSession() {
           <p className="text-lg font-bold">{dayData.day_name}</p>
           <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Giorno {dayData.day_number}</p>
         </div>
-        {/* Elapsed timer */}
-        <div className="flex items-center gap-1.5 bg-secondary rounded-xl px-3 py-1.5">
-          <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-          <span className="text-sm font-bold tabular-nums">{formatElapsed(elapsed)}</span>
-        </div>
+        {phase === "preview" && dayData && (
+          <button
+            onClick={() => navigate(`/edit-day/${dayData.id}`)}
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Edit2 className="w-5 h-5" />
+          </button>
+        )}
+        {phase === "active" && (
+          <div className="flex items-center gap-1.5 bg-secondary rounded-xl px-3 py-1.5">
+            <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+            <span className="text-sm font-bold tabular-nums">{formatElapsed(elapsed)}</span>
+          </div>
+        )}
       </div>
 
       {/* Progress bar */}

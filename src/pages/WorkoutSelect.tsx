@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ChevronRight, ArrowLeft, Loader, Plus } from "lucide-react";
+import { ChevronRight, ArrowLeft, Loader, Plus, Edit2 } from "lucide-react";
 
 interface WorkoutPlan {
   id: string;
@@ -90,17 +90,25 @@ export default function WorkoutSelect() {
     const plan = plans.find(p => p.id === selectedPlan);
     return (
       <div className="px-5 pt-14 pb-24 min-h-screen">
-        <div className="flex items-center gap-3 mb-6">
-          <button
-            onClick={() => setSelectedPlan(null)}
-            className="text-muted-foreground"
-          >
-            <ArrowLeft className="w-6 h-6" />
-          </button>
-          <div>
-            <h1 className="text-3xl font-bold">{plan?.name}</h1>
-            <p className="text-muted-foreground text-sm">{plan?.description}</p>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSelectedPlan(null)}
+              className="text-muted-foreground"
+            >
+              <ArrowLeft className="w-6 h-6" />
+            </button>
+            <div>
+              <h1 className="text-3xl font-bold">{plan?.name}</h1>
+              <p className="text-muted-foreground text-sm">{plan?.description}</p>
+            </div>
           </div>
+          <button
+            onClick={() => navigate(`/edit-plan/${selectedPlan}`)}
+            className="w-11 h-11 rounded-full bg-secondary flex items-center justify-center text-muted-foreground hover:bg-secondary/80 transition-colors"
+          >
+            <Edit2 className="w-5 h-5" />
+          </button>
         </div>
 
         {loading ? (
