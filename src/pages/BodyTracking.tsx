@@ -78,6 +78,19 @@ export default function BodyTracking() {
       const { error } = await supabase.from("body_measurements").insert({
         measured_at: new Date().toISOString(),
         weight: form.weight ? parseFloat(form.weight) : null,
+        height_cm: form.height_cm ? parseFloat(form.height_cm) : null,
+        collo_cm: form.collo_cm ? parseFloat(form.collo_cm) : null,
+        braccio_front_cm: form.braccio_front_cm ? parseFloat(form.braccio_front_cm) : null,
+        avambraccio_cm: form.avambraccio_cm ? parseFloat(form.avambraccio_cm) : null,
+        petto_torace_cm: form.petto_torace_cm ? parseFloat(form.petto_torace_cm) : null,
+        vita_cm: form.vita_cm ? parseFloat(form.vita_cm) : null,
+        fianchi_cm: form.fianchi_cm ? parseFloat(form.fianchi_cm) : null,
+        schiena_altezza_dorsali_cm: form.schiena_altezza_dorsali_cm ? parseFloat(form.schiena_altezza_dorsali_cm) : null,
+        spalle_ampiezza_cm: form.spalle_ampiezza_cm ? parseFloat(form.spalle_ampiezza_cm) : null,
+        glutei_circonferenza_cm: form.glutei_circonferenza_cm ? parseFloat(form.glutei_circonferenza_cm) : null,
+        coscia_cm: form.coscia_cm ? parseFloat(form.coscia_cm) : null,
+        polpaccio_cm: form.polpaccio_cm ? parseFloat(form.polpaccio_cm) : null,
+        notes: form.notes || null,
       });
 
       if (error) {
