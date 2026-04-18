@@ -229,12 +229,12 @@ export default function History() {
         <label className="text-xs text-muted-foreground font-medium uppercase tracking-wider block mb-2">
           Filtro muscoli
         </label>
-        <Select value={selectedMuscle || ""} onValueChange={(val) => setSelectedMuscle(val || null)}>
+        <Select value={selectedMuscle || "all"} onValueChange={(val) => setSelectedMuscle(val === "all" ? null : val)}>
           <SelectTrigger className="w-full bg-card border-0 h-12">
             <SelectValue placeholder="Tutti i muscoli" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Tutti i muscoli</SelectItem>
+            <SelectItem value="all">Tutti i muscoli</SelectItem>
             {uniqueMuscles.map((muscle) => (
               <SelectItem key={muscle} value={muscle}>
                 {muscle}
