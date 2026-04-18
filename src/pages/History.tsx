@@ -82,7 +82,7 @@ interface SetLog {
   exercise_name: string;
   set_number: number;
   reps: number;
-  weight: number;
+  weight: number | null;
 }
 
 interface WorkoutLog {
