@@ -33,6 +33,7 @@ export default function EditWorkoutPlan() {
   const [planName, setPlanName] = useState("");
   const [durationWeeks, setDurationWeeks] = useState("4");
   const [days, setDays] = useState<WorkoutDay[]>([]);
+  const [originalDayIds, setOriginalDayIds] = useState<string[]>([]);
   const [currentDayIdx, setCurrentDayIdx] = useState(0);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -63,7 +64,11 @@ export default function EditWorkoutPlan() {
       if (daysError) throw daysError;
 
       const daysWithExercises: WorkoutDay[] = [];
+      const originalIds: string[] = [];
+
       for (const day of daysData || []) {
+        originalIds.push(day.id);
+
         const { data: exData } = await supabase
           .from("workout_plan_exercises")
           .select("*")
@@ -87,6 +92,7 @@ export default function EditWorkoutPlan() {
         });
       }
       setDays(daysWithExercises);
+      setOriginalDayIds(originalIds);
     } catch (error) {
       console.error("Errore caricamento scheda:", error);
       toast({ title: "Errore", description: "Impossibile caricare la scheda", variant: "destructive" });
@@ -184,6 +190,25 @@ export default function EditWorkoutPlan() {
     setSaving(true);
     try {
       if (!planId) throw new Error("Plan ID non trovato");
+
+      // Delete days that were removed
+      const currentDayIds = days.filter(d => d.id).map(d => d.id!);
+      const daysToDelete = originalDayIds.filter(id => !currentDayIds.includes(id));
+
+      for (const dayIdToDelete of daysToDelete) {
+        // Delete all exercises for this day
+        const { data: exToDelete } = await supabase
+          .from("workout_plan_exercises")
+          .select("id")
+          .eq("workout_plan_day_id", dayIdToDelete);
+
+        for (const ex of exToDelete || []) {
+          await supabase.from("workout_plan_exercises").delete().eq("id", ex.id);
+        }
+
+        // Delete the day
+        await supabase.from("workout_plan_days").delete().eq("id", dayIdToDelete);
+      }
 
       await supabase
         .from("workout_plans")
