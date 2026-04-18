@@ -1,4 +1,4 @@
--- Aggiungi i campi mancanti a body_measurements
+-- Aggiungi campi dettagliati a body_measurements
 ALTER TABLE public.body_measurements
 ADD COLUMN IF NOT EXISTS height_cm numeric,
 ADD COLUMN IF NOT EXISTS collo_cm numeric,
@@ -13,5 +13,3 @@ ADD COLUMN IF NOT EXISTS glutei_circonferenza_cm numeric,
 ADD COLUMN IF NOT EXISTS coscia_cm numeric,
 ADD COLUMN IF NOT EXISTS polpaccio_cm numeric,
 ADD COLUMN IF NOT EXISTS notes text;
-
--- Commento: I campi old (arms, legs, body_fat, waist) sono mantenuti per compatibilità
