@@ -15,6 +15,44 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validazioni
+    if (!username.trim()) {
+      toast({
+        title: "Errore",
+        description: "Inserisci l'username",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (username.trim().length < 3) {
+      toast({
+        title: "Errore",
+        description: "L'username deve avere almeno 3 caratteri",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!password) {
+      toast({
+        title: "Errore",
+        description: "Inserisci la password",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (password.length < 6) {
+      toast({
+        title: "Errore",
+        description: "La password deve avere almeno 6 caratteri",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
