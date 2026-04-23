@@ -1,9 +1,23 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Plus, X, Loader, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getUserId } from "@/lib/user";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+interface BodyPart {
+  id: string;
+  slug: string;
+  name: string;
+  icon: string;
+}
 
 interface Exercise {
   exercise_name: string;
@@ -12,6 +26,7 @@ interface Exercise {
   reps_max: number;
   rest_seconds: number;
   notes: string;
+  primary_body_part_id?: string;
 }
 
 interface WorkoutDay {
@@ -32,6 +47,26 @@ export default function CreateWorkoutPlan() {
   const [days, setDays] = useState<WorkoutDay[]>([]);
   const [currentDayIdx, setCurrentDayIdx] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [bodyParts, setBodyParts] = useState<BodyPart[]>([]);
+
+  useEffect(() => {
+    loadBodyParts();
+  }, []);
+
+  async function loadBodyParts() {
+    try {
+      const { data } = await supabase
+        .from("body_parts")
+        .select("id, slug, name, icon")
+        .order("name", { ascending: true });
+
+      if (data) {
+        setBodyParts(data);
+      }
+    } catch (error) {
+      console.error("Errore caricamento body parts:", error);
+    }
+  }
 
   // Step 1: Create plan base
   function handlePlanNext() {
@@ -160,6 +195,7 @@ export default function CreateWorkoutPlan() {
           reps_max: ex.reps_max,
           rest_seconds: ex.rest_seconds,
           notes: ex.notes || null,
+          primary_body_part_id: ex.primary_body_part_id || null,
         }));
 
         const { error: exError } = await supabase
@@ -323,6 +359,22 @@ export default function CreateWorkoutPlan() {
                   >
                     <X className="w-4 h-4" />
                   </button>
+                </div>
+
+                <div>
+                  <label className="text-[10px] text-muted-foreground block mb-1">Parte del corpo</label>
+                  <Select value={ex.primary_body_part_id || ""} onValueChange={(val) => updateExercise(exIdx, "primary_body_part_id", val)}>
+                    <SelectTrigger className="h-9 bg-secondary border-border">
+                      <SelectValue placeholder="Seleziona muscolo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {bodyParts.map((bp) => (
+                        <SelectItem key={bp.id} value={bp.id}>
+                          {bp.icon} {bp.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
