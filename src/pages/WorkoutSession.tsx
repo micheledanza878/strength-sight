@@ -107,7 +107,7 @@ export default function WorkoutSession() {
 
         // Check for in-progress workout
         try {
-          const userId = getUserId();
+          const userId = await getUserId();
           const { data: inProgressLog } = await supabase
             .from("workout_logs")
             .select("id")
@@ -201,7 +201,7 @@ export default function WorkoutSession() {
 
   async function loadPrevSession(workoutId: string) {
     try {
-      const userId = getUserId();
+      const userId = await getUserId();
       const { data: lastLog } = await supabase
         .from("workout_logs")
         .select("id")
@@ -238,7 +238,7 @@ export default function WorkoutSession() {
     startedAt.current = new Date();
     setPhase("active");
 
-    const userId = getUserId();
+    const userId = await getUserId();
     const { data, error } = await supabase
       .from("workout_logs")
       .insert({ user_id: userId, workout_day: dayData.day_name })
@@ -410,7 +410,7 @@ export default function WorkoutSession() {
   }
 
   async function savePartialWorkout() {
-    const userId = getUserId();
+    const userId = await getUserId();
     const allSets = Object.entries(sets).flatMap(([exName, exSets]) =>
       exSets.filter((s) => s.done).map((s, i) => ({
         user_id: userId,
@@ -434,7 +434,7 @@ export default function WorkoutSession() {
   async function finishWorkout() {
     setSaving(true);
 
-    const userId = getUserId();
+    const userId = await getUserId();
     const allSets = Object.entries(sets).flatMap(([exName, exSets]) =>
       exSets.filter((s) => s.done).map((s, i) => ({
         user_id: userId,
