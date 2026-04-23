@@ -67,15 +67,16 @@ export default function Dashboard() {
 
   async function loadPlans() {
     try {
+      const userId = getUserId();
       const { data } = await supabase
         .from("workout_plans")
         .select("id, name, duration_weeks")
+        .eq("user_id", userId)
         .order("created_at", { ascending: false });
 
       if (data) {
         setPlans(data);
         let activePlanId = localStorage.getItem('activePlanId');
-        // Se non c'è una scheda attiva, usa l'ultima aggiunta (primo elemento)
         if (!activePlanId && data.length > 0) {
           activePlanId = data[0].id;
           localStorage.setItem('activePlanId', activePlanId);
@@ -103,6 +104,7 @@ export default function Dashboard() {
     const { data: logs } = await supabase
       .from("workout_logs")
       .select("id, workout_day, started_at, completed_at")
+      .eq("user_id", uid)
       .not("completed_at", "is", null)
       .order("started_at", { ascending: false });
 
@@ -175,6 +177,7 @@ export default function Dashboard() {
     const { data: monthSets } = await supabase
       .from("set_logs")
       .select("weight, reps")
+      .eq("user_id", uid)
       .gte("created_at", monthStart.toISOString())
       .lte("created_at", monthEnd.toISOString());
 
@@ -186,6 +189,7 @@ export default function Dashboard() {
     const { data: recentLogs } = await supabase
       .from("workout_logs")
       .select("id, workout_day, started_at, set_logs(weight, reps)")
+      .eq("user_id", uid)
       .not("completed_at", "is", null)
       .order("started_at", { ascending: false })
       .limit(8);
@@ -210,6 +214,7 @@ export default function Dashboard() {
     const { data: allSets } = await supabase
       .from("set_logs")
       .select("weight, reps, workout_logs(started_at)")
+      .eq("user_id", uid)
       .gte("created_at", subDays(now, 56).toISOString());
 
     if (allSets) {
@@ -232,6 +237,7 @@ export default function Dashboard() {
     const { data: allLogs } = await supabase
       .from("workout_logs")
       .select("id, set_logs(exercise_name, weight, reps)")
+      .eq("user_id", uid)
       .not("completed_at", "is", null);
 
     if (allLogs) {
@@ -256,6 +262,7 @@ export default function Dashboard() {
     const { data: measurements } = await supabase
       .from("body_measurements")
       .select("measured_at")
+      .eq("user_id", uid)
       .order("measured_at", { ascending: false })
       .limit(1);
 

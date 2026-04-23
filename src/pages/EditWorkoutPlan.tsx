@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Plus, X, Loader, ChevronRight, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { getUserId } from "@/lib/user";
 import { useToast } from "@/hooks/use-toast";
 
 interface Exercise {
@@ -45,10 +46,12 @@ export default function EditWorkoutPlan() {
   async function loadPlan() {
     if (!planId) return;
     try {
+      const userId = getUserId();
       const { data: planData, error: planError } = await supabase
         .from("workout_plans")
         .select("*")
         .eq("id", planId)
+        .eq("user_id", userId)
         .single();
 
       if (planError) throw planError;

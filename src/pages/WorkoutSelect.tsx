@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getUserId } from "@/lib/user";
 import { ChevronRight, ArrowLeft, Loader, Plus, Edit2 } from "lucide-react";
 
 interface WorkoutPlan {
@@ -53,9 +54,11 @@ export default function WorkoutSelect() {
 
   async function loadPlans() {
     try {
+      const userId = getUserId();
       const { data, error } = await supabase
         .from("workout_plans")
         .select("*")
+        .eq("user_id", userId)
         .order("created_at", { ascending: false });
 
       if (error) throw error;

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Plus, X, Loader, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { getUserId } from "@/lib/user";
 import { useToast } from "@/hooks/use-toast";
 
 interface Exercise {
@@ -115,9 +116,11 @@ export default function CreateWorkoutPlan() {
 
     try {
       // Create workout plan
+      const userId = getUserId();
       const { data: planData, error: planError } = await supabase
         .from("workout_plans")
         .insert({
+          user_id: userId,
           name: planName,
           duration_weeks: parseInt(durationWeeks) || null,
         })

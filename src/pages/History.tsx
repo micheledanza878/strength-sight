@@ -122,15 +122,16 @@ export default function History() {
 
   async function loadPlans() {
     try {
+      const userId = getUserId();
       const { data } = await supabase
         .from("workout_plans")
         .select("id, name, duration_weeks")
+        .eq("user_id", userId)
         .order("created_at", { ascending: false });
 
       if (data) {
         setPlans(data);
         let activePlanId = localStorage.getItem('activePlanId');
-        // Se non c'è una scheda attiva, usa l'ultima aggiunta (primo elemento)
         if (!activePlanId && data.length > 0) {
           activePlanId = data[0].id;
           localStorage.setItem('activePlanId', activePlanId);
@@ -152,6 +153,7 @@ export default function History() {
     const { data } = await supabase
       .from("workout_logs")
       .select("id, workout_day, started_at, completed_at, set_logs (exercise_name, set_number, reps, weight)")
+      .eq("user_id", uid)
       .not("completed_at", "is", null)
       .order("started_at", { ascending: false });
 
