@@ -287,6 +287,7 @@ export default function Dashboard() {
         <h1 className="text-3xl font-bold">Workout</h1>
         <button
           onClick={() => {
+            localStorage.removeItem('activePlanId');
             logout();
             navigate("/login");
           }}
