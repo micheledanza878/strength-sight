@@ -364,11 +364,7 @@ export default function CreateWorkoutPlan() {
                 <div>
                   <label className="text-[10px] text-muted-foreground block mb-1">Parte del corpo</label>
                   <Select value={ex.primary_body_part_id || ""} onValueChange={(val) => updateExercise(exIdx, "primary_body_part_id", val)}>
-<<<<<<< HEAD
-                    <SelectTrigger className="h-9 bg-secondary border-border">
-=======
                     <SelectTrigger className="w-full h-9 bg-secondary border border-border rounded">
->>>>>>> claude/prefill-previous-workout-data-YnBWp
                       <SelectValue placeholder="Seleziona muscolo" />
                     </SelectTrigger>
                     <SelectContent>
