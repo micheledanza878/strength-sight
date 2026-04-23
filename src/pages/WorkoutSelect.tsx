@@ -3,7 +3,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getUserId } from "@/lib/user";
 import { useActivePlan } from "@/contexts/ActivePlanContext";
-import { ChevronRight, ArrowLeft, Loader, Plus, Edit2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { ChevronRight, ArrowLeft, Loader, Plus, Edit2, Trash2 } from "lucide-react";
 
 interface WorkoutPlan {
   id: string;
@@ -35,10 +36,12 @@ interface PlanDay {
 export default function WorkoutSelect() {
   const navigate = useNavigate();
   const { activePlanId, setActivePlanId } = useActivePlan();
+  const { toast } = useToast();
   const [plans, setPlans] = useState<WorkoutPlan[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [days, setDays] = useState<WorkoutDay[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     loadPlans();
@@ -51,6 +54,44 @@ export default function WorkoutSelect() {
       loadDays(activePlanId);
     }
   }, [plans, activePlanId]);
+
+  async function deletePlan(planId: string) {
+    if (!window.confirm("Sei sicuro di voler eliminare questa scheda? Non potrai annullare l'azione.")) {
+      return;
+    }
+
+    setDeleting(true);
+    try {
+      const { error } = await supabase
+        .from("workout_plans")
+        .delete()
+        .eq("id", planId);
+
+      if (error) throw error;
+
+      // Se era il piano attivo, deselezionalo
+      if (activePlanId === planId) {
+        setActivePlanId(null);
+      }
+
+      toast({
+        title: "Successo",
+        description: "Scheda eliminata con successo",
+      });
+
+      setSelectedPlan(null);
+      loadPlans();
+    } catch (error) {
+      console.error("Errore eliminazione scheda:", error);
+      toast({
+        title: "Errore",
+        description: "Impossibile eliminare la scheda",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   async function loadPlans() {
     try {
@@ -108,12 +149,21 @@ export default function WorkoutSelect() {
               <p className="text-muted-foreground text-sm">{plan?.description}</p>
             </div>
           </div>
-          <button
-            onClick={() => navigate(`/edit-plan/${selectedPlan}`)}
-            className="w-11 h-11 rounded-full bg-secondary flex items-center justify-center text-muted-foreground hover:bg-secondary/80 transition-colors"
-          >
-            <Edit2 className="w-5 h-5" />
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => navigate(`/edit-plan/${selectedPlan}`)}
+              className="w-11 h-11 rounded-full bg-secondary flex items-center justify-center text-muted-foreground hover:bg-secondary/80 transition-colors"
+            >
+              <Edit2 className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => selectedPlan && deletePlan(selectedPlan)}
+              disabled={deleting}
+              className="w-11 h-11 rounded-full bg-destructive/10 flex items-center justify-center text-destructive hover:bg-destructive/20 transition-colors disabled:opacity-50"
+            >
+              <Trash2 className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {loading ? (
