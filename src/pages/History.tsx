@@ -77,22 +77,28 @@ export default function History() {
 
   async function loadBodyParts() {
     try {
-      const { data } = await supabase
+      // Load all body parts
+      const { data: allBodyParts } = await supabase
         .from("body_parts")
         .select("id, slug, name, icon")
         .order("name", { ascending: true });
 
-      if (data) {
-        setBodyParts(data);
+      if (allBodyParts) {
+        setBodyParts(allBodyParts);
+        console.log("Body parts loaded:", allBodyParts.length);
       }
 
       // Load exercise-body_part mappings
-      const { data: mappings } = await supabase
+      const { data: mappings, error: mappingsError } = await supabase
         .from("workout_plan_exercises")
         .select("exercise_name, primary_body_part_id")
         .not("primary_body_part_id", "is", null);
 
-      if (mappings) {
+      if (mappingsError) {
+        console.error("Errore caricamento mappings:", mappingsError);
+      }
+
+      if (mappings && mappings.length > 0) {
         const map: Record<string, string> = {};
         mappings.forEach((m: any) => {
           if (m.primary_body_part_id) {
@@ -100,6 +106,7 @@ export default function History() {
           }
         });
         setExerciseBodyPartMap(map);
+        console.log("Exercise body part map created with", Object.keys(map).length, "mappings");
       }
     } catch (error) {
       console.error("Errore caricamento body parts:", error);
