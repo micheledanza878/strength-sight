@@ -1,103 +1,62 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-
-interface User {
-  id: string;
-  username: string;
-}
+import type { User } from "@supabase/supabase-js";
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (username: string, password: string) => Promise<void>;
-  register: (username: string, password: string) => Promise<void>;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-function hashPassword(password: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password);
-  return crypto.subtle.digest("SHA-256", data).then((hashBuffer) => {
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
-  });
-}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem("user");
-    if (savedUser) {
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch {
-        localStorage.removeItem("user");
-      }
-    }
-    setLoading(false);
+    // Check current session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription?.unsubscribe();
   }, []);
 
-  const login = async (username: string, password: string) => {
-    const passwordHash = await hashPassword(password);
-
-    const { data: user, error } = await supabase
-      .from("users")
-      .select("id, username, password_hash")
-      .eq("username", username)
-      .single();
-
-    if (error || !user) {
-      throw new Error("Username o password non validi");
-    }
-
-    if (user.password_hash !== passwordHash) {
-      throw new Error("Username o password non validi");
-    }
-
-    const userData = { id: user.id, username: user.username };
-    setUser(userData);
-    localStorage.setItem("user", JSON.stringify(userData));
-  };
-
-  const register = async (username: string, password: string) => {
-    if (username.length < 3) {
-      throw new Error("L'username deve avere almeno 3 caratteri");
-    }
-
-    if (password.length < 6) {
-      throw new Error("La password deve avere almeno 6 caratteri");
-    }
-
-    const passwordHash = await hashPassword(password);
-
-    const { data: user, error } = await supabase
-      .from("users")
-      .insert({
-        username,
-        password_hash: passwordHash,
-      })
-      .select("id, username")
-      .single();
+  const login = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
     if (error) {
-      if (error.code === "23505") {
-        throw new Error("Username già in uso");
-      }
-      throw new Error(error.message || "Errore durante la registrazione");
+      throw new Error(error.message);
     }
-
-    const userData = { id: user.id, username: user.username };
-    setUser(userData);
-    localStorage.setItem("user", JSON.stringify(userData));
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem("user");
+  const register = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+  };
+
+  const logout = async () => {
+    await supabase.auth.signOut();
   };
 
   return (

@@ -8,7 +8,7 @@ export default function Login() {
   const { login, register } = useAuth();
   const { toast } = useToast();
 
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isRegister, setIsRegister] = useState(false);
@@ -17,19 +17,20 @@ export default function Login() {
     e.preventDefault();
 
     // Validazioni
-    if (!username.trim()) {
+    if (!email.trim()) {
       toast({
         title: "Errore",
-        description: "Inserisci l'username",
+        description: "Inserisci l'email",
         variant: "destructive",
       });
       return;
     }
 
-    if (username.trim().length < 3) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
       toast({
         title: "Errore",
-        description: "L'username deve avere almeno 3 caratteri",
+        description: "Inserisci un'email valida",
         variant: "destructive",
       });
       return;
@@ -57,10 +58,10 @@ export default function Login() {
 
     try {
       if (isRegister) {
-        await register(username, password);
+        await register(email, password);
         toast({ title: "Successo", description: "Account creato con successo!" });
       } else {
-        await login(username, password);
+        await login(email, password);
       }
       navigate("/");
     } catch (error) {
@@ -87,15 +88,15 @@ export default function Login() {
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="username" className="block text-sm font-medium mb-1.5">
-              Username
+            <label htmlFor="email" className="block text-sm font-medium mb-1.5">
+              Email
             </label>
             <input
-              id="username"
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="Il tuo username"
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="tue.email@example.com"
               className="w-full px-4 py-3 rounded-xl bg-secondary text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary"
               required
               disabled={isLoading}
