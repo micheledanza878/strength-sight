@@ -89,14 +89,14 @@ export default function History() {
       // Load exercise-body_part mappings
       const { data: mappings } = await supabase
         .from("workout_plan_exercises")
-        .select("exercise_name, primary_body_part_id, body_parts(id, name)")
+        .select("exercise_name, primary_body_part_id")
         .not("primary_body_part_id", "is", null);
 
       if (mappings) {
         const map: Record<string, string> = {};
         mappings.forEach((m: any) => {
-          if (m.body_parts?.id) {
-            map[m.exercise_name] = m.body_parts.id;
+          if (m.primary_body_part_id) {
+            map[m.exercise_name] = m.primary_body_part_id;
           }
         });
         setExerciseBodyPartMap(map);
