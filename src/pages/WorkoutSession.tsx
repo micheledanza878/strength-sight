@@ -106,17 +106,23 @@ export default function WorkoutSession() {
         loadPrevSession(day.day_name);
 
         // Check for in-progress workout
-        const { data: inProgressLog } = await supabase
-          .from("workout_logs")
-          .select("id")
-          .eq("workout_day", day.day_name)
-          .is("completed_at", null)
-          .order("started_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
+        try {
+          const userId = getUserId();
+          const { data: inProgressLog } = await supabase
+            .from("workout_logs")
+            .select("id")
+            .eq("user_id", userId)
+            .eq("workout_day", day.day_name)
+            .is("completed_at", null)
+            .order("started_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
 
-        if (inProgressLog) {
-          setResumeDialog(inProgressLog.id);
+          if (inProgressLog) {
+            setResumeDialog(inProgressLog.id);
+          }
+        } catch (error) {
+          console.error("Errore check allenamento in corso:", error);
         }
       }
     } catch (error) {
@@ -194,30 +200,36 @@ export default function WorkoutSession() {
   }, [phase, completion, sets, workoutLogId]);
 
   async function loadPrevSession(workoutId: string) {
-    const { data: lastLog } = await supabase
-      .from("workout_logs")
-      .select("id")
-      .eq("workout_day", workoutId)
-      .not("completed_at", "is", null)
-      .order("started_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    try {
+      const userId = getUserId();
+      const { data: lastLog } = await supabase
+        .from("workout_logs")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("workout_day", workoutId)
+        .not("completed_at", "is", null)
+        .order("started_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-    if (!lastLog) return;
+      if (!lastLog) return;
 
-    const { data: lastSets } = await supabase
-      .from("set_logs")
-      .select("exercise_name, set_number, reps, weight")
-      .eq("workout_log_id", lastLog.id)
-      .order("set_number", { ascending: true });
+      const { data: lastSets } = await supabase
+        .from("set_logs")
+        .select("exercise_name, set_number, reps, weight")
+        .eq("workout_log_id", lastLog.id)
+        .order("set_number", { ascending: true });
 
-    if (lastSets) {
-      const grouped: Record<string, { reps: number; weight: number }[]> = {};
-      lastSets.forEach((s) => {
-        if (!grouped[s.exercise_name]) grouped[s.exercise_name] = [];
-        grouped[s.exercise_name].push({ reps: s.reps, weight: s.weight });
-      });
-      setPrevSets(grouped);
+      if (lastSets) {
+        const grouped: Record<string, { reps: number; weight: number }[]> = {};
+        lastSets.forEach((s) => {
+          if (!grouped[s.exercise_name]) grouped[s.exercise_name] = [];
+          grouped[s.exercise_name].push({ reps: s.reps, weight: s.weight });
+        });
+        setPrevSets(grouped);
+      }
+    } catch (error) {
+      console.error("Errore caricamento sessione precedente:", error);
     }
   }
 
@@ -226,9 +238,10 @@ export default function WorkoutSession() {
     startedAt.current = new Date();
     setPhase("active");
 
+    const userId = getUserId();
     const { data, error } = await supabase
       .from("workout_logs")
-      .insert({ workout_day: dayData.day_name })
+      .insert({ user_id: userId, workout_day: dayData.day_name })
       .select("id")
       .single();
 
@@ -397,8 +410,10 @@ export default function WorkoutSession() {
   }
 
   async function savePartialWorkout() {
+    const userId = getUserId();
     const allSets = Object.entries(sets).flatMap(([exName, exSets]) =>
       exSets.filter((s) => s.done).map((s, i) => ({
+        user_id: userId,
         workout_log_id: workoutLogId ?? "",
         exercise_name: exName,
         set_number: i + 1,
@@ -419,8 +434,10 @@ export default function WorkoutSession() {
   async function finishWorkout() {
     setSaving(true);
 
+    const userId = getUserId();
     const allSets = Object.entries(sets).flatMap(([exName, exSets]) =>
       exSets.filter((s) => s.done).map((s, i) => ({
+        user_id: userId,
         workout_log_id: workoutLogId ?? "",
         exercise_name: exName,
         set_number: i + 1,
