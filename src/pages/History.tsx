@@ -14,68 +14,11 @@ import {
 import { WORKOUT_DAYS } from "@/data/workouts";
 import { getUserId } from "@/lib/user";
 
-// Mapping esercizi → gruppo muscolare
-const MUSCLE_GROUPS: Record<string, string> = {
-  // Petto
-  "Bench Press": "Petto",
-  "Panca piana": "Petto",
-  "Incline Press": "Petto",
-  "Panca inclinata": "Petto",
-  "Push up": "Petto",
-  "Dip": "Petto",
-
-  // Schiena
-  "Pull up": "Schiena",
-  "Lat pulldown": "Schiena",
-  "Row": "Schiena",
-  "Rematore": "Schiena",
-  "Deadlift": "Schiena",
-  "Stacco da terra": "Schiena",
-  "Barbell Row": "Schiena",
-
-  // Spalle
-  "Shoulder Press": "Spalle",
-  "Military Press": "Spalle",
-  "Pike Push up": "Spalle",
-  "Lateral Raise": "Spalle",
-  "Alzata laterale": "Spalle",
-
-  // Braccia
-  "Curl": "Braccia",
-  "Curl bilanciere EZ": "Braccia",
-  "Barbell Curl": "Braccia",
-  "Tricep Dips": "Braccia",
-  "Skull Crusher": "Braccia",
-  "Tricep Extension": "Braccia",
-
-  // Gambe
-  "Squat": "Gambe",
-  "Leg Press": "Gambe",
-  "Hack Squat": "Gambe",
-  "Bulgarian Split Squat": "Gambe",
-  "Leg Curl": "Gambe",
-  "Leg Extension": "Gambe",
-  "Calf Raise": "Gambe",
-  "Croci panca inclinata": "Gambe",
-  "Spalle Braccia": "Gambe",
-  "Petto Dorso": "Gambe",
-  "Dorso Spalle": "Gambe",
-  "Gambe": "Gambe",
-
-  // Core/Addominali
-  "Crunch": "Core",
-  "Ab Wheel": "Core",
-  "Plank": "Core",
-  "Addominali": "Core",
-  "Kickback manubrio": "Core",
-
-  // Vari
-  "French press": "Braccia",
-  "Spider Curl": "Braccia",
-};
-
-function getMuscleGroup(exerciseName: string): string {
-  return MUSCLE_GROUPS[exerciseName] || "Altro";
+interface BodyPart {
+  id: string;
+  slug: string;
+  name: string;
+  icon: string;
 }
 
 interface SetLog {
@@ -114,11 +57,14 @@ export default function History() {
   const [planDays, setPlanDays] = useState<PlanDay[]>([]);
   const [plans, setPlans] = useState<WorkoutPlan[]>([]);
   const [currentPlanId, setCurrentPlanId] = useState<string | null>(null);
-  const [selectedMuscle, setSelectedMuscle] = useState<string | null>(null);
+  const [selectedBodyPart, setSelectedBodyPart] = useState<string | null>(null);
+  const [bodyParts, setBodyParts] = useState<BodyPart[]>([]);
+  const [exerciseBodyPartMap, setExerciseBodyPartMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const initializeData = async () => {
       try {
+        await loadBodyParts();
         await loadPlans();
         const userId = await getUserId();
         await loadData(userId);
@@ -128,6 +74,37 @@ export default function History() {
     };
     initializeData();
   }, []);
+
+  async function loadBodyParts() {
+    try {
+      const { data } = await supabase
+        .from("body_parts")
+        .select("id, slug, name, icon")
+        .order("name", { ascending: true });
+
+      if (data) {
+        setBodyParts(data);
+      }
+
+      // Load exercise-body_part mappings
+      const { data: mappings } = await supabase
+        .from("workout_plan_exercises")
+        .select("exercise_name, primary_body_part_id, body_parts(id, name)")
+        .not("primary_body_part_id", "is", null);
+
+      if (mappings) {
+        const map: Record<string, string> = {};
+        mappings.forEach((m: any) => {
+          if (m.body_parts?.id) {
+            map[m.exercise_name] = m.body_parts.id;
+          }
+        });
+        setExerciseBodyPartMap(map);
+      }
+    } catch (error) {
+      console.error("Errore caricamento body parts:", error);
+    }
+  }
 
   async function loadPlans() {
     try {
@@ -181,17 +158,23 @@ export default function History() {
   const planDayNames = new Set(planDays.map((d) => d.day_name));
   let filteredLogs = planDays.length > 0 ? logs.filter((log) => planDayNames.has(log.workout_day)) : logs;
 
-  // Filter by muscle group if selected
-  if (selectedMuscle) {
+  // Filter by body part if selected
+  if (selectedBodyPart) {
     filteredLogs = filteredLogs.map((log) => ({
       ...log,
-      set_logs: log.set_logs.filter((set) => getMuscleGroup(set.exercise_name) === selectedMuscle),
+      set_logs: log.set_logs.filter((set) => exerciseBodyPartMap[set.exercise_name] === selectedBodyPart),
     })).filter((log) => log.set_logs.length > 0);
   }
 
-  // Get unique muscle groups from all exercises
-  const uniqueMuscles = Array.from(new Set(logs.flatMap((log) => log.set_logs.map((set) => getMuscleGroup(set.exercise_name)))));
-  uniqueMuscles.sort();
+  // Get unique body parts from all exercises
+  const usedBodyParts = new Set(
+    logs.flatMap((log) =>
+      log.set_logs
+        .map((set) => exerciseBodyPartMap[set.exercise_name])
+        .filter((id) => !!id)
+    )
+  );
+  const uniqueBodyParts = bodyParts.filter((bp) => usedBodyParts.has(bp.id));
 
   // Compute PRs from filtered set_logs
   const prMap: Record<string, { weight: number; reps: number; date: string }> = {};
@@ -343,20 +326,20 @@ export default function History() {
 
       {activeTab === "records" && !loading && (
         <>
-          {/* Muscle Group Filter */}
+          {/* Body Part Filter */}
           <div className="mb-6">
             <label className="text-xs text-muted-foreground font-medium uppercase tracking-wider block mb-2">
               Filtro muscoli
             </label>
-            <Select value={selectedMuscle || "all"} onValueChange={(val) => setSelectedMuscle(val === "all" ? null : val)}>
+            <Select value={selectedBodyPart || "all"} onValueChange={(val) => setSelectedBodyPart(val === "all" ? null : val)}>
               <SelectTrigger className="w-full bg-card border-0 h-12">
                 <SelectValue placeholder="Tutti i muscoli" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tutti i muscoli</SelectItem>
-                {uniqueMuscles.map((muscle) => (
-                  <SelectItem key={muscle} value={muscle}>
-                    {muscle}
+                {uniqueBodyParts.map((bp) => (
+                  <SelectItem key={bp.id} value={bp.id}>
+                    {bp.icon} {bp.name}
                   </SelectItem>
                 ))}
               </SelectContent>
