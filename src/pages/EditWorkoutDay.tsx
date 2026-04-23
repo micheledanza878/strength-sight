@@ -3,6 +3,20 @@ import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+interface BodyPart {
+  id: string;
+  slug: string;
+  name: string;
+  icon: string;
+}
 
 interface Exercise {
   id?: string;
@@ -13,6 +27,7 @@ interface Exercise {
   rest_seconds: number;
   notes: string;
   order_number?: number;
+  primary_body_part_id?: string;
 }
 
 interface WorkoutDay {
@@ -31,10 +46,27 @@ export default function EditWorkoutDay() {
   const [day, setDay] = useState<WorkoutDay | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [bodyParts, setBodyParts] = useState<BodyPart[]>([]);
 
   useEffect(() => {
+    loadBodyParts();
     if (dayId) loadDay();
   }, [dayId]);
+
+  async function loadBodyParts() {
+    try {
+      const { data } = await supabase
+        .from("body_parts")
+        .select("id, slug, name, icon")
+        .order("name", { ascending: true });
+
+      if (data) {
+        setBodyParts(data);
+      }
+    } catch (error) {
+      console.error("Errore caricamento body parts:", error);
+    }
+  }
 
   async function loadDay() {
     if (!dayId) return;
@@ -67,6 +99,7 @@ export default function EditWorkoutDay() {
           rest_seconds: ex.rest_seconds,
           notes: ex.notes || "",
           order_number: ex.order_number,
+          primary_body_part_id: ex.primary_body_part_id,
         })),
       });
     } catch (error) {
@@ -161,6 +194,7 @@ export default function EditWorkoutDay() {
         reps_max: ex.reps_max,
         rest_seconds: ex.rest_seconds,
         notes: ex.notes || null,
+        primary_body_part_id: ex.primary_body_part_id || null,
       }));
 
       if (exercisesToInsert.length > 0) {
@@ -228,6 +262,22 @@ export default function EditWorkoutDay() {
               onChange={(e) => updateExercise(exIdx, "exercise_name", e.target.value)}
               className="w-full h-10 bg-secondary border border-border rounded-xl px-3 text-sm outline-none focus:border-primary"
             />
+
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">Parte del corpo</label>
+              <Select value={ex.primary_body_part_id || ""} onValueChange={(val) => updateExercise(exIdx, "primary_body_part_id", val)}>
+                <SelectTrigger className="w-full h-10 bg-secondary border border-border rounded-xl">
+                  <SelectValue placeholder="Seleziona muscolo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {bodyParts.map((bp) => (
+                    <SelectItem key={bp.id} value={bp.id}>
+                      {bp.icon} {bp.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
             <div className="grid grid-cols-2 gap-2">
               <div>
