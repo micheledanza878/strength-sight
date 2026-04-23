@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface User {
   id: string;
@@ -15,11 +16,19 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+function hashPassword(password: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password);
+  return crypto.subtle.digest("SHA-256", data).then((hashBuffer) => {
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+  });
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Check if user is already logged in
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
     if (savedUser) {
@@ -33,37 +42,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async (username: string, password: string) => {
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const response = await fetch(`${supabaseUrl}/functions/v1/auth-login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password }),
-    });
+    const passwordHash = await hashPassword(password);
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Login fallito");
+    const { data: user, error } = await supabase
+      .from("users")
+      .select("id, username, password_hash")
+      .eq("username", username)
+      .single();
+
+    if (error || !user) {
+      throw new Error("Username o password non validi");
     }
 
-    const userData = await response.json();
+    if (user.password_hash !== passwordHash) {
+      throw new Error("Username o password non validi");
+    }
+
+    const userData = { id: user.id, username: user.username };
     setUser(userData);
     localStorage.setItem("user", JSON.stringify(userData));
   };
 
   const register = async (username: string, password: string) => {
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const response = await fetch(`${supabaseUrl}/functions/v1/auth-register`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Registrazione fallita");
+    if (username.length < 3) {
+      throw new Error("L'username deve avere almeno 3 caratteri");
     }
 
-    const userData = await response.json();
+    if (password.length < 6) {
+      throw new Error("La password deve avere almeno 6 caratteri");
+    }
+
+    const passwordHash = await hashPassword(password);
+
+    const { data: user, error } = await supabase
+      .from("users")
+      .insert({
+        username,
+        password_hash: passwordHash,
+      })
+      .select("id, username")
+      .single();
+
+    if (error) {
+      if (error.code === "23505") {
+        throw new Error("Username già in uso");
+      }
+      throw new Error(error.message || "Errore durante la registrazione");
+    }
+
+    const userData = { id: user.id, username: user.username };
     setUser(userData);
     localStorage.setItem("user", JSON.stringify(userData));
   };
