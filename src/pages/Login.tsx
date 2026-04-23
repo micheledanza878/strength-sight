@@ -18,17 +18,24 @@ export default function Login() {
     setIsLoading(true);
 
     try {
+      alert(`${isRegister ? "Registrazione" : "Login"} in corso...`);
       if (isRegister) {
+        alert("Chiamando register...");
         await register(username, password);
+        alert("✅ Account creato con successo!");
         toast({ title: "Successo", description: "Account creato con successo!" });
       } else {
+        alert("Chiamando login...");
         await login(username, password);
+        alert("✅ Login riuscito!");
       }
       navigate("/");
     } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : "Errore di autenticazione";
+      alert(`❌ Errore: ${errorMsg}`);
       toast({
         title: "Errore",
-        description: error instanceof Error ? error.message : "Errore di autenticazione",
+        description: errorMsg,
         variant: "destructive",
       });
     } finally {
