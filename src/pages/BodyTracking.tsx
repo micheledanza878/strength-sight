@@ -63,21 +63,26 @@ export default function BodyTracking() {
   }, []);
 
   async function loadData() {
-    const userId = getUserId();
-    const { data } = await supabase
-      .from("body_measurements")
-      .select("*")
-      .eq("user_id", userId)
-      .order("measured_at", { ascending: true });
-    if (data) setMeasurements(data as Measurement[]);
-    setLoading(false);
+    try {
+      const userId = await getUserId();
+      const { data } = await supabase
+        .from("body_measurements")
+        .select("*")
+        .eq("user_id", userId)
+        .order("measured_at", { ascending: true });
+      if (data) setMeasurements(data as Measurement[]);
+    } catch (error) {
+      console.error("Errore caricamento misurazioni:", error);
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function saveMeasurement() {
     setSaving(true);
 
     try {
-      const userId = getUserId();
+      const userId = await getUserId();
       const { error } = await supabase.from("body_measurements").insert({
         user_id: userId,
         measured_at: new Date().toISOString(),

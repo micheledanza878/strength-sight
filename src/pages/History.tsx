@@ -117,12 +117,21 @@ export default function History() {
   const [selectedMuscle, setSelectedMuscle] = useState<string | null>(null);
 
   useEffect(() => {
-    loadPlans().then(() => loadData(getUserId()));
+    const initializeData = async () => {
+      try {
+        await loadPlans();
+        const userId = await getUserId();
+        await loadData(userId);
+      } catch (error) {
+        console.error("Errore inizializzazione:", error);
+      }
+    };
+    initializeData();
   }, []);
 
   async function loadPlans() {
     try {
-      const userId = getUserId();
+      const userId = await getUserId();
       const { data } = await supabase
         .from("workout_plans")
         .select("id, name, duration_weeks")
@@ -131,12 +140,9 @@ export default function History() {
 
       if (data) {
         setPlans(data);
-        let activePlanId = localStorage.getItem('activePlanId');
-        if (!activePlanId && data.length > 0) {
-          activePlanId = data[0].id;
-          localStorage.setItem('activePlanId', activePlanId);
+        if (data.length > 0) {
+          setCurrentPlanId(data[0].id);
         }
-        setCurrentPlanId(activePlanId);
       }
     } catch (error) {
       console.error("Errore caricamento schede:", error);
@@ -144,9 +150,9 @@ export default function History() {
   }
 
   async function changePlan(planId: string) {
-    localStorage.setItem('activePlanId', planId);
     setCurrentPlanId(planId);
-    loadData(getUserId());
+    const userId = await getUserId();
+    loadData(userId);
   }
 
   async function loadData(uid: string) {
