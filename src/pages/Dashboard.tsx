@@ -62,12 +62,21 @@ export default function Dashboard() {
   const [selectedMonth, setSelectedMonth] = useState(new Date());
 
   useEffect(() => {
-    loadPlans().then(() => loadData(getUserId()));
+    const initializeData = async () => {
+      try {
+        await loadPlans();
+        const userId = await getUserId();
+        await loadData(userId);
+      } catch (error) {
+        console.error("Errore inizializzazione:", error);
+      }
+    };
+    initializeData();
   }, []);
 
   async function loadPlans() {
     try {
-      const userId = getUserId();
+      const userId = await getUserId();
       const { data } = await supabase
         .from("workout_plans")
         .select("id, name, duration_weeks")
@@ -76,12 +85,9 @@ export default function Dashboard() {
 
       if (data) {
         setPlans(data);
-        let activePlanId = localStorage.getItem('activePlanId');
-        if (!activePlanId && data.length > 0) {
-          activePlanId = data[0].id;
-          localStorage.setItem('activePlanId', activePlanId);
+        if (data.length > 0) {
+          setCurrentPlanId(data[0].id);
         }
-        setCurrentPlanId(activePlanId);
       }
     } catch (error) {
       console.error("Errore caricamento schede:", error);
@@ -89,9 +95,9 @@ export default function Dashboard() {
   }
 
   async function changePlan(planId: string) {
-    localStorage.setItem('activePlanId', planId);
     setCurrentPlanId(planId);
-    loadData(getUserId());
+    const userId = await getUserId();
+    loadData(userId);
   }
 
   async function loadData(uid: string) {
@@ -113,14 +119,13 @@ export default function Dashboard() {
       setNextWorkout(getNextWorkoutDay(logs[0].workout_day));
 
       // Load next plan day from database
-      const activePlanId = localStorage.getItem('activePlanId');
       let planDaysQuery = supabase
         .from("workout_plan_days")
         .select("*")
         .order("day_number", { ascending: true });
 
-      if (activePlanId) {
-        planDaysQuery = planDaysQuery.eq("workout_plan_id", activePlanId);
+      if (currentPlanId) {
+        planDaysQuery = planDaysQuery.eq("workout_plan_id", currentPlanId);
       }
 
       const { data: planDays } = await planDaysQuery;
@@ -287,7 +292,6 @@ export default function Dashboard() {
         <h1 className="text-3xl font-bold">Workout</h1>
         <button
           onClick={() => {
-            localStorage.removeItem('activePlanId');
             logout();
             navigate("/login");
           }}
