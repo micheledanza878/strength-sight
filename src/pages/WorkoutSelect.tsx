@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getUserId } from "@/lib/user";
+import { useActivePlan } from "@/contexts/ActivePlanContext";
 import { ChevronRight, ArrowLeft, Loader, Plus, Edit2 } from "lucide-react";
 
 interface WorkoutPlan {
@@ -33,9 +34,9 @@ interface PlanDay {
 
 export default function WorkoutSelect() {
   const navigate = useNavigate();
+  const { activePlanId, setActivePlanId } = useActivePlan();
   const [plans, setPlans] = useState<WorkoutPlan[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
-  const [activePlanId, setActivePlanId] = useState<string | null>(null);
   const [days, setDays] = useState<WorkoutDay[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -44,13 +45,12 @@ export default function WorkoutSelect() {
   }, []);
 
   useEffect(() => {
-    // Auto-select plan if activePlanId exists in localStorage
-    const activePlanId = localStorage.getItem('activePlanId');
+    // Auto-select plan if activePlanId exists from context
     if (activePlanId && plans.length > 0) {
       setSelectedPlan(activePlanId);
       loadDays(activePlanId);
     }
-  }, [plans]);
+  }, [plans, activePlanId]);
 
   async function loadPlans() {
     try {
@@ -169,6 +169,7 @@ export default function WorkoutSelect() {
             <button
               key={plan.id}
               onClick={() => {
+                setActivePlanId(plan.id);
                 setSelectedPlan(plan.id);
                 loadDays(plan.id);
               }}

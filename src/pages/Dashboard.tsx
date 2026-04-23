@@ -7,6 +7,7 @@ import {
 import { it } from "date-fns/locale";
 import { ChevronRight, Flame, Trophy, ChevronLeft, LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useActivePlan } from "@/contexts/ActivePlanContext";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, LineChart, Line, CartesianGrid } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -42,6 +43,7 @@ interface WorkoutPlan {
 export default function Dashboard() {
   const navigate = useNavigate();
   const { logout } = useAuth();
+  const { activePlanId, setActivePlanId } = useActivePlan();
   const [lastWorkout, setLastWorkout] = useState<{ day: string; date: string } | null>(null);
   const [nextWorkout, setNextWorkout] = useState<WorkoutDay>(WORKOUT_DAYS[0]);
   const [nextPlanDay, setNextPlanDay] = useState<PlanDay | null>(null);
@@ -58,7 +60,6 @@ export default function Dashboard() {
   const [lastMeasurementDaysAgo, setLastMeasurementDaysAgo] = useState<number | null>(null);
 
   const [plans, setPlans] = useState<WorkoutPlan[]>([]);
-  const [currentPlanId, setCurrentPlanId] = useState<string | null>(null);
   const [selectedMonth, setSelectedMonth] = useState(new Date());
 
   useEffect(() => {
@@ -74,6 +75,21 @@ export default function Dashboard() {
     initializeData();
   }, []);
 
+  // Ricarica i dati quando cambia il piano attivo
+  useEffect(() => {
+    if (activePlanId) {
+      const reloadData = async () => {
+        try {
+          const userId = await getUserId();
+          await loadData(userId);
+        } catch (error) {
+          console.error("Errore ricaricamento dati:", error);
+        }
+      };
+      reloadData();
+    }
+  }, [activePlanId]);
+
   async function loadPlans() {
     try {
       const userId = await getUserId();
@@ -85,8 +101,8 @@ export default function Dashboard() {
 
       if (data) {
         setPlans(data);
-        if (data.length > 0) {
-          setCurrentPlanId(data[0].id);
+        if (data.length > 0 && !activePlanId) {
+          setActivePlanId(data[0].id);
         }
       }
     } catch (error) {
@@ -95,7 +111,7 @@ export default function Dashboard() {
   }
 
   async function changePlan(planId: string) {
-    setCurrentPlanId(planId);
+    setActivePlanId(planId);
     const userId = await getUserId();
     loadData(userId);
   }
@@ -124,8 +140,8 @@ export default function Dashboard() {
         .select("*")
         .order("day_number", { ascending: true });
 
-      if (currentPlanId) {
-        planDaysQuery = planDaysQuery.eq("workout_plan_id", currentPlanId);
+      if (activePlanId) {
+        planDaysQuery = planDaysQuery.eq("workout_plan_id", activePlanId);
       }
 
       const { data: planDays } = await planDaysQuery;
@@ -284,7 +300,7 @@ export default function Dashboard() {
   const firstDayOffset = (startOfMonth(selectedMonth).getDay() + 6) % 7;
   const lastDayData = lastWorkout ? WORKOUT_DAYS.find((d) => d.id === lastWorkout.day) : null;
 
-  const currentPlan = plans.find(p => p.id === currentPlanId);
+  const currentPlan = plans.find(p => p.id === activePlanId);
 
   return (
     <div className="px-5 pt-14 pb-24 min-h-screen">
@@ -311,7 +327,7 @@ export default function Dashboard() {
           <label className="text-xs text-muted-foreground font-medium uppercase tracking-wider block mb-2">
             Scheda allenamento
           </label>
-          <Select value={currentPlanId || ""} onValueChange={changePlan}>
+          <Select value={activePlanId || ""} onValueChange={changePlan}>
             <SelectTrigger className="w-full bg-card border-0 h-12">
               <SelectValue placeholder="Seleziona scheda" />
             </SelectTrigger>
