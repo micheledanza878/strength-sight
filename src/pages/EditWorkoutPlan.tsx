@@ -46,7 +46,7 @@ export default function EditWorkoutPlan() {
   async function loadPlan() {
     if (!planId) return;
     try {
-      const userId = getUserId();
+      const userId = await getUserId();
       const { data: planData, error: planError } = await supabase
         .from("workout_plans")
         .select("*")

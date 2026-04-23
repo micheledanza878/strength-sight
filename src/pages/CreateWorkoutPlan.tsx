@@ -116,7 +116,7 @@ export default function CreateWorkoutPlan() {
 
     try {
       // Create workout plan
-      const userId = getUserId();
+      const userId = await getUserId();
       const { data: planData, error: planError } = await supabase
         .from("workout_plans")
         .insert({

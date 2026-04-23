@@ -54,7 +54,7 @@ export default function WorkoutSelect() {
 
   async function loadPlans() {
     try {
-      const userId = getUserId();
+      const userId = await getUserId();
       const { data, error } = await supabase
         .from("workout_plans")
         .select("*")
@@ -63,7 +63,9 @@ export default function WorkoutSelect() {
 
       if (error) throw error;
       setPlans(data || []);
-      setActivePlanId(localStorage.getItem('activePlanId'));
+      if (data && data.length > 0) {
+        setSelectedPlan(data[0].id);
+      }
     } catch (error) {
       console.error("Errore caricamento schede:", error);
     } finally {
