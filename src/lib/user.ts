@@ -1,10 +1,12 @@
-const KEY = "ss_uid";
-
 export function getUserId(): string {
-  let id = localStorage.getItem(KEY);
-  if (!id) {
-    id = crypto.randomUUID();
-    localStorage.setItem(KEY, id);
+  const userStr = localStorage.getItem("user");
+  if (userStr) {
+    try {
+      const user = JSON.parse(userStr);
+      return user.id;
+    } catch {
+      localStorage.removeItem("user");
+    }
   }
-  return id;
+  throw new Error("User not authenticated");
 }

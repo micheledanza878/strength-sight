@@ -5,7 +5,8 @@ import {
   isSameDay, parseISO, startOfWeek, subDays, getWeek, differenceInDays, addMonths, subMonths,
 } from "date-fns";
 import { it } from "date-fns/locale";
-import { ChevronRight, Flame, Trophy, ChevronLeft } from "lucide-react";
+import { ChevronRight, Flame, Trophy, ChevronLeft, LogOut } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, LineChart, Line, CartesianGrid } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -40,6 +41,7 @@ interface WorkoutPlan {
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const [lastWorkout, setLastWorkout] = useState<{ day: string; date: string } | null>(null);
   const [nextWorkout, setNextWorkout] = useState<WorkoutDay>(WORKOUT_DAYS[0]);
   const [nextPlanDay, setNextPlanDay] = useState<PlanDay | null>(null);
@@ -274,7 +276,19 @@ export default function Dashboard() {
 
   return (
     <div className="px-5 pt-14 pb-24 min-h-screen">
-      <h1 className="text-3xl font-bold mb-1">Workout</h1>
+      <div className="flex items-center justify-between mb-1">
+        <h1 className="text-3xl font-bold">Workout</h1>
+        <button
+          onClick={() => {
+            logout();
+            navigate("/login");
+          }}
+          className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+          title="Logout"
+        >
+          <LogOut className="w-5 h-5" />
+        </button>
+      </div>
       <p className="text-muted-foreground text-sm mb-4">
         {format(now, "EEEE d MMMM", { locale: it })}
       </p>
