@@ -76,6 +76,7 @@ export default function WorkoutSession() {
   const [justDone, setJustDone] = useState<string | null>(null);
   const [completion, setCompletion] = useState<CompletionStats | null>(null);
   const [resumeDialog, setResumeDialog] = useState<string | null>(null);
+  const [showResumePrompt, setShowResumePrompt] = useState(false);
 
   useEffect(() => {
     loadDayData();
@@ -255,36 +256,12 @@ export default function WorkoutSession() {
   if (dayLoading) return <div className="p-5 pt-14 text-foreground">Caricamento...</div>;
   if (!dayData) return <div className="p-5 pt-14 text-foreground">Giorno non trovato</div>;
 
-  // Resume dialog
-  if (resumeDialog && phase === "preview") {
-    return (
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background px-5">
-        <div className="w-full max-w-sm text-center">
-          <p className="text-2xl mb-4">⏸️</p>
-          <h2 className="text-xl font-bold mb-2">Allenamento in corso</h2>
-          <p className="text-muted-foreground text-sm mb-6">Vuoi riprendere l'allenamento precedente?</p>
-          <div className="flex gap-3">
-            <button
-              onClick={() => {
-                setResumeDialog(null);
-                setWorkoutLogId(resumeDialog);
-                setPhase("active");
-                startedAt.current = new Date();
-              }}
-              className="flex-1 h-12 rounded-xl bg-primary text-primary-foreground font-semibold transition-transform active:scale-95"
-            >
-              Riprendi
-            </button>
-            <button
-              onClick={() => setResumeDialog(null)}
-              className="flex-1 h-12 rounded-xl bg-secondary text-secondary-foreground font-semibold transition-transform active:scale-95"
-            >
-              Nuovo
-            </button>
-          </div>
-        </div>
-      </div>
-    );
+  function handleStartWorkout() {
+    if (resumeDialog) {
+      setShowResumePrompt(true);
+    } else {
+      startWorkout();
+    }
   }
 
   // Colore di default per il giorno
@@ -294,14 +271,54 @@ export default function WorkoutSession() {
   if (phase === "preview") {
     return (
       <div className="min-h-screen px-5 pt-14 pb-32 max-w-full overflow-x-hidden">
+        {showResumePrompt && (
+          <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm px-5">
+            <div className="w-full max-w-sm bg-card rounded-2xl p-6 text-center shadow-xl">
+              <p className="text-2xl mb-4">⏸️</p>
+              <h2 className="text-xl font-bold mb-2">Allenamento in corso</h2>
+              <p className="text-muted-foreground text-sm mb-6">Vuoi riprendere l'allenamento precedente?</p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowResumePrompt(false);
+                    setResumeDialog(null);
+                    setWorkoutLogId(resumeDialog);
+                    setPhase("active");
+                    startedAt.current = new Date();
+                  }}
+                  className="flex-1 h-12 rounded-xl bg-primary text-primary-foreground font-semibold transition-transform active:scale-95"
+                >
+                  Riprendi
+                </button>
+                <button
+                  onClick={() => {
+                    setShowResumePrompt(false);
+                    setResumeDialog(null);
+                    startWorkout();
+                  }}
+                  className="flex-1 h-12 rounded-xl bg-secondary text-secondary-foreground font-semibold transition-transform active:scale-95"
+                >
+                  Nuovo
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="flex items-center gap-3 mb-6">
           <button onClick={() => navigate("/workout")} className="text-muted-foreground">
             <ArrowLeft className="w-6 h-6" />
           </button>
-          <div>
+          <div className="flex-1">
             <p className="text-xl font-bold">{dayData.day_name}</p>
             <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Giorno {dayData.day_number}</p>
           </div>
+          <button
+            onClick={() => navigate(`/edit-day/${dayData.id}`)}
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Edit2 className="w-5 h-5" />
+          </button>
         </div>
 
         {/* Color accent banner */}
@@ -334,7 +351,7 @@ export default function WorkoutSession() {
         {/* Start button */}
         <div className="fixed bottom-8 left-4 right-4 max-w-[412px] mx-auto">
           <button
-            onClick={startWorkout}
+            onClick={handleStartWorkout}
             className="w-full h-16 rounded-2xl font-bold text-white text-lg flex items-center justify-center gap-3 transition-transform active:scale-95"
             style={{ backgroundColor: dayColor }}
           >
