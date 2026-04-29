@@ -14,7 +14,11 @@ import type { DayView } from '@/types/diet';
 
 export default function DietViewer() {
   const { user } = useAuth();
-  const [selectedDay, setSelectedDay] = useState(0); // Monday = 0
+  const getTodayAsAppDay = () => {
+    const today = new Date().getDay();
+    return (today - 1 + 7) % 7;
+  };
+  const [selectedDay, setSelectedDay] = useState(getTodayAsAppDay());
   const [dayView, setDayView] = useState<DayView | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
