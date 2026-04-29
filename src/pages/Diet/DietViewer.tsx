@@ -1,0 +1,177 @@
+import { useEffect, useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
+import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { MealCard } from '@/components/Diet/MealCard';
+import { DAYS_OF_WEEK } from '@/types/diet';
+import {
+  getOrCreateWeeklyPlan,
+  getDayView,
+  getWeeklyPlanWithMeals
+} from '@/services/dietService';
+import type { DayView } from '@/types/diet';
+
+export default function DietViewer() {
+  const { user } = useAuth();
+  const [selectedDay, setSelectedDay] = useState(0); // Monday = 0
+  const [dayView, setDayView] = useState<DayView | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [weeklyPlanId, setWeeklyPlanId] = useState<string | null>(null);
+
+  // Initialize: get or create weekly plan
+  useEffect(() => {
+    if (!user?.id) return;
+
+    async function init() {
+      try {
+        setLoading(true);
+        const plan = await getOrCreateWeeklyPlan(user.id);
+        setWeeklyPlanId(plan.id);
+      } catch (error) {
+        console.error('Error initializing diet plan:', error);
+      }
+    }
+
+    init();
+  }, [user?.id]);
+
+  // Load day view when plan or selected day changes
+  useEffect(() => {
+    if (!weeklyPlanId) return;
+
+    async function loadDay() {
+      try {
+        setRefreshing(true);
+        const view = await getDayView(weeklyPlanId, selectedDay);
+        setDayView(view);
+      } catch (error) {
+        console.error('Error loading day view:', error);
+      } finally {
+        setRefreshing(false);
+        setLoading(false);
+      }
+    }
+
+    loadDay();
+  }, [weeklyPlanId, selectedDay]);
+
+  function handlePreviousDay() {
+    setSelectedDay((prev) => (prev === 0 ? 6 : prev - 1));
+  }
+
+  function handleNextDay() {
+    setSelectedDay((prev) => (prev === 6 ? 0 : prev + 1));
+  }
+
+  async function handleFoodSwapped() {
+    if (!weeklyPlanId) return;
+    // Refresh current day view
+    try {
+      const view = await getDayView(weeklyPlanId, selectedDay);
+      setDayView(view);
+    } catch (error) {
+      console.error('Error refreshing day view:', error);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950">
+        <div className="text-center">
+          <Loader2 className="mx-auto h-8 w-8 animate-spin text-slate-400" />
+          <p className="mt-4 text-sm text-slate-600 dark:text-slate-400">
+            Caricamento piano dieta...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-50 pb-24 dark:bg-slate-950">
+      {/* Header */}
+      <div className="sticky top-0 z-10 border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+        <div className="px-5 py-4">
+          <h1 className="text-xl font-bold text-slate-900 dark:text-white">
+            Piano Dietetico
+          </h1>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+            Consulta il tuo piano alimentare
+          </p>
+        </div>
+      </div>
+
+      {/* Day Selector */}
+      <div className="border-b border-slate-200 bg-white px-5 py-4 dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex items-center justify-between gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handlePreviousDay}
+            disabled={refreshing}
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+
+          <div className="flex-1 text-center">
+            <p className="text-lg font-semibold text-slate-900 dark:text-white">
+              {DAYS_OF_WEEK[selectedDay]}
+            </p>
+          </div>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleNextDay}
+            disabled={refreshing}
+          >
+            <ChevronRight className="h-5 w-5" />
+          </Button>
+        </div>
+
+        {/* Day indicators */}
+        <div className="mt-3 flex gap-1.5">
+          {DAYS_OF_WEEK.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => setSelectedDay(index)}
+              disabled={refreshing}
+              className={`h-2 flex-1 rounded-full transition-colors ${
+                selectedDay === index
+                  ? 'bg-primary'
+                  : 'bg-slate-300 dark:bg-slate-700'
+              }`}
+              aria-label={`Day ${index}`}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Meals */}
+      <div className="space-y-3 px-5 py-4">
+        {refreshing ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+          </div>
+        ) : dayView && dayView.meals.length > 0 ? (
+          dayView.meals.map((meal) => (
+            <MealCard
+              key={meal.mealId}
+              mealId={meal.mealId}
+              mealType={meal.mealType}
+              foods={meal.foods}
+              onFoodSwapped={handleFoodSwapped}
+            />
+          ))
+        ) : (
+          <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-8 text-center dark:border-slate-700 dark:bg-slate-800/50">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Nessun pasto configurato per questo giorno
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
