@@ -75,39 +75,75 @@ export async function getDayView(
   weeklyPlanId: string,
   dayOfWeek: number
 ): Promise<DayView> {
-  const { data: meals, error } = await supabase
+  // Fetch meals
+  const { data: meals, error: mealsError } = await supabase
     .from('diet_meals')
-    .select(`
-      *,
-      diet_meal_foods (
-        *,
-        foods (
-          *,
-          food_categories (*)
-        )
-      )
-    `)
+    .select('*')
     .eq('weekly_plan_id', weeklyPlanId)
-    .eq('day_of_week', dayOfWeek)
-    .order('meal_type', { ascending: true });
+    .eq('day_of_week', dayOfWeek);
 
-  if (error) throw error;
+  if (mealsError) throw mealsError;
+  if (!meals || meals.length === 0) {
+    return { dayOfWeek, meals: [] };
+  }
 
-  const dayMealViews: DayMealView[] = meals.map((meal: any) => ({
-    mealId: meal.id,
-    mealType: meal.meal_type,
-    foods: meal.diet_meal_foods
-      .sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0))
-      .map((mealFood: any) => ({
-        foodId: mealFood.food_id,
-        mealFoodId: mealFood.id,
-        name: mealFood.foods.name,
-        categoryName: mealFood.foods.food_categories.name,
-        categoryColor: mealFood.foods.food_categories.color,
-        portion: mealFood.portion_size_g,
-        calories: mealFood.foods.calories_approx
-      }))
-  }));
+  // Fetch meal foods for these meals
+  const mealIds = meals.map(m => m.id);
+  const { data: mealFoods, error: foodsError } = await supabase
+    .from('diet_meal_foods')
+    .select('*')
+    .in('meal_id', mealIds);
+
+  if (foodsError) throw foodsError;
+
+  // Fetch all food details
+  const foodIds = mealFoods?.map(mf => mf.food_id) || [];
+  const { data: foods, error: foodDetailsError } = await supabase
+    .from('foods')
+    .select('*')
+    .in('id', foodIds);
+
+  if (foodDetailsError) throw foodDetailsError;
+
+  // Fetch food categories
+  const categoryIds = foods?.map(f => f.category_id) || [];
+  const { data: categories, error: categoriesError } = await supabase
+    .from('food_categories')
+    .select('*')
+    .in('id', categoryIds);
+
+  if (categoriesError) throw categoriesError;
+
+  // Build maps for easy lookup
+  const foodMap = new Map(foods?.map(f => [f.id, f]) || []);
+  const categoryMap = new Map(categories?.map(c => [c.id, c]) || []);
+
+  // Construct day view
+  const dayMealViews: DayMealView[] = meals.map((meal: any) => {
+    const mealFoodsForMeal = (mealFoods || [])
+      .filter(mf => mf.meal_id === meal.id)
+      .sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+
+    return {
+      mealId: meal.id,
+      mealType: meal.meal_type,
+      foods: mealFoodsForMeal
+        .map((mealFood: any) => {
+          const food = foodMap.get(mealFood.food_id);
+          const category = food ? categoryMap.get(food.category_id) : null;
+
+          return {
+            foodId: mealFood.food_id,
+            mealFoodId: mealFood.id,
+            name: food?.name || 'Unknown',
+            categoryName: category?.name || 'Unknown',
+            categoryColor: category?.color || '#999999',
+            portion: mealFood.portion_size_g,
+            calories: food?.calories_approx
+          };
+        })
+    };
+  });
 
   return {
     dayOfWeek,
