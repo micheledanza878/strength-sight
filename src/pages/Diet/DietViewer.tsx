@@ -89,17 +89,14 @@ export default function DietViewer() {
   }
 
   return (
-    <div className="min-h-screen pb-24">
-      {/* Header - sticky con titolo */}
-      <div className="sticky top-0 z-10 bg-background border-b border-border px-5 py-4">
-        <h1 className="text-xl font-bold">Piano Dietetico</h1>
-        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mt-1">
-          Consulta il tuo piano alimentare
-        </p>
-      </div>
+    <div className="px-5 pt-14 pb-24 min-h-screen">
+      <h1 className="text-3xl font-bold mb-1">Piano Dietetico</h1>
+      <p className="text-muted-foreground text-sm mb-4">
+        Consulta il tuo piano alimentare
+      </p>
 
       {/* Day Selector */}
-      <div className="px-5 py-4 space-y-3">
+      <div className="space-y-3 mb-6">
         {/* Day navigation */}
         <div className="flex items-center justify-between gap-3">
           <Button
@@ -148,7 +145,7 @@ export default function DietViewer() {
       </div>
 
       {/* Meals */}
-      <div className="space-y-3 px-5 py-4">
+      <div className="space-y-3">
         {refreshing ? (
           <div className="flex justify-center py-8">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
