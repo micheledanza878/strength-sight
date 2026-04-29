@@ -89,33 +89,28 @@ export default function DietViewer() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-24 dark:bg-slate-950">
-      {/* Header */}
-      <div className="sticky top-0 z-10 border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-        <div className="px-5 py-4">
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white">
-            Piano Dietetico
-          </h1>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-            Consulta il tuo piano alimentare
-          </p>
-        </div>
-      </div>
+    <div className="px-5 pt-14 pb-24 min-h-screen">
+      <h1 className="text-3xl font-bold mb-1">Piano Dietetico</h1>
+      <p className="text-muted-foreground text-sm mb-4">
+        Consulta il tuo piano alimentare
+      </p>
 
       {/* Day Selector */}
-      <div className="border-b border-slate-200 bg-white px-5 py-4 dark:border-slate-800 dark:bg-slate-900">
+      <div className="space-y-3 mb-6">
+        {/* Day navigation */}
         <div className="flex items-center justify-between gap-3">
           <Button
             variant="ghost"
             size="icon"
             onClick={handlePreviousDay}
             disabled={refreshing}
+            className="h-8 w-8"
           >
             <ChevronLeft className="h-5 w-5" />
           </Button>
 
           <div className="flex-1 text-center">
-            <p className="text-lg font-semibold text-slate-900 dark:text-white">
+            <p className="text-lg font-semibold">
               {DAYS_OF_WEEK[selectedDay]}
             </p>
           </div>
@@ -125,13 +120,14 @@ export default function DietViewer() {
             size="icon"
             onClick={handleNextDay}
             disabled={refreshing}
+            className="h-8 w-8"
           >
             <ChevronRight className="h-5 w-5" />
           </Button>
         </div>
 
         {/* Day indicators */}
-        <div className="mt-3 flex gap-1.5">
+        <div className="flex gap-1.5">
           {DAYS_OF_WEEK.map((_, index) => (
             <button
               key={index}
@@ -140,7 +136,7 @@ export default function DietViewer() {
               className={`h-2 flex-1 rounded-full transition-colors ${
                 selectedDay === index
                   ? 'bg-primary'
-                  : 'bg-slate-300 dark:bg-slate-700'
+                  : 'bg-muted'
               }`}
               aria-label={`Day ${index}`}
             />
@@ -149,24 +145,31 @@ export default function DietViewer() {
       </div>
 
       {/* Meals */}
-      <div className="space-y-3 px-5 py-4">
+      <div className="space-y-3">
         {refreshing ? (
           <div className="flex justify-center py-8">
-            <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
         ) : dayView && dayView.meals.length > 0 ? (
-          dayView.meals.map((meal) => (
-            <MealCard
-              key={meal.mealId}
-              mealId={meal.mealId}
-              mealType={meal.mealType}
-              foods={meal.foods}
-              onFoodSwapped={handleFoodSwapped}
-            />
-          ))
+          dayView.meals
+            .sort((a, b) => {
+              const order = { 'colazione': 0, 'pranzo': 1, 'cena': 2 };
+              const aOrder = order[a.mealType as keyof typeof order] ?? 999;
+              const bOrder = order[b.mealType as keyof typeof order] ?? 999;
+              return aOrder - bOrder;
+            })
+            .map((meal) => (
+              <MealCard
+                key={meal.mealId}
+                mealId={meal.mealId}
+                mealType={meal.mealType}
+                foods={meal.foods}
+                onFoodSwapped={handleFoodSwapped}
+              />
+            ))
         ) : (
-          <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-8 text-center dark:border-slate-700 dark:bg-slate-800/50">
-            <p className="text-sm text-slate-500 dark:text-slate-400">
+          <div className="bg-card rounded-2xl p-8 text-center border border-border">
+            <p className="text-sm text-muted-foreground">
               Nessun pasto configurato per questo giorno
             </p>
           </div>
