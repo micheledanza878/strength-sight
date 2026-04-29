@@ -115,8 +115,19 @@ export async function getDayView(
   if (categoriesError) throw categoriesError;
 
   // Build maps for easy lookup
-  const foodMap = new Map(foods?.map(f => [f.id, f]) || []);
-  const categoryMap = new Map(categories?.map(c => [c.id, c]) || []);
+  const foodMap = new Map((foods || []).map(f => [f.id, f]));
+  const categoryMap = new Map((categories || []).map(c => [c.id, c]));
+
+  console.log('DEBUG getDayView:', {
+    mealFoodsCount: (mealFoods || []).length,
+    foodsCount: (foods || []).length,
+    categoriesCount: (categories || []).length,
+    mealsCount: meals.length,
+    foodMapSize: foodMap.size,
+    categoryMapSize: categoryMap.size,
+    sampleMealFood: (mealFoods || [])[0],
+    sampleFood: (foods || [])[0]
+  });
 
   // Sort meals by type order: colazione, pranzo, cena
   const mealTypeOrder = { 'colazione': 0, 'pranzo': 1, 'cena': 2 };
@@ -138,6 +149,10 @@ export async function getDayView(
         .map((mealFood: any) => {
           const food = foodMap.get(mealFood.food_id);
           const category = food ? categoryMap.get(food.category_id) : null;
+
+          if (!food) {
+            console.warn('Food not found for food_id:', mealFood.food_id);
+          }
 
           return {
             foodId: mealFood.food_id,
