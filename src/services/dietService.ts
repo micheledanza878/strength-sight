@@ -118,6 +118,13 @@ export async function getDayView(
   const foodMap = new Map(foods?.map(f => [f.id, f]) || []);
   const categoryMap = new Map(categories?.map(c => [c.id, c]) || []);
 
+  // Sort meals by type order: colazione, pranzo, cena
+  const mealTypeOrder = { 'colazione': 0, 'pranzo': 1, 'cena': 2 };
+  meals.sort((a: any, b: any) =>
+    (mealTypeOrder[a.meal_type as keyof typeof mealTypeOrder] || 999) -
+    (mealTypeOrder[b.meal_type as keyof typeof mealTypeOrder] || 999)
+  );
+
   // Construct day view
   const dayMealViews: DayMealView[] = meals.map((meal: any) => {
     const mealFoodsForMeal = (mealFoods || [])
