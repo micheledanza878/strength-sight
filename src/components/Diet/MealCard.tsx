@@ -39,13 +39,13 @@ export function MealCard({
 
   return (
     <>
-      <Card className="overflow-hidden border-slate-200 dark:border-slate-700">
-        <div className="bg-gradient-to-r from-slate-50 to-slate-100 px-4 py-3 dark:from-slate-800 dark:to-slate-700">
-          <h3 className="font-semibold text-slate-900 dark:text-white">
+      <div className="bg-card rounded-2xl overflow-hidden border border-border">
+        <div className="bg-muted/50 px-4 py-3 border-b border-border">
+          <h3 className="font-semibold">
             {mealTypeLabel}
           </h3>
           {totalCalories > 0 && (
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <p className="text-xs text-muted-foreground mt-0.5">
               {totalCalories} kcal totali
             </p>
           )}
@@ -53,14 +53,14 @@ export function MealCard({
 
         <div className="space-y-2 p-4">
           {foods.length === 0 ? (
-            <p className="text-sm text-slate-500 dark:text-slate-400">
+            <p className="text-sm text-muted-foreground">
               Nessun alimento assegnato
             </p>
           ) : (
             foods.map((food) => (
               <div
                 key={food.mealFoodId}
-                className="flex items-center justify-between rounded-lg border border-slate-200 p-3 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800/50"
+                className="flex items-center justify-between rounded-lg border border-border p-3 transition-colors hover:bg-muted/50"
               >
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
@@ -68,26 +68,26 @@ export function MealCard({
                       className="h-3 w-3 rounded-full"
                       style={{ backgroundColor: food.categoryColor }}
                     />
-                    <p className="font-medium text-slate-900 dark:text-white">
+                    <p className="font-medium">
                       {food.name}
                     </p>
                   </div>
                   <div className="mt-1 flex items-center gap-3">
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                    <p className="text-xs text-muted-foreground">
                       {food.portion}g
                     </p>
-                    <span className="text-xs text-slate-400 dark:text-slate-500">
+                    <span className="text-xs text-muted-foreground/60">
                       •
                     </span>
-                    <p className="text-xs font-medium text-slate-600 dark:text-slate-300">
+                    <p className="text-xs font-medium text-muted-foreground">
                       {food.categoryName}
                     </p>
                     {food.calories && (
                       <>
-                        <span className="text-xs text-slate-400 dark:text-slate-500">
+                        <span className="text-xs text-muted-foreground/60">
                           •
                         </span>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                        <p className="text-xs text-muted-foreground">
                           {food.calories} kcal
                         </p>
                       </>
@@ -108,7 +108,7 @@ export function MealCard({
             ))
           )}
         </div>
-      </Card>
+      </div>
 
       {selectedFood && (
         <FoodSwapModal

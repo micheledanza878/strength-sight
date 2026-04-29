@@ -83,15 +83,15 @@ export function FoodSwapModal({
 
         <div className="space-y-4 py-4">
           {/* Current food */}
-          <div className="rounded-lg bg-slate-50 p-4 dark:bg-slate-900">
-            <p className="text-sm text-slate-600 dark:text-slate-400">
+          <div className="rounded-lg bg-muted p-4">
+            <p className="text-sm text-muted-foreground">
               Stai sostituendo:
             </p>
-            <p className="font-semibold text-slate-900 dark:text-white">
+            <p className="font-semibold">
               {currentFood.name} {currentFood.portion}g
             </p>
             {currentFood.calories && (
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-muted-foreground">
                 ({currentFood.calories} kcal)
               </p>
             )}
@@ -100,13 +100,13 @@ export function FoodSwapModal({
           {/* Alternatives list */}
           {loading ? (
             <div className="flex justify-center py-8">
-              <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
           ) : (
             <ScrollArea className="h-64">
               <div className="space-y-2 pr-4">
                 {alternatives.length === 0 ? (
-                  <p className="text-center text-sm text-slate-500">
+                  <p className="text-center text-sm text-muted-foreground">
                     Nessuna alternativa disponibile
                   </p>
                 ) : (
@@ -117,24 +117,24 @@ export function FoodSwapModal({
                       className={`w-full rounded-lg border-2 p-3 text-left transition-colors ${
                         selectedFood?.id === food.id
                           ? 'border-primary bg-primary/5'
-                          : 'border-slate-200 hover:border-slate-300 dark:border-slate-700 dark:hover:border-slate-600'
+                          : 'border-border hover:border-primary/50'
                       }`}
                     >
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="font-medium text-slate-900 dark:text-white">
+                          <p className="font-medium">
                             {food.name}
                           </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                          <p className="text-xs text-muted-foreground">
                             {food.standard_portion_g}g
                           </p>
                         </div>
                         {food.calories_approx && (
                           <div className="text-right">
-                            <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                            <p className="text-sm font-semibold">
                               {food.calories_approx}
                             </p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                            <p className="text-xs text-muted-foreground">
                               kcal
                             </p>
                           </div>
@@ -148,7 +148,7 @@ export function FoodSwapModal({
           )}
 
           {selectedFood && (
-            <div className="rounded-lg bg-blue-50 p-3 text-sm text-blue-900 dark:bg-blue-900/20 dark:text-blue-300">
+            <div className="rounded-lg bg-primary/10 p-3 text-sm text-primary">
               ✓ Selezionato: <strong>{selectedFood.name}</strong>
             </div>
           )}
