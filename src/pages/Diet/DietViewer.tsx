@@ -154,15 +154,22 @@ export default function DietViewer() {
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
         ) : dayView && dayView.meals.length > 0 ? (
-          dayView.meals.map((meal) => (
-            <MealCard
-              key={meal.mealId}
-              mealId={meal.mealId}
-              mealType={meal.mealType}
-              foods={meal.foods}
-              onFoodSwapped={handleFoodSwapped}
-            />
-          ))
+          dayView.meals
+            .sort((a, b) => {
+              const order = { 'colazione': 0, 'pranzo': 1, 'cena': 2 };
+              const aOrder = order[a.mealType as keyof typeof order] ?? 999;
+              const bOrder = order[b.mealType as keyof typeof order] ?? 999;
+              return aOrder - bOrder;
+            })
+            .map((meal) => (
+              <MealCard
+                key={meal.mealId}
+                mealId={meal.mealId}
+                mealType={meal.mealType}
+                foods={meal.foods}
+                onFoodSwapped={handleFoodSwapped}
+              />
+            ))
         ) : (
           <div className="bg-card rounded-2xl p-8 text-center border border-border">
             <p className="text-sm text-muted-foreground">
