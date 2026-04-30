@@ -15,24 +15,29 @@ interface MealCardProps {
     categoryName: string;
     categoryColor: string;
     portion: number;
+    standardPortionG: number;
     calories?: number;
   }[];
   onFoodSwapped: () => void;
+  weeklyPlanId?: string;
+  dayOfWeek?: number;
 }
 
 export function MealCard({
   mealId,
   mealType,
   foods,
-  onFoodSwapped
+  onFoodSwapped,
+  weeklyPlanId,
+  dayOfWeek
 }: MealCardProps) {
   const [swapModalOpen, setSwapModalOpen] = useState(false);
-  const [selectedFood, setSelectedFood] = useState<any>(null);
+  const [selectedFood, setSelectedFood] = useState<MealCardProps['foods'][0] | null>(null);
 
   const totalCalories = foods.reduce((sum, f) => sum + (f.calories || 0), 0);
   const mealTypeLabel = MEAL_TYPES[mealType as keyof typeof MEAL_TYPES] || mealType;
 
-  function handleOpenSwapModal(food: any) {
+  function handleOpenSwapModal(food: MealCardProps['foods'][0]) {
     setSelectedFood(food);
     setSwapModalOpen(true);
   }
@@ -119,8 +124,12 @@ export function MealCard({
             name: selectedFood.name,
             portion: selectedFood.portion,
             calories: selectedFood.calories,
-            mealFoodId: selectedFood.mealFoodId
+            mealFoodId: selectedFood.mealFoodId,
+            standardPortionG: selectedFood.standardPortionG
           }}
+          mealType={mealType as 'colazione' | 'pranzo' | 'cena'}
+          weeklyPlanId={weeklyPlanId}
+          dayOfWeek={dayOfWeek}
           onSwapComplete={onFoodSwapped}
         />
       )}

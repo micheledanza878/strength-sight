@@ -131,13 +131,13 @@ export async function getDayView(
 
   // Sort meals by type order: colazione, pranzo, cena
   const mealTypeOrder = { 'colazione': 0, 'pranzo': 1, 'cena': 2 };
-  meals.sort((a: any, b: any) =>
+  meals.sort((a, b) =>
     (mealTypeOrder[a.meal_type as keyof typeof mealTypeOrder] || 999) -
     (mealTypeOrder[b.meal_type as keyof typeof mealTypeOrder] || 999)
   );
 
   // Construct day view
-  const dayMealViews: DayMealView[] = meals.map((meal: any) => {
+  const dayMealViews: DayMealView[] = meals.map((meal) => {
     const mealFoodsForMeal = (mealFoods || [])
       .filter(mf => mf.meal_id === meal.id)
       .sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
@@ -146,7 +146,7 @@ export async function getDayView(
       mealId: meal.id,
       mealType: meal.meal_type,
       foods: mealFoodsForMeal
-        .map((mealFood: any) => {
+        .map((mealFood) => {
           const food = foodMap.get(mealFood.food_id);
           const category = food ? categoryMap.get(food.category_id) : null;
 
@@ -161,6 +161,7 @@ export async function getDayView(
             categoryName: category?.name || 'Unknown',
             categoryColor: category?.color || '#999999',
             portion: mealFood.portion_size_g,
+            standardPortionG: food?.standard_portion_g || 100,
             calories: food?.calories_approx
           };
         })
@@ -174,10 +175,12 @@ export async function getDayView(
 }
 
 /**
- * Get food alternatives in same category
+ * Get food alternatives in same category within same meal type
  */
 export async function getFoodAlternatives(
-  currentFoodId: string
+  currentFoodId: string,
+  mealType: string,
+  weeklyPlanId: string
 ): Promise<Food[]> {
   // First get current food to know its category
   const { data: currentFood, error: foodError } = await supabase
@@ -188,12 +191,42 @@ export async function getFoodAlternatives(
 
   if (foodError) throw foodError;
 
-  // Get all foods in same category, ordered by calories
+  // Get all foods used in the same meal_type within this weekly plan
+  const { data: mealsOfType, error: mealsError } = await supabase
+    .from('diet_meals')
+    .select('id')
+    .eq('weekly_plan_id', weeklyPlanId)
+    .eq('meal_type', mealType);
+
+  if (mealsError) throw mealsError;
+
+  if (!mealsOfType || mealsOfType.length === 0) {
+    return [];
+  }
+
+  const mealIds = mealsOfType.map(m => m.id);
+
+  // Get all foods in same category that appear in these meals
+  const { data: foodsInMeals, error: foodsError } = await supabase
+    .from('diet_meal_foods')
+    .select('food_id')
+    .in('meal_id', mealIds);
+
+  if (foodsError) throw foodsError;
+
+  const foodIds = foodsInMeals?.map(mf => mf.food_id) || [];
+
+  if (foodIds.length === 0) {
+    return [];
+  }
+
+  // Get food details for foods in same category and used in this meal_type
   const { data: alternatives, error: altError } = await supabase
     .from('foods')
     .select('*')
     .eq('category_id', currentFood.category_id)
     .neq('id', currentFoodId)
+    .in('id', foodIds)
     .order('calories_approx', { ascending: true });
 
   if (altError) throw altError;

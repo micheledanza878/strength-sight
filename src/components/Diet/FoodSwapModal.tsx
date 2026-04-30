@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -9,8 +9,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2 } from 'lucide-react';
-import { Food } from '@/types/diet';
-import { getFoodAlternatives, swapFoodInMeal } from '@/services/dietService';
+import { swapFoodInMeal } from '@/services/dietService';
+import { getSubstitutes, type SubstituteOption } from '@/services/foodSubstitutionService';
 
 interface FoodSwapModalProps {
   isOpen: boolean;
@@ -22,6 +22,9 @@ interface FoodSwapModalProps {
     calories?: number;
     mealFoodId: string;
   };
+  mealType: 'colazione' | 'pranzo' | 'cena';
+  weeklyPlanId?: string;
+  dayOfWeek?: number;
   onSwapComplete: () => void;
 }
 
@@ -29,41 +32,56 @@ export function FoodSwapModal({
   isOpen,
   onClose,
   currentFood,
+  mealType,
+  weeklyPlanId,
+  dayOfWeek,
   onSwapComplete
 }: FoodSwapModalProps) {
-  const [alternatives, setAlternatives] = useState<Food[]>([]);
-  const [selectedFood, setSelectedFood] = useState<Food | null>(null);
+  const [alternatives, setAlternatives] = useState<SubstituteOption[]>([]);
+  const [selectedAlternative, setSelectedAlternative] = useState<SubstituteOption | null>(null);
   const [loading, setLoading] = useState(false);
   const [swapping, setSwapping] = useState(false);
+
+  const loadAlternatives = useCallback(async () => {
+    setLoading(true);
+    try {
+      if (!weeklyPlanId) {
+        console.warn('No weeklyPlanId provided to FoodSwapModal');
+        setAlternatives([]);
+        return;
+      }
+
+      const alts = await getSubstitutes(
+        currentFood.id,
+        currentFood.portion,
+        mealType,
+        weeklyPlanId
+      );
+      setAlternatives(alts);
+      setSelectedAlternative(null);
+    } catch (error) {
+      console.error('Error loading alternatives:', error);
+      setAlternatives([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentFood.id, currentFood.portion, mealType, weeklyPlanId]);
 
   useEffect(() => {
     if (isOpen) {
       loadAlternatives();
     }
-  }, [isOpen, currentFood.id]);
-
-  async function loadAlternatives() {
-    setLoading(true);
-    try {
-      const alts = await getFoodAlternatives(currentFood.id);
-      setAlternatives(alts);
-      setSelectedFood(null);
-    } catch (error) {
-      console.error('Error loading alternatives:', error);
-    } finally {
-      setLoading(false);
-    }
-  }
+  }, [isOpen, loadAlternatives]);
 
   async function handleSwap() {
-    if (!selectedFood) return;
+    if (!selectedAlternative) return;
 
     setSwapping(true);
     try {
       await swapFoodInMeal(
         currentFood.mealFoodId,
-        selectedFood.id,
-        selectedFood.standard_portion_g
+        selectedAlternative.foodId,
+        selectedAlternative.calculatedAmount
       );
       onSwapComplete();
       onClose();
@@ -110,35 +128,28 @@ export function FoodSwapModal({
                     Nessuna alternativa disponibile
                   </p>
                 ) : (
-                  alternatives.map((food) => (
+                  alternatives.map((alt) => (
                     <button
-                      key={food.id}
-                      onClick={() => setSelectedFood(food)}
+                      key={alt.foodId}
+                      onClick={() => setSelectedAlternative(alt)}
                       className={`w-full rounded-lg border-2 p-3 text-left transition-colors ${
-                        selectedFood?.id === food.id
+                        selectedAlternative?.foodId === alt.foodId
                           ? 'border-primary bg-primary/5'
                           : 'border-border hover:border-primary/50'
                       }`}
                     >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">
-                            {food.name}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {food.standard_portion_g}g
-                          </p>
-                        </div>
-                        {food.calories_approx && (
-                          <div className="text-right">
-                            <p className="text-sm font-semibold">
-                              {food.calories_approx}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              kcal
-                            </p>
-                          </div>
-                        )}
+                      <div>
+                        <p className="font-medium">
+                          {alt.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {alt.calculatedAmount}g
+                          {alt.calculatedAmount !== alt.baseAmount && (
+                            <span className="ml-2 text-xs">
+                              (base: {alt.baseAmount}g)
+                            </span>
+                          )}
+                        </p>
                       </div>
                     </button>
                   ))
@@ -147,9 +158,9 @@ export function FoodSwapModal({
             </ScrollArea>
           )}
 
-          {selectedFood && (
+          {selectedAlternative && (
             <div className="rounded-lg bg-primary/10 p-3 text-sm text-primary">
-              ✓ Selezionato: <strong>{selectedFood.name}</strong>
+              ✓ Selezionato: <strong>{selectedAlternative.name}</strong> ({selectedAlternative.calculatedAmount}g)
             </div>
           )}
         </div>
@@ -164,7 +175,7 @@ export function FoodSwapModal({
           </Button>
           <Button
             onClick={handleSwap}
-            disabled={!selectedFood || swapping}
+            disabled={!selectedAlternative || swapping}
           >
             {swapping && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {swapping ? 'Scambiando...' : 'Conferma Scambio'}

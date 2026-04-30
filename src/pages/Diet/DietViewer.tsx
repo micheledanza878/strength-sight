@@ -168,6 +168,8 @@ export default function DietViewer() {
                     mealType={meal.mealType}
                     foods={meal.foods}
                     onFoodSwapped={handleFoodSwapped}
+                    weeklyPlanId={weeklyPlanId || undefined}
+                    dayOfWeek={selectedDay}
                   />
                 ))
             ) : (
