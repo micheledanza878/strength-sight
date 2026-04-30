@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -10,7 +10,8 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2 } from 'lucide-react';
 import { Food } from '@/types/diet';
-import { getFoodAlternatives, swapFoodInMeal } from '@/services/dietService';
+import { swapFoodInMeal, getDayView } from '@/services/dietService';
+import { getSubstitutes, type SubstituteOption } from '@/services/foodSubstitutionService';
 
 interface FoodSwapModalProps {
   isOpen: boolean;
@@ -22,6 +23,9 @@ interface FoodSwapModalProps {
     calories?: number;
     mealFoodId: string;
   };
+  mealType: 'colazione' | 'pranzo' | 'cena';
+  weeklyPlanId?: string;
+  dayOfWeek?: number;
   onSwapComplete: () => void;
 }
 
@@ -29,41 +33,75 @@ export function FoodSwapModal({
   isOpen,
   onClose,
   currentFood,
+  mealType,
+  weeklyPlanId,
+  dayOfWeek,
   onSwapComplete
 }: FoodSwapModalProps) {
-  const [alternatives, setAlternatives] = useState<Food[]>([]);
-  const [selectedFood, setSelectedFood] = useState<Food | null>(null);
+  const [alternatives, setAlternatives] = useState<SubstituteOption[]>([]);
+  const [selectedAlternative, setSelectedAlternative] = useState<SubstituteOption | null>(null);
   const [loading, setLoading] = useState(false);
   const [swapping, setSwapping] = useState(false);
+  const [foodsMap, setFoodsMap] = useState<Map<string, Food>>(new Map());
 
   useEffect(() => {
     if (isOpen) {
       loadAlternatives();
     }
-  }, [isOpen, currentFood.id]);
+  }, [isOpen, currentFood.id, mealType]);
 
   async function loadAlternatives() {
     setLoading(true);
     try {
-      const alts = await getFoodAlternatives(currentFood.id);
+      // Load all food data if we have plan info
+      let foodMap = foodsMap;
+      if (weeklyPlanId && dayOfWeek !== undefined) {
+        try {
+          const dayView = await getDayView(weeklyPlanId, dayOfWeek);
+          // Build food map from day view
+          const tempMap = new Map<string, Food>();
+          dayView.meals.forEach(meal => {
+            meal.foods.forEach(food => {
+              if (!tempMap.has(food.foodId)) {
+                // We don't have full Food objects here, but we can use what we have
+                tempMap.set(food.foodId, {
+                  id: food.foodId,
+                  name: food.name,
+                  category_id: '', // Will be populated if needed
+                  standard_portion_g: food.portion,
+                  calories_approx: food.calories
+                });
+              }
+            });
+          });
+          foodMap = tempMap;
+          setFoodsMap(foodMap);
+        } catch (err) {
+          console.warn('Could not load day view for food map:', err);
+        }
+      }
+
+      // Calculate substitutes using proportional logic
+      const alts = getSubstitutes(currentFood.id, currentFood.portion, mealType, foodMap);
       setAlternatives(alts);
-      setSelectedFood(null);
+      setSelectedAlternative(null);
     } catch (error) {
       console.error('Error loading alternatives:', error);
+      setAlternatives([]);
     } finally {
       setLoading(false);
     }
   }
 
   async function handleSwap() {
-    if (!selectedFood) return;
+    if (!selectedAlternative) return;
 
     setSwapping(true);
     try {
       await swapFoodInMeal(
         currentFood.mealFoodId,
-        selectedFood.id,
-        selectedFood.standard_portion_g
+        selectedAlternative.foodId,
+        selectedAlternative.calculatedAmount
       );
       onSwapComplete();
       onClose();
@@ -110,35 +148,28 @@ export function FoodSwapModal({
                     Nessuna alternativa disponibile
                   </p>
                 ) : (
-                  alternatives.map((food) => (
+                  alternatives.map((alt) => (
                     <button
-                      key={food.id}
-                      onClick={() => setSelectedFood(food)}
+                      key={alt.foodId}
+                      onClick={() => setSelectedAlternative(alt)}
                       className={`w-full rounded-lg border-2 p-3 text-left transition-colors ${
-                        selectedFood?.id === food.id
+                        selectedAlternative?.foodId === alt.foodId
                           ? 'border-primary bg-primary/5'
                           : 'border-border hover:border-primary/50'
                       }`}
                     >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">
-                            {food.name}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {food.standard_portion_g}g
-                          </p>
-                        </div>
-                        {food.calories_approx && (
-                          <div className="text-right">
-                            <p className="text-sm font-semibold">
-                              {food.calories_approx}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              kcal
-                            </p>
-                          </div>
-                        )}
+                      <div>
+                        <p className="font-medium">
+                          {alt.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {alt.calculatedAmount}g
+                          {alt.calculatedAmount !== alt.baseAmount && (
+                            <span className="ml-2 text-xs">
+                              (base: {alt.baseAmount}g)
+                            </span>
+                          )}
+                        </p>
                       </div>
                     </button>
                   ))
@@ -147,9 +178,9 @@ export function FoodSwapModal({
             </ScrollArea>
           )}
 
-          {selectedFood && (
+          {selectedAlternative && (
             <div className="rounded-lg bg-primary/10 p-3 text-sm text-primary">
-              ✓ Selezionato: <strong>{selectedFood.name}</strong>
+              ✓ Selezionato: <strong>{selectedAlternative.name}</strong> ({selectedAlternative.calculatedAmount}g)
             </div>
           )}
         </div>
@@ -164,7 +195,7 @@ export function FoodSwapModal({
           </Button>
           <Button
             onClick={handleSwap}
-            disabled={!selectedFood || swapping}
+            disabled={!selectedAlternative || swapping}
           >
             {swapping && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {swapping ? 'Scambiando...' : 'Conferma Scambio'}

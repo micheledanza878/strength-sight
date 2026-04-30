@@ -18,13 +18,17 @@ interface MealCardProps {
     calories?: number;
   }[];
   onFoodSwapped: () => void;
+  weeklyPlanId?: string;
+  dayOfWeek?: number;
 }
 
 export function MealCard({
   mealId,
   mealType,
   foods,
-  onFoodSwapped
+  onFoodSwapped,
+  weeklyPlanId,
+  dayOfWeek
 }: MealCardProps) {
   const [swapModalOpen, setSwapModalOpen] = useState(false);
   const [selectedFood, setSelectedFood] = useState<any>(null);
@@ -121,6 +125,9 @@ export function MealCard({
             calories: selectedFood.calories,
             mealFoodId: selectedFood.mealFoodId
           }}
+          mealType={mealType as 'colazione' | 'pranzo' | 'cena'}
+          weeklyPlanId={weeklyPlanId}
+          dayOfWeek={dayOfWeek}
           onSwapComplete={onFoodSwapped}
         />
       )}
