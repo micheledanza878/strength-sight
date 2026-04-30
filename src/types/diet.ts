@@ -67,6 +67,7 @@ export interface DayMealView {
     categoryName: string;
     categoryColor: string;
     portion: number;
+    standardPortionG: number;
     calories?: number;
   }[];
 }

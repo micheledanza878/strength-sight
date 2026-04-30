@@ -1,141 +1,92 @@
-/**
- * Food Substitution Service - Client-side calculation logic
- * Implements proportional quantity calculation to maintain macronutrients
- */
-
-import { Food } from '@/types/diet';
-import {
-  findGroupByFoodId,
-  SubstitutionGroup,
-  getGroupsForMealType
-} from '@/data/foodSubstitutionGroups';
+import { supabase } from '@/integrations/supabase/client';
+import type { Food } from '@/types/diet';
 
 export interface SubstituteOption {
   foodId: string;
   name: string;
-  calculatedAmount: number;
   baseAmount: number;
+  calculatedAmount: number;
+  caloriesApprox?: number;
 }
 
 /**
- * Get food substitutes with proportionally calculated quantities
- * Maintains macronutrient balance by scaling based on current consumption vs base quantity
- *
- * @param currentFoodId - ID of the food to be replaced
- * @param currentQuantityInGrams - Current portion size in grams
- * @param mealType - Type of meal (colazione, pranzo, cena) to ensure group isolation
- * @param foodsMap - Map of food data for name/calorie lookups
- * @returns Array of substitute options with calculated quantities
+ * Get food substitutes for a specific food in a meal type
+ * Shows alternatives from the same category used in the same meal type
+ * with proportional gram calculation
  */
-export function getSubstitutes(
+export async function getSubstitutes(
   currentFoodId: string,
-  currentQuantityInGrams: number,
-  mealType: 'colazione' | 'pranzo' | 'cena',
-  foodsMap: Map<string, Food>
-): SubstituteOption[] {
-  // 1. Find the group containing the current food
-  const currentGroup = findGroupByFoodId(currentFoodId);
-  if (!currentGroup) {
-    console.warn(`No substitution group found for food: ${currentFoodId}`);
-    return [];
-  }
+  currentPortion: number,
+  mealType: string,
+  weeklyPlanId: string,
+  foodsMap?: Map<string, Food>
+): Promise<SubstituteOption[]> {
+  try {
+    // Get current food details
+    const { data: currentFood, error: currentFoodError } = await supabase
+      .from('foods')
+      .select('category_id, standard_portion_g')
+      .eq('id', currentFoodId)
+      .single();
 
-  // 2. Verify meal type is allowed for this group
-  if (!currentGroup.mealTypes.includes(mealType)) {
-    console.warn(
-      `Food ${currentFoodId} cannot be substituted in ${mealType} meals`
-    );
-    return [];
-  }
+    if (currentFoodError) throw currentFoodError;
+    if (!currentFood) return [];
 
-  // 3. Find the equivalence entry for current food
-  const currentEquivalence = currentGroup.equivalences.find(
-    eq => eq.foodId === currentFoodId
-  );
-  if (!currentEquivalence) {
-    console.warn(`Food not found in its group: ${currentFoodId}`);
-    return [];
-  }
+    // Get all meals of this type in the weekly plan
+    const { data: mealsOfType, error: mealsError } = await supabase
+      .from('diet_meals')
+      .select('id')
+      .eq('weekly_plan_id', weeklyPlanId)
+      .eq('meal_type', mealType);
 
-  // 4. Filter alternatives from the same group, excluding current food
-  const siblings = currentGroup.equivalences.filter(
-    eq => eq.foodId !== currentFoodId
-  );
+    if (mealsError) throw mealsError;
+    if (!mealsOfType || mealsOfType.length === 0) return [];
 
-  // 5. Calculate proportional quantities maintaining macronutrient balance
-  // Formula: (currentQuantity / currentBaseQuantity) * siblingBaseQuantity
-  const ratio = currentQuantityInGrams / currentEquivalence.baseQuantityG;
+    const mealIds = mealsOfType.map(m => m.id);
 
-  return siblings
-    .map(sibling => {
-      const foodData = foodsMap.get(sibling.foodId);
-      if (!foodData) {
-        console.warn(`Food data not found for: ${sibling.foodId}`);
-        return null;
-      }
+    // Get all foods used in these meals
+    const { data: foodsInMeals, error: foodsError } = await supabase
+      .from('diet_meal_foods')
+      .select('food_id')
+      .in('meal_id', mealIds);
 
-      const calculatedAmount = Math.round(ratio * sibling.baseQuantityG);
+    if (foodsError) throw foodsError;
+
+    const foodIds = foodsInMeals?.map(mf => mf.food_id) || [];
+    if (foodIds.length === 0) return [];
+
+    // Get alternatives in the same category
+    const { data: alternatives, error: altError } = await supabase
+      .from('foods')
+      .select('*')
+      .eq('category_id', currentFood.category_id)
+      .neq('id', currentFoodId)
+      .in('id', foodIds)
+      .order('calories_approx', { ascending: true });
+
+    if (altError) throw altError;
+    if (!alternatives) return [];
+
+    // Calculate proportional portions for each alternative
+    const substitutes: SubstituteOption[] = alternatives.map((food) => {
+      const baseAmount = food.standard_portion_g;
+      // Proportional calculation: maintain the ratio
+      const calculatedAmount = Math.round(
+        (currentPortion / currentFood.standard_portion_g) * baseAmount
+      );
 
       return {
-        foodId: sibling.foodId,
-        name: foodData.name,
+        foodId: food.id,
+        name: food.name,
+        baseAmount,
         calculatedAmount,
-        baseAmount: sibling.baseQuantityG
+        caloriesApprox: food.calories_approx
       };
-    })
-    .filter((opt): opt is SubstituteOption => opt !== null);
-}
+    });
 
-/**
- * Validate if a food substitution is allowed
- * Checks that both foods belong to the same group and meal type allows substitution
- *
- * @param fromFoodId - Source food ID
- * @param toFoodId - Target food ID
- * @param mealType - Current meal type
- * @returns true if substitution is allowed
- */
-export function isSubstitutionAllowed(
-  fromFoodId: string,
-  toFoodId: string,
-  mealType: 'colazione' | 'pranzo' | 'cena'
-): boolean {
-  const fromGroup = findGroupByFoodId(fromFoodId);
-  const toGroup = findGroupByFoodId(toFoodId);
-
-  // Both foods must be in groups
-  if (!fromGroup || !toGroup) return false;
-
-  // Must be in the same group
-  if (fromGroup.id !== toGroup.id) return false;
-
-  // Meal type must be allowed for this group
-  if (!fromGroup.mealTypes.includes(mealType)) return false;
-
-  return true;
-}
-
-/**
- * Check if a food has available substitutes
- *
- * @param foodId - Food ID to check
- * @param mealType - Current meal type
- * @returns true if at least one substitute is available
- */
-export function hasSubstitutes(
-  foodId: string,
-  mealType: 'colazione' | 'pranzo' | 'cena'
-): boolean {
-  const group = findGroupByFoodId(foodId);
-  if (!group || !group.mealTypes.includes(mealType)) return false;
-
-  // Has substitutes if group has more than one equivalence
-  return group.equivalences.length > 1;
-}
-
-/**
- * Get the substitution group for a food
- */
-export function getSubstitutionGroup(foodId: string): SubstitutionGroup | undefined {
-  return findGroupByFoodId(foodId);
+    return substitutes;
+  } catch (error) {
+    console.error('Error getting substitutes:', error);
+    return [];
+  }
 }

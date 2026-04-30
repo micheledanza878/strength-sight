@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -9,8 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2 } from 'lucide-react';
-import { Food } from '@/types/diet';
-import { swapFoodInMeal, getDayView } from '@/services/dietService';
+import { swapFoodInMeal } from '@/services/dietService';
 import { getSubstitutes, type SubstituteOption } from '@/services/foodSubstitutionService';
 
 interface FoodSwapModalProps {
@@ -42,47 +41,22 @@ export function FoodSwapModal({
   const [selectedAlternative, setSelectedAlternative] = useState<SubstituteOption | null>(null);
   const [loading, setLoading] = useState(false);
   const [swapping, setSwapping] = useState(false);
-  const [foodsMap, setFoodsMap] = useState<Map<string, Food>>(new Map());
 
-  useEffect(() => {
-    if (isOpen) {
-      loadAlternatives();
-    }
-  }, [isOpen, currentFood.id, mealType]);
-
-  async function loadAlternatives() {
+  const loadAlternatives = useCallback(async () => {
     setLoading(true);
     try {
-      // Load all food data if we have plan info
-      let foodMap = foodsMap;
-      if (weeklyPlanId && dayOfWeek !== undefined) {
-        try {
-          const dayView = await getDayView(weeklyPlanId, dayOfWeek);
-          // Build food map from day view
-          const tempMap = new Map<string, Food>();
-          dayView.meals.forEach(meal => {
-            meal.foods.forEach(food => {
-              if (!tempMap.has(food.foodId)) {
-                // We don't have full Food objects here, but we can use what we have
-                tempMap.set(food.foodId, {
-                  id: food.foodId,
-                  name: food.name,
-                  category_id: '', // Will be populated if needed
-                  standard_portion_g: food.portion,
-                  calories_approx: food.calories
-                });
-              }
-            });
-          });
-          foodMap = tempMap;
-          setFoodsMap(foodMap);
-        } catch (err) {
-          console.warn('Could not load day view for food map:', err);
-        }
+      if (!weeklyPlanId) {
+        console.warn('No weeklyPlanId provided to FoodSwapModal');
+        setAlternatives([]);
+        return;
       }
 
-      // Calculate substitutes using proportional logic
-      const alts = getSubstitutes(currentFood.id, currentFood.portion, mealType, foodMap);
+      const alts = await getSubstitutes(
+        currentFood.id,
+        currentFood.portion,
+        mealType,
+        weeklyPlanId
+      );
       setAlternatives(alts);
       setSelectedAlternative(null);
     } catch (error) {
@@ -91,7 +65,13 @@ export function FoodSwapModal({
     } finally {
       setLoading(false);
     }
-  }
+  }, [currentFood.id, currentFood.portion, mealType, weeklyPlanId]);
+
+  useEffect(() => {
+    if (isOpen) {
+      loadAlternatives();
+    }
+  }, [isOpen, loadAlternatives]);
 
   async function handleSwap() {
     if (!selectedAlternative) return;
