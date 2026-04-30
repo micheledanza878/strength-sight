@@ -10,9 +10,9 @@ export interface SubstituteOption {
 }
 
 /**
- * Get food substitutes based on substitution groups
- * Shows alternatives from the same substitution group that are used in the same meal type
- * with proportional gram calculation
+ * Get food substitutes based on food_equivalences table
+ * Shows alternatives from the same substitution group(s) that are used in the same meal type
+ * with proportional gram calculation. Supports foods in multiple groups.
  */
 export async function getSubstitutes(
   currentFoodId: string,
@@ -22,18 +22,32 @@ export async function getSubstitutes(
   foodsMap?: Map<string, Food>
 ): Promise<SubstituteOption[]> {
   try {
-    // Get current food with its substitution group
+    // Get current food
     const { data: currentFood, error: currentFoodError } = await supabase
       .from('foods')
-      .select('substitution_group_id, standard_portion_g')
+      .select('id, standard_portion_g')
       .eq('id', currentFoodId)
       .single();
 
     if (currentFoodError) throw currentFoodError;
-    if (!currentFood || !currentFood.substitution_group_id) {
-      console.warn('Food not found or has no substitution group:', currentFoodId);
+    if (!currentFood) {
+      console.warn('Food not found:', currentFoodId);
       return [];
     }
+
+    // Get all groups this food belongs to via food_equivalences
+    const { data: foodGroups, error: groupsError } = await supabase
+      .from('food_equivalences')
+      .select('group_id')
+      .eq('food_id', currentFoodId);
+
+    if (groupsError) throw groupsError;
+    if (!foodGroups || foodGroups.length === 0) {
+      console.warn('Food has no substitution groups:', currentFoodId);
+      return [];
+    }
+
+    const groupIds = foodGroups.map(fg => fg.group_id);
 
     // Get all meals of this type in the weekly plan
     const { data: mealsOfType, error: mealsError } = await supabase
@@ -58,34 +72,46 @@ export async function getSubstitutes(
     const foodIds = foodsInMeals?.map(mf => mf.food_id) || [];
     if (foodIds.length === 0) return [];
 
-    // Get alternatives in the same substitution group that are used in this meal type
+    // Get alternatives in any of the substitution groups that are used in this meal type
+    // Join foods with food_equivalences to get base_quantity_g for each food in the group
     const { data: alternatives, error: altError } = await supabase
-      .from('foods')
-      .select('*')
-      .eq('substitution_group_id', currentFood.substitution_group_id)
-      .neq('id', currentFoodId)
-      .in('id', foodIds)
-      .order('calories_approx', { ascending: true });
+      .from('food_equivalences')
+      .select(`
+        food_id,
+        base_quantity_g,
+        foods:food_id (
+          id,
+          name,
+          calories_approx
+        )
+      `)
+      .in('group_id', groupIds)
+      .in('food_id', foodIds);
 
     if (altError) throw altError;
-    if (!alternatives) return [];
+    if (!alternatives || alternatives.length === 0) return [];
 
-    // Calculate proportional portions for each alternative
-    const substitutes: SubstituteOption[] = alternatives.map((food) => {
-      const baseAmount = food.standard_portion_g;
-      // Proportional calculation: (currentPortion / currentStandardPortion) * alternativeStandardPortion
-      const calculatedAmount = Math.round(
-        (currentPortion / currentFood.standard_portion_g) * baseAmount
-      );
+    // Filter out current food and calculate portions
+    const substitutes: SubstituteOption[] = alternatives
+      .filter(alt => alt.food_id !== currentFoodId)
+      .map((alt) => {
+        const food = alt.foods as any;
+        const baseAmount = alt.base_quantity_g;
 
-      return {
-        foodId: food.id,
-        name: food.name,
-        baseAmount,
-        calculatedAmount,
-        caloriesApprox: food.calories_approx
-      };
-    });
+        // Proportional calculation: (currentPortion / currentStandardPortion) * alternativeBaseAmount
+        const calculatedAmount = Math.round(
+          (currentPortion / currentFood.standard_portion_g) * baseAmount
+        );
+
+        return {
+          foodId: alt.food_id,
+          name: food?.name || 'Unknown',
+          baseAmount,
+          calculatedAmount,
+          caloriesApprox: food?.calories_approx
+        };
+      })
+      .sort((a, b) => (a.caloriesApprox || 0) - (b.caloriesApprox || 0));
 
     return substitutes;
   } catch (error) {
