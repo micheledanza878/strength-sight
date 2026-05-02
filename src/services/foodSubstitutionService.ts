@@ -48,6 +48,7 @@ export async function getSubstitutes(
     }
 
     const groupIds = foodGroups.map(fg => fg.group_id);
+    console.log('DEBUG: Food groups found:', groupIds);
 
     // Get all meals of this type in the weekly plan
     const { data: mealsOfType, error: mealsError } = await supabase
@@ -74,12 +75,14 @@ export async function getSubstitutes(
 
     // Get alternatives in any of the substitution groups that are used in this meal type
     // Join foods with food_equivalences to get base_quantity_g for each food in the group
+    console.log('DEBUG: Searching for alternatives with groupIds:', groupIds, 'and foodIds:', foodIds);
+
     const { data: alternatives, error: altError } = await supabase
       .from('food_equivalences')
       .select(`
         food_id,
         base_quantity_g,
-        foods:food_id (
+        foods (
           id,
           name,
           calories_approx
@@ -88,7 +91,11 @@ export async function getSubstitutes(
       .in('group_id', groupIds)
       .in('food_id', foodIds);
 
-    if (altError) throw altError;
+    if (altError) {
+      console.error('DEBUG: Alternative query error:', altError);
+      throw altError;
+    }
+    console.log('DEBUG: Alternatives found:', alternatives);
     if (!alternatives || alternatives.length === 0) return [];
 
     // Filter out current food and calculate portions
