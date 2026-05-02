@@ -14,5 +14,6 @@ export async function verifyAuth(request: FastifyRequest, reply: FastifyReply): 
     (request as any).userId = payload.sub as string;
   } catch {
     reply.code(401).send({ error: 'Invalid or expired token' });
+    return;
   }
 }
