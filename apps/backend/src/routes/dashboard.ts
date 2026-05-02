@@ -22,7 +22,7 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
         .order('started_at', { ascending: false }),
       supabase
         .from('workout_plans')
-        .select('id, name, duration_weeks')
+        .select('id, user_id, name, duration_weeks')
         .eq('user_id', userId)
         .order('created_at', { ascending: false }),
     ]);
