@@ -39,6 +39,7 @@ export function FoodSwapModal({
 }: FoodSwapModalProps) {
   const [alternatives, setAlternatives] = useState<SubstituteOption[]>([]);
   const [selectedAlternative, setSelectedAlternative] = useState<SubstituteOption | null>(null);
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [swapping, setSwapping] = useState(false);
 
@@ -59,6 +60,7 @@ export function FoodSwapModal({
       );
       setAlternatives(alts);
       setSelectedAlternative(null);
+      setActiveCategory(null);
     } catch (error) {
       console.error('Error loading alternatives:', error);
       setAlternatives([]);
@@ -120,43 +122,76 @@ export function FoodSwapModal({
             <div className="flex justify-center py-8">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
-          ) : (
-            <ScrollArea className="h-64">
-              <div className="space-y-2 pr-4">
-                {alternatives.length === 0 ? (
-                  <p className="text-center text-sm text-muted-foreground">
-                    Nessuna alternativa disponibile
-                  </p>
-                ) : (
-                  alternatives.map((alt) => (
+          ) : (() => {
+            const categories = [...new Set(alternatives.map(a => a.category).filter(Boolean))] as string[];
+            const hasCategories = categories.length > 1;
+            const filtered = activeCategory
+              ? alternatives.filter(a => a.category === activeCategory)
+              : alternatives;
+
+            return (
+              <>
+                {hasCategories && (
+                  <div className="flex gap-2 flex-wrap">
                     <button
-                      key={alt.foodId}
-                      onClick={() => setSelectedAlternative(alt)}
-                      className={`w-full rounded-lg border-2 p-3 text-left transition-colors ${
-                        selectedAlternative?.foodId === alt.foodId
-                          ? 'border-primary bg-primary/5'
-                          : 'border-border hover:border-primary/50'
+                      onClick={() => setActiveCategory(null)}
+                      className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                        activeCategory === null
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted text-muted-foreground hover:bg-muted/80'
                       }`}
                     >
-                      <div>
-                        <p className="font-medium">
-                          {alt.name}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {alt.calculatedAmount}g
-                          {alt.calculatedAmount !== alt.baseAmount && (
-                            <span className="ml-2 text-xs">
-                              (base: {alt.baseAmount}g)
-                            </span>
-                          )}
-                        </p>
-                      </div>
+                      Tutti
                     </button>
-                  ))
+                    {categories.map(cat => (
+                      <button
+                        key={cat}
+                        onClick={() => setActiveCategory(cat)}
+                        className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                          activeCategory === cat
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                        }`}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
                 )}
-              </div>
-            </ScrollArea>
-          )}
+                <ScrollArea className="h-56">
+                  <div className="space-y-2 pr-4">
+                    {filtered.length === 0 ? (
+                      <p className="text-center text-sm text-muted-foreground">
+                        Nessuna alternativa disponibile
+                      </p>
+                    ) : (
+                      filtered.map((alt) => (
+                        <button
+                          key={alt.foodId}
+                          onClick={() => setSelectedAlternative(alt)}
+                          className={`w-full rounded-lg border-2 p-3 text-left transition-colors ${
+                            selectedAlternative?.foodId === alt.foodId
+                              ? 'border-primary bg-primary/5'
+                              : 'border-border hover:border-primary/50'
+                          }`}
+                        >
+                          <div>
+                            <p className="font-medium">{alt.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {alt.calculatedAmount}g
+                              {alt.calculatedAmount !== alt.baseAmount && (
+                                <span className="ml-2 text-xs">(base: {alt.baseAmount}g)</span>
+                              )}
+                            </p>
+                          </div>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </ScrollArea>
+              </>
+            );
+          })()}
 
           {selectedAlternative && (
             <div className="rounded-lg bg-primary/10 p-3 text-sm text-primary">

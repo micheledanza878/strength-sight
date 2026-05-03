@@ -7,6 +7,18 @@ export interface SubstituteOption {
   baseAmount: number;
   calculatedAmount: number;
   caloriesApprox?: number;
+  category?: string;
+}
+
+function inferCategory(name: string): string {
+  const lower = name.toLowerCase();
+  if (['gamberi', 'cozze', 'calamari', 'polpo', 'vongole', 'totani', 'seppie', 'frutti di mare'].some(k => lower.includes(k)))
+    return 'Frutti di Mare';
+  if (['merluzzo', 'sogliola', 'branzino', 'orata', 'tonno', 'salmone', 'sgombro', 'pesce', 'platessa', 'nasello', 'palombo', 'razza', 'cernia', 'trota', 'scorfano', 'aringhe', 'sardine'].some(k => lower.includes(k)))
+    return 'Pesce';
+  if (['pollo', 'tacchino', 'coniglio', 'vitello', 'manzo', 'maiale', 'hamburger', 'bresaola', 'carne'].some(k => lower.includes(k)))
+    return 'Carne';
+  return '';
 }
 
 /**
@@ -17,9 +29,9 @@ export interface SubstituteOption {
 export async function getSubstitutes(
   currentFoodId: string,
   currentPortion: number,
-  mealType: string,
-  weeklyPlanId: string,
-  foodsMap?: Map<string, Food>
+  _mealType: string,
+  _weeklyPlanId: string,
+  _foodsMap?: Map<string, Food>
 ): Promise<SubstituteOption[]> {
   try {
     // Get current food
@@ -48,35 +60,8 @@ export async function getSubstitutes(
     }
 
     const groupIds = foodGroups.map(fg => fg.group_id);
-    console.log('DEBUG: Food groups found:', groupIds);
 
-    // Get all meals of this type in the weekly plan
-    const { data: mealsOfType, error: mealsError } = await supabase
-      .from('diet_meals')
-      .select('id')
-      .eq('weekly_plan_id', weeklyPlanId)
-      .eq('meal_type', mealType);
-
-    if (mealsError) throw mealsError;
-    if (!mealsOfType || mealsOfType.length === 0) return [];
-
-    const mealIds = mealsOfType.map(m => m.id);
-
-    // Get all foods used in these meals of the same meal type
-    const { data: foodsInMeals, error: foodsError } = await supabase
-      .from('diet_meal_foods')
-      .select('food_id')
-      .in('meal_id', mealIds);
-
-    if (foodsError) throw foodsError;
-
-    const foodIds = foodsInMeals?.map(mf => mf.food_id) || [];
-    if (foodIds.length === 0) return [];
-
-    // Get alternatives in any of the substitution groups that are used in this meal type
-    // Join foods with food_equivalences to get base_quantity_g for each food in the group
-    console.log('DEBUG: Searching for alternatives with groupIds:', groupIds, 'and foodIds:', foodIds);
-
+    // Get alternatives in any of the substitution groups
     const { data: alternatives, error: altError } = await supabase
       .from('food_equivalences')
       .select(`
@@ -88,8 +73,7 @@ export async function getSubstitutes(
           calories_approx
         )
       `)
-      .in('group_id', groupIds)
-      .in('food_id', foodIds);
+      .in('group_id', groupIds);
 
     if (altError) {
       console.error('DEBUG: Alternative query error:', altError);
@@ -110,12 +94,14 @@ export async function getSubstitutes(
           (currentPortion / currentFood.standard_portion_g) * baseAmount
         );
 
+        const foodName = food?.name || 'Unknown';
         return {
           foodId: alt.food_id,
-          name: food?.name || 'Unknown',
+          name: foodName,
           baseAmount,
           calculatedAmount,
-          caloriesApprox: food?.calories_approx
+          caloriesApprox: food?.calories_approx,
+          category: inferCategory(foodName)
         };
       })
       .sort((a, b) => (a.caloriesApprox || 0) - (b.caloriesApprox || 0));

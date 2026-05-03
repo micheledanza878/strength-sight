@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { BookOpen, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { MealCard } from '@/components/Diet/MealCard';
 import { DAYS_OF_WEEK } from '@/types/diet';
 import {
@@ -14,6 +15,7 @@ import type { DayView } from '@/types/diet';
 
 export default function DietViewer() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const getTodayAsAppDay = () => {
     const today = new Date().getDay();
     return (today - 1 + 7) % 7;
@@ -82,7 +84,17 @@ export default function DietViewer() {
 
   return (
     <div className="px-5 pt-14 pb-24 min-h-screen">
-      <h1 className="text-3xl font-bold mb-1">Piano Dietetico</h1>
+      <div className="flex items-center justify-between mb-1">
+        <h1 className="text-3xl font-bold">Piano Dietetico</h1>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-9 w-9"
+          onClick={() => navigate('/diet/foods')}
+        >
+          <BookOpen className="h-5 w-5" />
+        </Button>
+      </div>
       <p className="text-muted-foreground text-sm mb-4">
         Consulta il tuo piano alimentare
       </p>

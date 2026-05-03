@@ -15,6 +15,7 @@ import CreateWorkoutPlan from "./pages/CreateWorkoutPlan";
 import EditWorkoutPlan from "./pages/EditWorkoutPlan";
 import EditWorkoutDay from "./pages/EditWorkoutDay";
 import DietViewer from "./pages/Diet/DietViewer";
+import FoodGuide from "./pages/Diet/FoodGuide";
 import BottomNav from "./components/BottomNav";
 import NotFound from "./pages/NotFound";
 
@@ -30,6 +31,7 @@ function AppContent() {
         <Route path="/session/:dayId" element={<ProtectedRoute element={<WorkoutSession />} />} />
         <Route path="/body" element={<ProtectedRoute element={<BodyTracking />} />} />
         <Route path="/diet" element={<ProtectedRoute element={<DietViewer />} />} />
+        <Route path="/diet/foods" element={<ProtectedRoute element={<FoodGuide />} />} />
         <Route path="/history" element={<ProtectedRoute element={<History />} />} />
         <Route path="/create-plan" element={<ProtectedRoute element={<CreateWorkoutPlan />} />} />
         <Route path="/edit-plan/:planId" element={<ProtectedRoute element={<EditWorkoutPlan />} />} />
