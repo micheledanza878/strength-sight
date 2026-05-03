@@ -97,9 +97,14 @@ export async function getSubstitutes(
     console.log('DEBUG: Alternatives found:', alternatives);
     if (!alternatives || alternatives.length === 0) return [];
 
-    // Filter out current food and calculate portions
+    // Macro anchor food IDs (001-021) — used only as group pivots, never shown as alternatives
+    const ANCHOR_IDS = new Set(
+      Array.from({ length: 21 }, (_, i) => `f0000000-0000-0000-0000-${String(i + 1).padStart(12, '0')}`)
+    );
+
+    // Filter out current food and anchor foods, then calculate portions
     const substitutes: SubstituteOption[] = alternatives
-      .filter(alt => alt.food_id !== currentFoodId)
+      .filter(alt => alt.food_id !== currentFoodId && !ANCHOR_IDS.has(alt.food_id))
       .map((alt) => {
         const food = alt.foods as any;
         const baseAmount = alt.base_quantity_g;
