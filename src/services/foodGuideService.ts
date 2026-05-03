@@ -26,12 +26,18 @@ export async function getFoodGuide(): Promise<FoodGuideGroup[]> {
   if (error) throw error;
   if (!data) return [];
 
+  // Macro anchor food IDs (001-021) — used only by the substitution service, not displayed
+  const ANCHOR_IDS = new Set(
+    Array.from({ length: 21 }, (_, i) => `f0000000-0000-0000-0000-${String(i + 1).padStart(12, '0')}`)
+  );
+
   const groupMap = new Map<string, FoodGuideGroup>();
 
   for (const row of data) {
     const group = row.substitution_groups as any;
     const food = row.foods as any;
     if (!group || !food) continue;
+    if (ANCHOR_IDS.has(food.id)) continue;
 
     if (!groupMap.has(row.group_id)) {
       groupMap.set(row.group_id, {
