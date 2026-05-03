@@ -14,21 +14,27 @@ function inferCategory(name: string): string {
   const lower = name.toLowerCase();
   if (['gamberi', 'cozze', 'calamari', 'polpo', 'vongole', 'totani', 'seppie', 'frutti di mare'].some(k => lower.includes(k)))
     return 'Frutti di Mare';
-  if (['merluzzo', 'sogliola', 'branzino', 'orata', 'tonno', 'salmone', 'sgombro', 'pesce', 'platessa', 'nasello', 'palombo', 'razza', 'cernia', 'trota', 'scorfano', 'aringhe', 'sardine'].some(k => lower.includes(k)))
-    return 'Pesce';
-  if (['pollo', 'tacchino', 'coniglio', 'vitello', 'manzo', 'maiale', 'hamburger', 'bresaola', 'carne'].some(k => lower.includes(k)))
-    return 'Carne';
+  // Pesce Grasso checked before Pesce Magro (fatty fish have specific keywords)
+  if (['sgombro', 'salmone', 'aringhe', 'sardine', 'spada', 'in scatola', "sott'olio"].some(k => lower.includes(k)))
+    return 'Pesce Grasso';
+  if (['merluzzo', 'sogliola', 'branzino', 'orata', 'tonno', 'pesce', 'platessa', 'nasello', 'palombo', 'razza', 'cernia', 'trota', 'scorfano'].some(k => lower.includes(k)))
+    return 'Pesce Magro';
+  // Carne Rossa checked before Carne Bianca
+  if (['vitello', 'manzo', 'maiale', 'hamburger'].some(k => lower.includes(k)))
+    return 'Carne Rossa';
+  if (['pollo', 'tacchino', 'coniglio', 'bresaola', 'carne'].some(k => lower.includes(k)))
+    return 'Carne Bianca';
   return '';
 }
 
 // Category-based conversion ratios for Carne Bianca / Pesce Magro group (b2).
 // Multipliers applied directly to the current portion amount.
-// e.g. 200g Carne → Pesce: 200 × 1.25 = 250g; Pesce → Carne: 200 × 0.75 = 150g
+// e.g. 200g Carne Bianca → Pesce Magro: 200 × 1.25 = 250g
 const GROUP_CATEGORY_RATIOS: Record<string, Record<string, Record<string, number>>> = {
   'b2000000-0000-0000-0000-000000000000': {
-    'Carne':          { 'Carne': 1.0,    'Pesce': 1.25,   'Frutti di Mare': 1.75   },
-    'Pesce':          { 'Carne': 0.75,   'Pesce': 1.0,    'Frutti di Mare': 1.5    },
-    'Frutti di Mare': { 'Carne': 0.5,    'Pesce': 0.6667, 'Frutti di Mare': 1.0    },
+    'Carne Bianca':   { 'Carne Bianca': 1.0,  'Pesce Magro': 1.25,   'Frutti di Mare': 1.75   },
+    'Pesce Magro':    { 'Carne Bianca': 0.75, 'Pesce Magro': 1.0,    'Frutti di Mare': 1.5    },
+    'Frutti di Mare': { 'Carne Bianca': 0.5,  'Pesce Magro': 0.6667, 'Frutti di Mare': 1.0    },
   },
 };
 
