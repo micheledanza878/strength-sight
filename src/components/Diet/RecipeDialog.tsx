@@ -50,7 +50,10 @@ export function RecipeDialog({ isOpen, onClose, mealType, foods }: RecipeDialogP
           </DialogTitle>
         </DialogHeader>
 
-        <div className="overflow-y-scroll flex-1 min-h-0 pr-1">
+        <div
+          className="overflow-y-auto pr-1"
+          style={{ maxHeight: '65vh', WebkitOverflowScrolling: 'touch' }}
+        >
           {loading && (
             <div className="flex flex-col items-center justify-center py-12 gap-3">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
