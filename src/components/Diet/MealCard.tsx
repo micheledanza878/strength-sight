@@ -74,7 +74,7 @@ export function MealCard({
                       style={{ backgroundColor: food.categoryColor }}
                     />
                     <p className="font-medium">
-                      {food.name}
+                      {food.categoryName}
                     </p>
                   </div>
                   <div className="mt-1 flex items-center gap-3">
@@ -85,7 +85,7 @@ export function MealCard({
                       •
                     </span>
                     <p className="text-xs font-medium text-muted-foreground">
-                      {food.categoryName}
+                      {food.name}
                     </p>
                     {food.calories && (
                       <>
