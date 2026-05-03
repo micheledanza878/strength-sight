@@ -21,6 +21,17 @@ function inferCategory(name: string): string {
   return '';
 }
 
+// Category-based conversion ratios for Carne Bianca / Pesce Magro group (b2).
+// Multipliers applied directly to the current portion amount.
+// e.g. 200g Carne → Pesce: 200 × 1.25 = 250g; Pesce → Carne: 200 × 0.75 = 150g
+const GROUP_CATEGORY_RATIOS: Record<string, Record<string, Record<string, number>>> = {
+  'b2000000-0000-0000-0000-000000000000': {
+    'Carne':          { 'Carne': 1.0,    'Pesce': 1.25,   'Frutti di Mare': 1.75   },
+    'Pesce':          { 'Carne': 0.75,   'Pesce': 1.0,    'Frutti di Mare': 1.5    },
+    'Frutti di Mare': { 'Carne': 0.5,    'Pesce': 0.6667, 'Frutti di Mare': 1.0    },
+  },
+};
+
 /**
  * Get food substitutes based on food_equivalences table
  * Shows alternatives from the same substitution group(s) that are used in the same meal type
@@ -37,7 +48,7 @@ export async function getSubstitutes(
     // Get current food
     const { data: currentFood, error: currentFoodError } = await supabase
       .from('foods')
-      .select('id, standard_portion_g')
+      .select('id, name, standard_portion_g')
       .eq('id', currentFoodId)
       .single();
 
@@ -60,6 +71,10 @@ export async function getSubstitutes(
     }
 
     const groupIds = foodGroups.map(fg => fg.group_id);
+
+    // Determine if this group uses category-based conversion
+    const categoryRatios = groupIds.length === 1 ? GROUP_CATEGORY_RATIOS[groupIds[0]] : undefined;
+    const sourceCategory = inferCategory(currentFood.name);
 
     // Get alternatives in any of the substitution groups
     const { data: alternatives, error: altError } = await supabase
@@ -88,20 +103,28 @@ export async function getSubstitutes(
       .map((alt) => {
         const food = alt.foods as any;
         const baseAmount = alt.base_quantity_g;
-
-        // Proportional calculation: (currentPortion / currentStandardPortion) * alternativeBaseAmount
-        const calculatedAmount = Math.round(
-          (currentPortion / currentFood.standard_portion_g) * baseAmount
-        );
-
         const foodName = food?.name || 'Unknown';
+        const targetCategory = inferCategory(foodName);
+
+        // Use category-based conversion matrix for groups that define it (e.g. Carne/Pesce Magro)
+        // Otherwise fall back to standard proportional formula
+        let calculatedAmount: number;
+        const ratio = categoryRatios?.[sourceCategory]?.[targetCategory];
+        if (ratio !== undefined) {
+          calculatedAmount = Math.round(currentPortion * ratio);
+        } else {
+          calculatedAmount = Math.round(
+            (currentPortion / currentFood.standard_portion_g) * baseAmount
+          );
+        }
+
         return {
           foodId: alt.food_id,
           name: foodName,
           baseAmount,
           calculatedAmount,
           caloriesApprox: food?.calories_approx,
-          category: inferCategory(foodName)
+          category: targetCategory,
         };
       })
       .sort((a, b) => (a.caloriesApprox || 0) - (b.caloriesApprox || 0));
