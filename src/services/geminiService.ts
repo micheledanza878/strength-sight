@@ -20,17 +20,29 @@ export async function generateRecipe(mealType: string, foods: MealFood[]): Promi
 
   const mealLabel = mealType === 'colazione' ? 'colazione' : mealType === 'pranzo' ? 'pranzo' : 'cena';
 
-  const prompt = `Sei un esperto chef e nutrizionista italiano. Devo preparare la ${mealLabel} con ESATTAMENTE questi ingredienti e grammature:
+  const prompt = `Sei un esperto chef e nutrizionista italiano. Devo preparare la ${mealLabel} seguendo i principi della mia dieta.
+
+Ecco gli ingredienti scelti e le grammature ESATTE:
 ${ingredientsList}
 
-Crea una ricetta semplice e gustosa che utilizzi ESATTAMENTE questi ingredienti rispettando LE GRAMMATURE indicate. Non aggiungere altri ingredienti principali (solo sale, pepe e spezie a piacere sono permessi).
+Crea una ricetta semplice e gustosa. Devi rispettare TASSATIVAMENTE queste regole nutrizionali e di preparazione:
+1. I pesi degli ingredienti si intendono da crudo e senza guscio.
+2. Usa gli ingredienti forniti rispettando le grammature al grammo.
+3. Non aggiungere ingredienti principali extra.
+4. CONDIMENTI PERMESSI: Usa il sale al minimo indispensabile. Sfrutta liberamente spezie e succo di limone per dare sapore.
+5. SALSE PERMESSE: Puoi usare massimo 1 o 2 cucchiai di salsa di soia, oppure aceto di vino bianco a piacere. Se usi aceto balsamico, massimo 20ml (MAI la glassa).
+6. JOLLY: Se serve per la ricetta, puoi aggiungere fino a 100g di passata di pomodoro anche se non è nella lista degli ingredienti.
 
-Rispondi in italiano con questo formato:
+REGOLE DI FORMATTAZIONE OBBLIGATORIE:
+- NON aggiungere NESSUNA frase introduttiva, saluto o commento conclusivo (es. non scrivere "Certamente", "Ecco la ricetta", ecc.).
+- Il tuo output DEVE iniziare DIRETTAMENTE con "**Nome del piatto**:".
+
+Rispondi in italiano usando ESCLUSIVAMENTE questo formato esatto:
 **Nome del piatto**: [nome creativo]
-**Ingredienti**: [lista con grammature]
-**Preparazione**: [steps numerati, max 5 passaggi]
+**Ingredienti**: [lista con grammature + eventuali spezie/limone/passata usati]
+**Preparazione**: [steps numerati, max 5 passaggi chiari]
 **Tempo di preparazione**: [minuti totali]
-**Consiglio dello chef**: [un suggerimento breve]`;
+**Consiglio dello chef**: [un suggerimento rapido sulla cottura o su come insaporire il piatto con le spezie]`;
 
   const body = JSON.stringify({
     contents: [{ parts: [{ text: prompt }] }],
