@@ -5,6 +5,14 @@ import { ArrowRightLeft } from 'lucide-react';
 import { MEAL_TYPES } from '@/types/diet';
 import { FoodSwapModal } from './FoodSwapModal';
 
+function getMacroGroup(categoryName: string): string {
+  const PROTEIN_CATS = ['Pesce Grasso', 'Pesce Magro', 'Carne Bianca', 'Carne Rossa', 'Proteine (Carne/Pesce)', 'Legumi e Uova'];
+  if (PROTEIN_CATS.includes(categoryName)) return 'Proteine';
+  if (categoryName === 'Grassi e Condimenti') return 'Grassi';
+  if (categoryName === 'Latticini e Snack') return 'Latticini';
+  return categoryName;
+}
+
 interface MealCardProps {
   mealId: string;
   mealType: string;
@@ -85,7 +93,7 @@ export function MealCard({
                       •
                     </span>
                     <p className="text-xs font-medium text-muted-foreground">
-                      {food.name}
+                      {getMacroGroup(food.categoryName)}
                     </p>
                     {food.calories && (
                       <>
