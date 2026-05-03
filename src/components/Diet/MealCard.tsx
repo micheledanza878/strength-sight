@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowRightLeft } from 'lucide-react';
+import { ArrowRightLeft, Sparkles } from 'lucide-react';
 import { MEAL_TYPES } from '@/types/diet';
 import { FoodSwapModal } from './FoodSwapModal';
+import { RecipeDialog } from './RecipeDialog';
 
 interface MealCardProps {
   mealId: string;
@@ -33,6 +34,7 @@ export function MealCard({
 }: MealCardProps) {
   const [swapModalOpen, setSwapModalOpen] = useState(false);
   const [selectedFood, setSelectedFood] = useState<MealCardProps['foods'][0] | null>(null);
+  const [recipeOpen, setRecipeOpen] = useState(false);
 
   const totalCalories = foods.reduce((sum, f) => sum + (f.calories || 0), 0);
   const mealTypeLabel = MEAL_TYPES[mealType as keyof typeof MEAL_TYPES] || mealType;
@@ -45,14 +47,25 @@ export function MealCard({
   return (
     <>
       <div className="bg-card rounded-2xl overflow-hidden border border-border">
-        <div className="bg-muted/50 px-4 py-3 border-b border-border">
-          <h3 className="font-semibold">
-            {mealTypeLabel}
-          </h3>
-          {totalCalories > 0 && (
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {totalCalories} kcal totali
-            </p>
+        <div className="bg-muted/50 px-4 py-3 border-b border-border flex items-center justify-between">
+          <div>
+            <h3 className="font-semibold">{mealTypeLabel}</h3>
+            {totalCalories > 0 && (
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {totalCalories} kcal totali
+              </p>
+            )}
+          </div>
+          {foods.length > 0 && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              title="Genera idea piatto"
+              onClick={() => setRecipeOpen(true)}
+            >
+              <Sparkles className="h-4 w-4" />
+            </Button>
           )}
         </div>
 
@@ -114,6 +127,13 @@ export function MealCard({
           )}
         </div>
       </div>
+
+      <RecipeDialog
+        isOpen={recipeOpen}
+        onClose={() => setRecipeOpen(false)}
+        mealType={mealType}
+        foods={foods.map(f => ({ name: f.name, portion: f.portion, categoryName: f.categoryName }))}
+      />
 
       {selectedFood && (
         <FoodSwapModal
