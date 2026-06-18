@@ -16,46 +16,114 @@ import EditWorkoutPlan from "./pages/EditWorkoutPlan";
 import EditWorkoutDay from "./pages/EditWorkoutDay";
 import DietViewer from "./pages/Diet/DietViewer";
 import FoodGuide from "./pages/Diet/FoodGuide";
-import BottomNav from "./components/BottomNav";
-import NotFound from "./pages/NotFound";
+import Profile from "./pages/Profile";
+import BottomNav from "@/components/BottomNav";
 
-const queryClient = new QueryClient();
-
-function AppContent() {
+export default function App() {
   return (
-    <>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/" element={<ProtectedRoute element={<Dashboard />} />} />
-        <Route path="/workout" element={<ProtectedRoute element={<WorkoutSelect />} />} />
-        <Route path="/session/:dayId" element={<ProtectedRoute element={<WorkoutSession />} />} />
-        <Route path="/body" element={<ProtectedRoute element={<BodyTracking />} />} />
-        <Route path="/diet" element={<ProtectedRoute element={<DietViewer />} />} />
-        <Route path="/diet/foods" element={<ProtectedRoute element={<FoodGuide />} />} />
-        <Route path="/history" element={<ProtectedRoute element={<History />} />} />
-        <Route path="/create-plan" element={<ProtectedRoute element={<CreateWorkoutPlan />} />} />
-        <Route path="/edit-plan/:planId" element={<ProtectedRoute element={<EditWorkoutPlan />} />} />
-        <Route path="/edit-day/:dayId" element={<ProtectedRoute element={<EditWorkoutDay />} />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-      <BottomNav />
-    </>
+    <QueryClientProvider client={new QueryClient()}>
+      <AuthProvider>
+        <ActivePlanProvider>
+          <TooltipProvider>
+            <Sonner>
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/" element={<Login />} />
+                  <Route
+                    path="/dashboard"
+                    element={
+                      <ProtectedRoute>
+                        <Dashboard />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/workout"
+                    element={
+                      <ProtectedRoute>
+                        <WorkoutSelect />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/workout/session"
+                    element={
+                      <ProtectedRoute>
+                        <WorkoutSession />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/body"
+                    element={
+                      <ProtectedRoute>
+                        <BodyTracking />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/history"
+                    element={
+                      <ProtectedRoute>
+                        <History />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/create-plan"
+                    element={
+                      <ProtectedRoute>
+                        <CreateWorkoutPlan />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/edit-plan"
+                    element={
+                      <ProtectedRoute>
+                        <EditWorkoutPlan />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/edit-day"
+                    element={
+                      <ProtectedRoute>
+                        <EditWorkoutDay />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/diet"
+                    element={
+                      <ProtectedRoute>
+                        <DietViewer />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/food-guide"
+                    element={
+                      <ProtectedRoute>
+                        <FoodGuide />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/profile"
+                    element={
+                      <ProtectedRoute>
+                        <Profile />
+                      </ProtectedRoute>
+                    }
+                  />
+                </Routes>
+                <BottomNav />
+              </BrowserRouter>
+            </Sonner>
+          </TooltipProvider>
+        </ActivePlanProvider>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <ActivePlanProvider>
-            <AppContent />
-          </ActivePlanProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
-
-export default App;
