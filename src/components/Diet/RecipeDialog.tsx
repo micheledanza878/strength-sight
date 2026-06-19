@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -15,13 +15,29 @@ interface RecipeDialogProps {
   foods: MealFood[];
 }
 
+/**
+ * Converte un segmento di testo con sintassi **grassetto** in nodi React.
+ * Non usa dangerouslySetInnerHTML: ogni token diventa un nodo JSX tipizzato,
+ * eliminando completamente il rischio XSS su output raw dell'API.
+ */
+function parseBoldSegments(line: string): React.ReactNode[] {
+  // Suddivide la riga attorno ai delimitatori **...**
+  const parts = line.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, idx) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      // Estrae il contenuto interno come testo puro — nessun HTML interpolato
+      return <strong key={idx}>{part.slice(2, -2)}</strong>;
+    }
+    return part; // testo plain: React lo escapa automaticamente
+  });
+}
+
 function renderMarkdown(text: string) {
-  return text
-    .split('\n')
-    .map((line, i) => {
-      const bold = line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-      return <p key={i} className="text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: bold }} />;
-    });
+  return text.split('\n').map((line, i) => (
+    <p key={i} className="text-sm leading-relaxed">
+      {parseBoldSegments(line)}
+    </p>
+  ));
 }
 
 export function RecipeDialog({ isOpen, onClose, mealType, foods }: RecipeDialogProps) {
