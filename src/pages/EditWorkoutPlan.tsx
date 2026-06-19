@@ -281,232 +281,204 @@ export default function EditWorkoutPlan() {
     }
   }
 
-  if (loading) return <div className="p-5 pt-14 text-foreground">Caricamento...</div>;
+  if (loading) return (
+    <div className="flex items-center justify-center min-h-screen">
+      <Loader className="w-6 h-6 animate-spin text-muted-foreground" />
+    </div>
+  );
+
+  const STEPS = ["Scheda", "Giorni", "Esercizi"];
+  const stepIndex = step === "plan" ? 0 : step === "days" ? 1 : 2;
+  const inputClass = "w-full h-12 bg-secondary border border-border rounded-xl px-4 text-foreground text-sm outline-none focus:ring-2 focus:ring-primary transition-all";
+  const smallInputClass = "w-full h-10 bg-secondary border border-border rounded-xl px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary transition-all";
 
   return (
-    <div className="min-h-screen px-5 pt-14 pb-24">
-      <div className="flex items-center gap-3 mb-6">
+    <div className="min-h-screen px-4 pt-14 pb-32">
+
+      {/* ── Header ── */}
+      <div className="flex items-center gap-3 mb-5">
         <button
           onClick={() => {
             if (step === "plan") navigate(-1);
             else if (step === "days") setStep("plan");
             else setStep("days");
           }}
-          className="text-muted-foreground"
+          className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground active:scale-90 transition-transform flex-shrink-0"
         >
-          <ArrowLeft className="w-6 h-6" />
+          <ArrowLeft className="w-4 h-4" />
         </button>
         <div>
-          <h1 className="text-3xl font-bold">Modifica Scheda</h1>
-          <p className="text-xs text-muted-foreground mt-1">
+          <h1 className="text-xl font-bold tracking-tight">Modifica Scheda</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">
             {step === "plan" && "Informazioni generali"}
             {step === "days" && "Configura i giorni"}
-            {step === "exercises" && `Esercizi - ${days[currentDayIdx]?.day_name}`}
+            {step === "exercises" && `Esercizi · ${days[currentDayIdx]?.day_name}`}
           </p>
         </div>
       </div>
 
-      {step === "plan" && (
-        <div className="space-y-4 mb-8 animate-in fade-in duration-300">
-          <div>
-            <label className="text-xs text-muted-foreground font-medium uppercase tracking-wider block mb-2">
-              Nome scheda
-            </label>
-            <input
-              type="text"
-              placeholder="es. Upper/Lower 4 Giorni"
-              value={planName}
-              onChange={(e) => setPlanName(e.target.value)}
-              className="w-full h-12 bg-card border border-border rounded-xl px-4 text-foreground outline-none focus:border-primary"
-            />
+      {/* ── Step indicator ── */}
+      <div className="flex items-center mb-6">
+        {STEPS.map((label, i) => (
+          <div key={i} className="flex items-center flex-1">
+            <div className="flex flex-col items-center gap-1">
+              <div className={[
+                "w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all",
+                i < stepIndex ? "bg-primary/20 text-primary" :
+                i === stepIndex ? "gradient-primary text-white" :
+                "bg-secondary text-muted-foreground"
+              ].join(" ")}>
+                {i < stepIndex ? "✓" : i + 1}
+              </div>
+              <span className={`text-[10px] font-semibold ${i === stepIndex ? "text-primary" : "text-muted-foreground"}`}>{label}</span>
+            </div>
+            {i < 2 && <div className={`flex-1 h-px mx-2 mb-4 ${i < stepIndex ? "bg-primary/40" : "bg-border"}`} />}
           </div>
+        ))}
+      </div>
 
+      {/* ── STEP 1: Piano ── */}
+      {step === "plan" && (
+        <div className="space-y-4 mb-8">
           <div>
-            <label className="text-xs text-muted-foreground font-medium uppercase tracking-wider block mb-2">
-              Durata (settimane)
-            </label>
-            <input
-              type="number"
-              placeholder="4"
-              value={durationWeeks}
-              onChange={(e) => setDurationWeeks(e.target.value)}
-              min="1"
-              max="52"
-              className="w-full h-12 bg-card border border-border rounded-xl px-4 text-foreground outline-none focus:border-primary"
-            />
+            <label className="text-xs text-muted-foreground font-semibold uppercase tracking-wider block mb-2">Nome scheda</label>
+            <input type="text" placeholder="es. Upper/Lower 4 Giorni" value={planName}
+              onChange={(e) => setPlanName(e.target.value)} className={inputClass} />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground font-semibold uppercase tracking-wider block mb-2">Durata (settimane)</label>
+            <input type="number" placeholder="4" value={durationWeeks}
+              onChange={(e) => setDurationWeeks(e.target.value)} min="1" max="52" className={inputClass} />
           </div>
         </div>
       )}
 
+      {/* ── STEP 2: Giorni ── */}
       {step === "days" && (
-        <div className="space-y-3 mb-8 animate-in fade-in duration-300">
+        <div className="space-y-3 mb-8">
           {days.map((day, idx) => (
-            <div key={idx}>
+            <div key={idx} className="bg-card border border-border rounded-2xl p-4">
               <div className="flex items-center justify-between mb-2">
-                <label className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-                  Giorno {idx + 1}
-                </label>
+                <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Giorno {idx + 1}</label>
                 {days.length > 1 && (
-                  <button
-                    onClick={() => removeDay(idx)}
-                    className="text-red-500 hover:bg-red-500/10 p-1 rounded-lg transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
+                  <button onClick={() => removeDay(idx)}
+                    className="w-7 h-7 rounded-lg bg-destructive/10 flex items-center justify-center text-destructive active:scale-90 transition-transform">
+                    <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 )}
               </div>
-              <input
-                type="text"
-                value={day.day_name}
-                onChange={(e) => updateDayName(idx, e.target.value)}
-                className="w-full h-12 bg-card border border-border rounded-xl px-4 text-foreground outline-none focus:border-primary"
-              />
+              <input type="text" value={day.day_name}
+                onChange={(e) => updateDayName(idx, e.target.value)} className={smallInputClass} />
             </div>
           ))}
 
-          <button
-            onClick={addDay}
-            className="w-full h-12 rounded-xl bg-secondary text-secondary-foreground font-semibold flex items-center justify-center gap-2 transition-colors hover:bg-secondary/80 mt-4"
-          >
-            <Plus className="w-5 h-5" />
-            Aggiungi Giorno
+          <button onClick={addDay}
+            className="w-full h-12 rounded-2xl bg-secondary border border-dashed border-border text-muted-foreground font-semibold flex items-center justify-center gap-2 active:scale-95 transition-transform">
+            <Plus className="w-4 h-4" />
+            Aggiungi giorno
           </button>
         </div>
       )}
 
+      {/* ── STEP 3: Esercizi ── */}
       {step === "exercises" && (
-        <div className="space-y-4 mb-8 animate-in fade-in duration-300">
-          <div className="flex gap-2 mb-4 overflow-x-auto">
+        <div>
+          {/* Day tabs */}
+          <div className="flex gap-2 mb-5 overflow-x-auto no-scrollbar pb-1">
             {days.map((day, idx) => (
-              <button
-                key={idx}
-                onClick={() => setCurrentDayIdx(idx)}
-                className={`px-4 py-2 rounded-xl font-semibold whitespace-nowrap transition-colors ${
-                  currentDayIdx === idx
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-secondary text-secondary-foreground"
-                }`}
-              >
+              <button key={idx} onClick={() => setCurrentDayIdx(idx)}
+                className={[
+                  "flex-shrink-0 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all active:scale-95",
+                  idx === currentDayIdx ? "gradient-primary text-white" : "bg-secondary text-muted-foreground"
+                ].join(" ")}>
                 {day.day_name}
               </button>
             ))}
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-3 mb-8">
             {days[currentDayIdx]?.exercises.map((ex, exIdx) => (
-              <div key={exIdx} className="bg-card rounded-2xl p-4 space-y-3">
+              <div key={exIdx} className="bg-card border border-border rounded-2xl p-4 space-y-3">
                 <div className="flex items-center justify-between">
-                  <p className="font-semibold text-sm">Esercizio {exIdx + 1}</p>
-                  <button
-                    onClick={() => removeExercise(exIdx)}
-                    className="text-red-500 hover:bg-red-500/10 p-2 rounded-lg transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Esercizio {exIdx + 1}</p>
+                  <button onClick={() => removeExercise(exIdx)}
+                    className="w-7 h-7 rounded-lg bg-destructive/10 flex items-center justify-center text-destructive active:scale-90 transition-transform">
+                    <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
 
-                <input
-                  type="text"
-                  placeholder="Nome esercizio"
-                  value={ex.exercise_name}
-                  onChange={(e) => updateExercise(exIdx, "exercise_name", e.target.value)}
-                  className="w-full h-10 bg-secondary border border-border rounded-xl px-3 text-sm outline-none focus:border-primary"
-                />
+                <input type="text" placeholder="Nome esercizio" value={ex.exercise_name}
+                  onChange={(e) => updateExercise(exIdx, "exercise_name", e.target.value)} className={smallInputClass} />
 
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   <div>
-                    <label className="text-xs text-muted-foreground block mb-1">Serie</label>
-                    <input
-                      type="number"
-                      value={ex.sets}
+                    <label className="text-[10px] text-muted-foreground block mb-1.5">Serie</label>
+                    <input type="number" value={ex.sets}
                       onChange={(e) => updateExercise(exIdx, "sets", parseInt(e.target.value))}
-                      className="w-full h-10 bg-secondary rounded-xl px-3 text-sm outline-none focus:border-primary"
-                      min="1"
-                    />
+                      className="w-full h-10 bg-secondary rounded-xl px-3 text-sm text-center outline-none focus:ring-2 focus:ring-primary" min="1" />
                   </div>
                   <div>
-                    <label className="text-xs text-muted-foreground block mb-1">Riposo (sec)</label>
-                    <input
-                      type="number"
-                      value={ex.rest_seconds}
-                      onChange={(e) => updateExercise(exIdx, "rest_seconds", parseInt(e.target.value))}
-                      className="w-full h-10 bg-secondary rounded-xl px-3 text-sm outline-none focus:border-primary"
-                      min="0"
-                    />
+                    <label className="text-[10px] text-muted-foreground block mb-1.5">Rep min</label>
+                    <input type="number" value={ex.reps_min}
+                      onChange={(e) => updateExercise(exIdx, "reps_min", parseInt(e.target.value))}
+                      className="w-full h-10 bg-secondary rounded-xl px-3 text-sm text-center outline-none focus:ring-2 focus:ring-primary" min="1" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-muted-foreground block mb-1.5">Rep max</label>
+                    <input type="number" value={ex.reps_max}
+                      onChange={(e) => updateExercise(exIdx, "reps_max", parseInt(e.target.value))}
+                      className="w-full h-10 bg-secondary rounded-xl px-3 text-sm text-center outline-none focus:ring-2 focus:ring-primary" min="1" />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="text-xs text-muted-foreground block mb-1">Rep Min</label>
-                    <input
-                      type="number"
-                      value={ex.reps_min}
-                      onChange={(e) => updateExercise(exIdx, "reps_min", parseInt(e.target.value))}
-                      className="w-full h-10 bg-secondary rounded-xl px-3 text-sm outline-none focus:border-primary"
-                      min="1"
-                    />
+                    <label className="text-[10px] text-muted-foreground block mb-1.5">Riposo (sec)</label>
+                    <input type="number" value={ex.rest_seconds}
+                      onChange={(e) => updateExercise(exIdx, "rest_seconds", parseInt(e.target.value))}
+                      className="w-full h-10 bg-secondary rounded-xl px-3 text-sm outline-none focus:ring-2 focus:ring-primary" min="0" />
                   </div>
                   <div>
-                    <label className="text-xs text-muted-foreground block mb-1">Rep Max</label>
-                    <input
-                      type="number"
-                      value={ex.reps_max}
-                      onChange={(e) => updateExercise(exIdx, "reps_max", parseInt(e.target.value))}
-                      className="w-full h-10 bg-secondary rounded-xl px-3 text-sm outline-none focus:border-primary"
-                      min="1"
-                    />
+                    <label className="text-[10px] text-muted-foreground block mb-1.5">Note (opz.)</label>
+                    <input type="text" placeholder="es. RPE 8" value={ex.notes}
+                      onChange={(e) => updateExercise(exIdx, "notes", e.target.value)}
+                      className="w-full h-10 bg-secondary rounded-xl px-3 text-sm outline-none focus:ring-2 focus:ring-primary" />
                   </div>
                 </div>
-
-                <input
-                  type="text"
-                  placeholder="Note (opzionale)"
-                  value={ex.notes}
-                  onChange={(e) => updateExercise(exIdx, "notes", e.target.value)}
-                  className="w-full h-10 bg-secondary rounded-xl px-3 text-sm outline-none focus:border-primary"
-                />
               </div>
             ))}
 
-            <button
-              onClick={addExercise}
-              className="w-full h-12 rounded-xl bg-secondary text-secondary-foreground font-semibold flex items-center justify-center gap-2 transition-colors hover:bg-secondary/80"
-            >
-              <Plus className="w-5 h-5" />
-              Aggiungi Esercizio
+            <button onClick={addExercise}
+              className="w-full h-12 rounded-2xl bg-secondary border border-dashed border-border text-muted-foreground font-semibold flex items-center justify-center gap-2 active:scale-95 transition-transform">
+              <Plus className="w-4 h-4" />
+              Aggiungi esercizio
             </button>
           </div>
         </div>
       )}
 
-      <div className="fixed bottom-8 left-4 right-4 max-w-[412px] mx-auto flex gap-3">
+      {/* ── Bottom CTA ── */}
+      <div className="fixed bottom-6 left-4 right-4 max-w-[412px] mx-auto flex gap-3">
         <button
           onClick={() => {
             if (step === "plan") navigate(-1);
             else if (step === "days") setStep("plan");
             else setStep("days");
           }}
-          className="flex-1 h-14 rounded-2xl bg-secondary text-foreground font-semibold transition-transform active:scale-95"
+          className="flex-1 h-14 rounded-2xl bg-secondary text-foreground font-semibold active:scale-95 transition-transform"
         >
           Indietro
         </button>
 
         {step === "exercises" ? (
-          <button
-            onClick={savePlan}
-            disabled={saving}
-            className="flex-1 h-14 rounded-2xl bg-primary text-primary-foreground font-semibold transition-all active:scale-95 disabled:opacity-60"
-          >
-            {saving ? "Salvataggio..." : "✓ Salva"}
+          <button onClick={savePlan} disabled={saving}
+            className="flex-1 h-14 rounded-2xl gradient-primary glow-primary text-white font-bold flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-60">
+            {saving ? <><Loader className="w-4 h-4 animate-spin" /> Salvataggio...</> : "✓ Salva"}
           </button>
         ) : (
-          <button
-            onClick={step === "plan" ? handlePlanNext : handleDaysNext}
-            className="flex-1 h-14 rounded-2xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 transition-transform active:scale-95"
-          >
-            Avanti
-            <ChevronRight className="w-5 h-5" />
+          <button onClick={step === "plan" ? handlePlanNext : handleDaysNext}
+            className="flex-1 h-14 rounded-2xl gradient-primary glow-primary text-white font-bold flex items-center justify-center gap-2 active:scale-95 transition-all">
+            Avanti <ChevronRight className="w-5 h-5" />
           </button>
         )}
       </div>

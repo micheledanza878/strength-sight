@@ -264,8 +264,6 @@ export default function WorkoutSession() {
     }
   }
 
-  // Colore di default per il giorno
-  const dayColor = "hsl(210, 100%, 50%)";
 
   // ── PREVIEW SCREEN ──────────────────────────────────────────────
   if (phase === "preview") {
@@ -286,7 +284,7 @@ export default function WorkoutSession() {
                     setPhase("active");
                     startedAt.current = new Date();
                   }}
-                  className="flex-1 h-12 rounded-xl bg-primary text-primary-foreground font-semibold transition-transform active:scale-95"
+                  className="flex-1 h-12 rounded-xl gradient-primary text-white font-semibold transition-transform active:scale-95"
                 >
                   Riprendi
                 </button>
@@ -306,8 +304,8 @@ export default function WorkoutSession() {
         )}
 
         <div className="flex items-center gap-3 mb-6">
-          <button onClick={() => navigate("/workout")} className="text-muted-foreground">
-            <ArrowLeft className="w-6 h-6" />
+          <button onClick={() => navigate("/workout")} className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground active:scale-90 transition-transform">
+            <ArrowLeft className="w-4 h-4" />
           </button>
           <div className="flex-1">
             <p className="text-xl font-bold">{dayData.day_name}</p>
@@ -322,12 +320,12 @@ export default function WorkoutSession() {
         </div>
 
         {/* Color accent banner */}
-        <div className="rounded-2xl p-4 mb-6 flex items-center gap-4" style={{ backgroundColor: "hsla(210, 100%, 50%, 0.08)" }}>
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold shrink-0" style={{ backgroundColor: "hsla(210, 100%, 50%, 0.15)", color: dayColor }}>
+        <div className="card-hero p-4 mb-6 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold shrink-0 bg-primary/15 text-primary">
             {dayData.day_number}
           </div>
           <div>
-            <p className="font-bold" style={{ color: dayColor }}>{exercises.length} esercizi</p>
+            <p className="font-bold text-primary">{exercises.length} esercizi</p>
             <p className="text-xs text-muted-foreground">Scorri per vedere il programma</p>
           </div>
         </div>
@@ -352,8 +350,7 @@ export default function WorkoutSession() {
         <div className="fixed bottom-8 left-4 right-4 max-w-[412px] mx-auto">
           <button
             onClick={handleStartWorkout}
-            className="w-full h-16 rounded-2xl font-bold text-white text-lg flex items-center justify-center gap-3 transition-transform active:scale-95"
-            style={{ backgroundColor: dayColor }}
+            className="w-full h-16 rounded-2xl font-bold text-white text-lg flex items-center justify-center gap-3 transition-transform active:scale-95 gradient-primary glow-primary"
           >
             <Play className="w-5 h-5 fill-white" />
             Inizia allenamento
@@ -488,22 +485,21 @@ export default function WorkoutSession() {
     return (
       <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background px-5">
         <div className="w-full max-w-sm text-center">
-          <div className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6"
-            style={{ backgroundColor: "hsla(210, 100%, 50%, 0.13)" }}>
-            <Trophy className="w-10 h-10" style={{ color: dayColor }} />
+          <div className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 bg-primary/10">
+            <Trophy className="w-10 h-10 text-primary" />
           </div>
           <h2 className="text-3xl font-bold mb-1">Ottimo lavoro!</h2>
           <p className="text-muted-foreground mb-8">Giorno {dayData.day_number} — {dayData.day_name}</p>
           <div className="grid grid-cols-3 gap-3 mb-10">
-            <div className="bg-card rounded-2xl p-4 text-center">
+            <div className="bg-card border border-border rounded-2xl p-4 text-center">
               <p className="text-2xl font-bold">{completion.duration}</p>
               <p className="text-xs text-muted-foreground mt-1">min</p>
             </div>
-            <div className="bg-card rounded-2xl p-4 text-center">
+            <div className="bg-card border border-border rounded-2xl p-4 text-center">
               <p className="text-2xl font-bold">{completion.sets}</p>
               <p className="text-xs text-muted-foreground mt-1">serie</p>
             </div>
-            <div className="bg-card rounded-2xl p-4 text-center">
+            <div className="bg-card border border-border rounded-2xl p-4 text-center">
               <p className="text-2xl font-bold">
                 {completion.volume >= 1000 ? `${(completion.volume / 1000).toFixed(1)}t` : `${completion.volume}`}
               </p>
@@ -514,8 +510,7 @@ export default function WorkoutSession() {
           </div>
           <button
             onClick={() => navigate("/")}
-            className="w-full h-14 rounded-2xl font-bold text-white transition-transform active:scale-95"
-            style={{ backgroundColor: dayColor }}
+            className="w-full h-14 rounded-2xl font-bold text-white transition-transform active:scale-95 gradient-primary glow-primary"
           >
             Torna alla home
           </button>
@@ -532,7 +527,6 @@ export default function WorkoutSession() {
         <RestTimer
           key={timerKey}
           seconds={exercise?.rest_seconds || 90}
-          color={dayColor}
           onComplete={() => setShowTimer(false)}
           onDismiss={() => setShowTimer(false)}
         />
@@ -540,8 +534,8 @@ export default function WorkoutSession() {
 
       {/* Header */}
       <div className="flex items-center gap-3 mb-3">
-        <button onClick={() => navigate(-1)} className="text-muted-foreground">
-          <ArrowLeft className="w-6 h-6" />
+        <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground active:scale-90 transition-transform">
+          <ArrowLeft className="w-4 h-4" />
         </button>
         <div className="flex-1">
           <p className="text-lg font-bold">{dayData.day_name}</p>
@@ -566,8 +560,8 @@ export default function WorkoutSession() {
       {/* Progress bar */}
       <div className="h-1.5 w-full bg-secondary rounded-full mb-5 overflow-hidden">
         <div
-          className="h-full rounded-full transition-all duration-500"
-          style={{ width: `${progressPct}%`, backgroundColor: dayColor }}
+          className="h-full rounded-full transition-all duration-500 bg-primary"
+          style={{ width: `${progressPct}%` }}
         />
       </div>
 
@@ -580,13 +574,10 @@ export default function WorkoutSession() {
             <button
               key={ex.id}
               onClick={() => setCurrentExIdx(i)}
-              className="px-3 py-1.5 rounded-full text-[11px] font-semibold transition-colors"
-              style={
-                active ? { backgroundColor: dayColor, color: "#fff" }
-                : done ? { backgroundColor: "hsla(210, 100%, 50%, 0.2)", color: dayColor }
-                : undefined
-              }
-              {...(!active && !done ? { className: "px-3 py-1.5 rounded-full text-[11px] font-semibold transition-colors bg-secondary text-secondary-foreground" } : {})}
+              className={[
+                "px-3 py-1.5 rounded-full text-[11px] font-semibold transition-colors",
+                active ? "bg-primary text-white" : done ? "bg-primary/20 text-primary" : "bg-secondary text-secondary-foreground"
+              ].join(" ")}
             >
               {ex.exercise_name.length > 12 ? ex.exercise_name.slice(0, 12) + "…" : ex.exercise_name}
             </button>
@@ -595,7 +586,7 @@ export default function WorkoutSession() {
       </div>
 
       {/* Current exercise */}
-      <div className="bg-card rounded-2xl p-5 mb-4" style={{ borderTop: `3px solid ${dayColor}` }}>
+      <div className="bg-card rounded-2xl p-5 mb-4 border-t-2 border-primary">
         <div className="flex items-center gap-3 mb-1">
           <span className="text-2xl">{getExerciseIcon(exercise.exercise_name)}</span>
           <p className="text-lg font-bold">{exercise.exercise_name}</p>
@@ -653,9 +644,8 @@ export default function WorkoutSession() {
                     onClick={() => toggleSet(i)}
                     className={`w-11 h-12 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200
                       ${justDone === key ? "scale-110" : "scale-100"}
-                      ${s.done ? "text-white" : "bg-secondary text-muted-foreground"}
+                      ${s.done ? "bg-primary text-white" : "bg-secondary text-muted-foreground"}
                     `}
-                    style={s.done ? { backgroundColor: dayColor } : undefined}
                   >
                     <Check className="w-5 h-5" />
                   </button>
@@ -677,8 +667,7 @@ export default function WorkoutSession() {
             setTimerKey((k) => k + 1);
             setShowTimer(true);
           }}
-          className="w-full h-12 rounded-xl font-semibold text-white flex items-center justify-center gap-2"
-          style={{ backgroundColor: dayColor }}
+          className="w-full h-12 rounded-xl font-semibold text-white flex items-center justify-center gap-2 bg-primary active:scale-95 transition-transform"
         >
           <Play className="w-4 h-4 fill-white" />
           Avvia riposo ({exercise?.rest_seconds || 90}s)
@@ -698,8 +687,7 @@ export default function WorkoutSession() {
         {currentExIdx < totalExercises - 1 ? (
           <button
             onClick={() => setCurrentExIdx((i) => i + 1)}
-            className="flex-1 h-14 rounded-2xl font-semibold transition-transform active:scale-95 text-white"
-            style={{ backgroundColor: dayColor }}
+            className="flex-1 h-14 rounded-2xl font-semibold transition-transform active:scale-95 text-white gradient-primary"
           >
             Prossimo
           </button>
@@ -707,8 +695,7 @@ export default function WorkoutSession() {
           <button
             onClick={finishWorkout}
             disabled={saving}
-            className="flex-1 h-14 rounded-2xl font-bold transition-all active:scale-95 disabled:opacity-60 text-white"
-            style={{ backgroundColor: dayColor }}
+            className="flex-1 h-14 rounded-2xl font-bold transition-all active:scale-95 disabled:opacity-60 text-white gradient-primary"
           >
             {saving ? "Salvataggio..." : "✓ Completa"}
           </button>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Loader } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -211,152 +211,128 @@ export default function EditWorkoutDay() {
     }
   }
 
-  if (loading) return <div className="p-5 pt-14 text-foreground">Caricamento...</div>;
-  if (!day) return <div className="p-5 pt-14 text-foreground">Giorno non trovato</div>;
+  if (loading) return (
+    <div className="flex items-center justify-center min-h-screen">
+      <Loader className="w-6 h-6 animate-spin text-muted-foreground" />
+    </div>
+  );
+  if (!day) return (
+    <div className="px-4 pt-14 text-muted-foreground text-sm">Giorno non trovato</div>
+  );
+
+  const inputClass = "w-full h-12 bg-secondary border border-border rounded-xl px-4 text-foreground text-sm outline-none focus:ring-2 focus:ring-primary transition-all";
+  const smallInputClass = "w-full h-10 bg-secondary border border-border rounded-xl px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary transition-all";
 
   return (
-    <div className="min-h-screen px-5 pt-14 pb-24">
+    <div className="min-h-screen px-4 pt-14 pb-32">
+
+      {/* ── Header ── */}
       <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => navigate(-1)} className="text-muted-foreground">
-          <ArrowLeft className="w-6 h-6" />
+        <button onClick={() => navigate(-1)}
+          className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground active:scale-90 transition-transform flex-shrink-0">
+          <ArrowLeft className="w-4 h-4" />
         </button>
         <div>
-          <h1 className="text-3xl font-bold">Modifica Allenamento</h1>
-          <p className="text-xs text-muted-foreground mt-1">Giorno {day.day_number}</p>
+          <h1 className="text-xl font-bold tracking-tight">Modifica Allenamento</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">Giorno {day.day_number} · {day.day_name}</p>
         </div>
       </div>
 
-      <div className="space-y-4 mb-8">
-        <div>
-          <label className="text-xs text-muted-foreground font-medium uppercase tracking-wider block mb-2">
-            Nome Giorno
-          </label>
-          <input
-            type="text"
-            value={day.day_name}
-            onChange={(e) => updateDayName(e.target.value)}
-            className="w-full h-12 bg-card border border-border rounded-xl px-4 text-foreground outline-none focus:border-primary"
-          />
-        </div>
+      {/* ── Nome giorno ── */}
+      <div className="mb-6">
+        <label className="text-xs text-muted-foreground font-semibold uppercase tracking-wider block mb-2">Nome giorno</label>
+        <input type="text" value={day.day_name}
+          onChange={(e) => updateDayName(e.target.value)} className={inputClass} />
       </div>
 
-      <div className="space-y-3 mb-8">
-        <p className="text-xs font-semibold uppercase text-muted-foreground">Esercizi ({day.exercises.length})</p>
+      {/* ── Esercizi ── */}
+      <div className="space-y-3 mb-6">
+        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          Esercizi <span className="text-primary">({day.exercises.length})</span>
+        </p>
 
         {day.exercises.map((ex, exIdx) => (
-          <div key={exIdx} className="bg-card rounded-2xl p-4 space-y-3">
+          <div key={exIdx} className="bg-card border border-border rounded-2xl p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <p className="font-semibold text-sm">Esercizio {exIdx + 1}</p>
-              <button
-                onClick={() => removeExercise(exIdx)}
-                className="text-red-500 hover:bg-red-500/10 p-2 rounded-lg transition-colors"
-              >
-                <Trash2 className="w-4 h-4" />
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Esercizio {exIdx + 1}</p>
+              <button onClick={() => removeExercise(exIdx)}
+                className="w-7 h-7 rounded-lg bg-destructive/10 flex items-center justify-center text-destructive active:scale-90 transition-transform">
+                <Trash2 className="w-3.5 h-3.5" />
               </button>
             </div>
 
-            <input
-              type="text"
-              placeholder="Nome esercizio"
-              value={ex.exercise_name}
+            <input type="text" placeholder="Nome esercizio" value={ex.exercise_name}
               onChange={(e) => updateExercise(exIdx, "exercise_name", e.target.value)}
-              className="w-full h-10 bg-secondary border border-border rounded-xl px-3 text-sm outline-none focus:border-primary"
-            />
+              className={smallInputClass} />
 
             <div>
-              <label className="text-xs text-muted-foreground block mb-1">Parte del corpo</label>
+              <label className="text-[10px] text-muted-foreground block mb-1.5">Parte del corpo</label>
               <Select value={ex.primary_body_part_id || ""} onValueChange={(val) => updateExercise(exIdx, "primary_body_part_id", val)}>
-                <SelectTrigger className="w-full h-10 bg-secondary border border-border rounded-xl">
+                <SelectTrigger className="w-full h-10 bg-secondary border border-border rounded-xl text-sm">
                   <SelectValue placeholder="Seleziona muscolo" />
                 </SelectTrigger>
                 <SelectContent>
                   {bodyParts.map((bp) => (
-                    <SelectItem key={bp.id} value={bp.id}>
-                      {bp.icon} {bp.name}
-                    </SelectItem>
+                    <SelectItem key={bp.id} value={bp.id}>{bp.icon} {bp.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <div>
-                <label className="text-xs text-muted-foreground block mb-1">Serie</label>
-                <input
-                  type="number"
-                  value={ex.sets}
+                <label className="text-[10px] text-muted-foreground block mb-1.5">Serie</label>
+                <input type="number" value={ex.sets}
                   onChange={(e) => updateExercise(exIdx, "sets", parseInt(e.target.value))}
-                  className="w-full h-10 bg-secondary rounded-xl px-3 text-sm outline-none focus:border-primary"
-                  min="1"
-                />
+                  className="w-full h-10 bg-secondary rounded-xl px-3 text-sm text-center outline-none focus:ring-2 focus:ring-primary" min="1" />
               </div>
               <div>
-                <label className="text-xs text-muted-foreground block mb-1">Riposo (sec)</label>
-                <input
-                  type="number"
-                  value={ex.rest_seconds}
-                  onChange={(e) => updateExercise(exIdx, "rest_seconds", parseInt(e.target.value))}
-                  className="w-full h-10 bg-secondary rounded-xl px-3 text-sm outline-none focus:border-primary"
-                  min="0"
-                />
+                <label className="text-[10px] text-muted-foreground block mb-1.5">Rep min</label>
+                <input type="number" value={ex.reps_min}
+                  onChange={(e) => updateExercise(exIdx, "reps_min", parseInt(e.target.value))}
+                  className="w-full h-10 bg-secondary rounded-xl px-3 text-sm text-center outline-none focus:ring-2 focus:ring-primary" min="1" />
+              </div>
+              <div>
+                <label className="text-[10px] text-muted-foreground block mb-1.5">Rep max</label>
+                <input type="number" value={ex.reps_max}
+                  onChange={(e) => updateExercise(exIdx, "reps_max", parseInt(e.target.value))}
+                  className="w-full h-10 bg-secondary rounded-xl px-3 text-sm text-center outline-none focus:ring-2 focus:ring-primary" min="1" />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-xs text-muted-foreground block mb-1">Rep Min</label>
-                <input
-                  type="number"
-                  value={ex.reps_min}
-                  onChange={(e) => updateExercise(exIdx, "reps_min", parseInt(e.target.value))}
-                  className="w-full h-10 bg-secondary rounded-xl px-3 text-sm outline-none focus:border-primary"
-                  min="1"
-                />
+                <label className="text-[10px] text-muted-foreground block mb-1.5">Riposo (sec)</label>
+                <input type="number" value={ex.rest_seconds}
+                  onChange={(e) => updateExercise(exIdx, "rest_seconds", parseInt(e.target.value))}
+                  className="w-full h-10 bg-secondary rounded-xl px-3 text-sm outline-none focus:ring-2 focus:ring-primary" min="0" />
               </div>
               <div>
-                <label className="text-xs text-muted-foreground block mb-1">Rep Max</label>
-                <input
-                  type="number"
-                  value={ex.reps_max}
-                  onChange={(e) => updateExercise(exIdx, "reps_max", parseInt(e.target.value))}
-                  className="w-full h-10 bg-secondary rounded-xl px-3 text-sm outline-none focus:border-primary"
-                  min="1"
-                />
+                <label className="text-[10px] text-muted-foreground block mb-1.5">Note (opz.)</label>
+                <input type="text" placeholder="es. RPE 8" value={ex.notes}
+                  onChange={(e) => updateExercise(exIdx, "notes", e.target.value)}
+                  className="w-full h-10 bg-secondary rounded-xl px-3 text-sm outline-none focus:ring-2 focus:ring-primary" />
               </div>
             </div>
-
-            <input
-              type="text"
-              placeholder="Note (opzionale)"
-              value={ex.notes}
-              onChange={(e) => updateExercise(exIdx, "notes", e.target.value)}
-              className="w-full h-10 bg-secondary rounded-xl px-3 text-sm outline-none focus:border-primary"
-            />
           </div>
         ))}
 
-        <button
-          onClick={addExercise}
-          className="w-full h-12 rounded-xl bg-secondary text-secondary-foreground font-semibold flex items-center justify-center gap-2 transition-colors hover:bg-secondary/80"
-        >
-          <Plus className="w-5 h-5" />
-          Aggiungi Esercizio
+        <button onClick={addExercise}
+          className="w-full h-12 rounded-2xl bg-secondary border border-dashed border-border text-muted-foreground font-semibold flex items-center justify-center gap-2 active:scale-95 transition-transform">
+          <Plus className="w-4 h-4" />
+          Aggiungi esercizio
         </button>
       </div>
 
-      <div className="fixed bottom-8 left-4 right-4 max-w-[412px] mx-auto flex gap-3">
-        <button
-          onClick={() => navigate(-1)}
-          className="flex-1 h-14 rounded-2xl bg-secondary text-foreground font-semibold transition-transform active:scale-95"
-        >
+      {/* ── Bottom CTA ── */}
+      <div className="fixed bottom-6 left-4 right-4 max-w-[412px] mx-auto flex gap-3">
+        <button onClick={() => navigate(-1)}
+          className="flex-1 h-14 rounded-2xl bg-secondary text-foreground font-semibold active:scale-95 transition-transform">
           Annulla
         </button>
-        <button
-          onClick={saveDay}
-          disabled={saving}
-          className="flex-1 h-14 rounded-2xl bg-primary text-primary-foreground font-semibold transition-all active:scale-95 disabled:opacity-60"
-        >
-          {saving ? "Salvataggio..." : "✓ Salva"}
+        <button onClick={saveDay} disabled={saving}
+          className="flex-1 h-14 rounded-2xl gradient-primary glow-primary text-white font-bold flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-60">
+          {saving ? <><Loader className="w-4 h-4 animate-spin" /> Salvataggio...</> : "✓ Salva"}
         </button>
       </div>
     </div>
