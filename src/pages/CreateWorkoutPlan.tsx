@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, X, Loader, ChevronRight } from "lucide-react";
+import { ArrowLeft, Plus, X, Loader, ChevronRight, ChevronUp, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getUserId } from "@/lib/user";
 import { useToast } from "@/hooks/use-toast";
@@ -113,6 +113,16 @@ export default function CreateWorkoutPlan() {
   function removeExercise(exIdx: number) {
     const updated = [...days];
     updated[currentDayIdx].exercises.splice(exIdx, 1);
+    setDays(updated);
+  }
+
+  function moveExercise(idx: number, dir: 'up' | 'down') {
+    const updated = [...days];
+    const exs = [...updated[currentDayIdx].exercises];
+    const to = dir === 'up' ? idx - 1 : idx + 1;
+    if (to < 0 || to >= exs.length) return;
+    [exs[idx], exs[to]] = [exs[to], exs[idx]];
+    updated[currentDayIdx].exercises = exs;
     setDays(updated);
   }
 
@@ -325,10 +335,20 @@ export default function CreateWorkoutPlan() {
               <div key={exIdx} className="bg-card border border-border rounded-2xl p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Esercizio {exIdx + 1}</p>
-                  <button onClick={() => removeExercise(exIdx)}
-                    className="w-7 h-7 rounded-lg bg-destructive/10 flex items-center justify-center text-destructive active:scale-90 transition-transform">
-                    <X className="w-3.5 h-3.5" />
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <button onClick={() => moveExercise(exIdx, 'up')} disabled={exIdx === 0}
+                      className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground disabled:opacity-30 active:scale-90 transition-transform">
+                      <ChevronUp className="w-3.5 h-3.5" />
+                    </button>
+                    <button onClick={() => moveExercise(exIdx, 'down')} disabled={exIdx === days[currentDayIdx].exercises.length - 1}
+                      className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground disabled:opacity-30 active:scale-90 transition-transform">
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    </button>
+                    <button onClick={() => removeExercise(exIdx)}
+                      className="w-7 h-7 rounded-lg bg-destructive/10 flex items-center justify-center text-destructive active:scale-90 transition-transform">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
 
                 <input type="text" placeholder="Nome esercizio" value={ex.exercise_name}
