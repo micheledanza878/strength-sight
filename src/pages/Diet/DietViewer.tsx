@@ -83,21 +83,21 @@ export default function DietViewer() {
   }
 
   return (
-    <div className="px-5 pt-14 pb-24 min-h-screen">
-      <div className="flex items-center justify-between mb-1">
-        <h1 className="text-3xl font-bold">Piano Dietetico</h1>
+    <div className="px-4 pt-14 pb-32 min-h-screen">
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Dieta</h1>
+          <p className="text-muted-foreground text-xs mt-0.5">Il tuo piano alimentare</p>
+        </div>
         <Button
           variant="ghost"
           size="icon"
-          className="h-9 w-9"
+          className="h-10 w-10 rounded-xl bg-secondary"
           onClick={() => navigate('/diet/foods')}
         >
-          <BookOpen className="h-5 w-5" />
+          <BookOpen className="h-4 w-4" />
         </Button>
       </div>
-      <p className="text-muted-foreground text-sm mb-4">
-        Consulta il tuo piano alimentare
-      </p>
 
       {/* Loading skeleton */}
       {loading ? (

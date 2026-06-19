@@ -135,43 +135,45 @@ export default function WorkoutSelect() {
   if (selectedPlan) {
     const plan = plans.find(p => p.id === selectedPlan);
     return (
-      <div className="px-5 pt-14 pb-24 min-h-screen">
-        <div className="flex items-center justify-between mb-6">
+      <div className="px-4 pt-14 pb-32 min-h-screen">
+        <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setSelectedPlan(null)}
-              className="text-muted-foreground"
+              className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground active:scale-90 transition-transform"
             >
-              <ArrowLeft className="w-6 h-6" />
+              <ArrowLeft className="w-4 h-4" />
             </button>
             <div>
-              <h1 className="text-3xl font-bold">{plan?.name}</h1>
-              <p className="text-muted-foreground text-sm">{plan?.description}</p>
+              <h1 className="text-xl font-bold tracking-tight">{plan?.name}</h1>
+              {plan?.description && (
+                <p className="text-muted-foreground text-xs mt-0.5">{plan.description}</p>
+              )}
             </div>
           </div>
           <div className="flex gap-2">
             <button
               onClick={() => navigate(`/edit-plan/${selectedPlan}`)}
-              className="w-11 h-11 rounded-full bg-secondary flex items-center justify-center text-muted-foreground hover:bg-secondary/80 transition-colors"
+              className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground active:scale-90 transition-transform"
             >
-              <Edit2 className="w-5 h-5" />
+              <Edit2 className="w-4 h-4" />
             </button>
             <button
               onClick={() => selectedPlan && deletePlan(selectedPlan)}
               disabled={deleting}
-              className="w-11 h-11 rounded-full bg-destructive/10 flex items-center justify-center text-destructive hover:bg-destructive/20 transition-colors disabled:opacity-50"
+              className="w-9 h-9 rounded-xl bg-destructive/10 flex items-center justify-center text-destructive active:scale-90 transition-transform disabled:opacity-50"
             >
-              <Trash2 className="w-5 h-5" />
+              <Trash2 className="w-4 h-4" />
             </button>
           </div>
         </div>
 
         {loading ? (
           <div className="flex items-center justify-center h-64">
-            <Loader className="w-8 h-8 animate-spin text-muted-foreground" />
+            <Loader className="w-6 h-6 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2.5">
             {days.map((day) => (
               <button
                 key={day.id}
@@ -179,13 +181,13 @@ export default function WorkoutSelect() {
                   localStorage.setItem('activePlanId', selectedPlan);
                   navigate(`/session/${day.id}`);
                 }}
-                className="w-full bg-card rounded-2xl p-5 text-left flex items-center justify-between active:scale-[0.98] transition-transform"
+                className="w-full bg-card border border-border rounded-2xl p-4 text-left flex items-center justify-between active:scale-[0.98] transition-transform"
               >
                 <div>
-                  <p className="font-semibold text-base">{day.day_name}</p>
-                  <p className="text-sm text-muted-foreground">Giorno {day.day_number}</p>
+                  <p className="font-semibold text-sm">{day.day_name}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Giorno {day.day_number}</p>
                 </div>
-                <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
               </button>
             ))}
           </div>
@@ -195,49 +197,51 @@ export default function WorkoutSelect() {
   }
 
   return (
-    <div className="px-5 pt-14 pb-24 min-h-screen">
-      <div className="flex items-center justify-between mb-1">
-        <h1 className="text-3xl font-bold">Schede</h1>
+    <div className="px-4 pt-14 pb-32 min-h-screen">
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Schede</h1>
+          <p className="text-muted-foreground text-xs mt-0.5">I tuoi programmi</p>
+        </div>
         <button
           onClick={() => navigate("/create-plan")}
-          className="w-11 h-11 rounded-full bg-primary flex items-center justify-center"
+          className="w-10 h-10 rounded-2xl gradient-primary flex items-center justify-center glow-primary-sm active:scale-90 transition-transform"
         >
-          <Plus className="w-5 h-5 text-primary-foreground" />
+          <Plus className="w-5 h-5 text-white" />
         </button>
       </div>
-      <p className="text-muted-foreground text-sm mb-6">Scegli il tuo programma</p>
 
       {loading ? (
         <div className="flex items-center justify-center h-64">
-          <Loader className="w-8 h-8 animate-spin text-muted-foreground" />
+          <Loader className="w-6 h-6 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2.5">
           {plans.map((plan) => {
             const isActive = activePlanId === plan.id;
             return (
-            <button
-              key={plan.id}
-              onClick={() => {
-                setActivePlanId(plan.id);
-                setSelectedPlan(plan.id);
-                loadDays(plan.id);
-              }}
-              className={`w-full rounded-2xl p-5 text-left flex items-center justify-between active:scale-[0.98] transition-all ${
-                isActive
-                  ? "bg-primary/10 border-2 border-primary"
-                  : "bg-card border-2 border-transparent"
-              }`}
-            >
-              <div>
-                <p className="font-semibold text-base">{plan.name}</p>
-                {plan.duration_weeks && (
-                  <p className="text-sm text-muted-foreground">{plan.duration_weeks} settimane</p>
-                )}
-              </div>
-              <ChevronRight className="w-5 h-5 text-muted-foreground" />
-            </button>
-          );
+              <button
+                key={plan.id}
+                onClick={() => {
+                  setActivePlanId(plan.id);
+                  setSelectedPlan(plan.id);
+                  loadDays(plan.id);
+                }}
+                className={`w-full rounded-2xl p-4 text-left flex items-center justify-between active:scale-[0.98] transition-all ${
+                  isActive
+                    ? "card-hero"
+                    : "bg-card border border-border"
+                }`}
+              >
+                <div>
+                  <p className={`font-semibold text-sm ${isActive ? "text-primary" : ""}`}>{plan.name}</p>
+                  {plan.duration_weeks && (
+                    <p className="text-xs text-muted-foreground mt-0.5">{plan.duration_weeks} settimane</p>
+                  )}
+                </div>
+                <ChevronRight className={`w-4 h-4 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
+              </button>
+            );
           })}
         </div>
       )}

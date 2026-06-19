@@ -345,36 +345,35 @@ export default function BodyTracking() {
   };
 
   return (
-    <div className="px-5 pt-14 pb-24 min-h-screen max-w-full overflow-x-hidden">
-      <div className="flex items-center justify-between mb-6">
+    <div className="px-4 pt-14 pb-32 min-h-screen max-w-full overflow-x-hidden">
+      <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-3xl font-bold">Corpo</h1>
-          <p className="text-muted-foreground text-sm">Misurazioni e progresso</p>
-          {latest && (
-            <p className="text-xs text-muted-foreground mt-2">
-              📅 Ultima misurazione: {differenceInDays(new Date(), parseISO(latest.measured_at))} giorni fa
-            </p>
-          )}
+          <h1 className="text-2xl font-bold tracking-tight">Corpo</h1>
+          <p className="text-muted-foreground text-xs mt-0.5">
+            {latest
+              ? `Ultima misurazione: ${differenceInDays(new Date(), parseISO(latest.measured_at))} giorni fa`
+              : "Misurazioni e progresso"}
+          </p>
         </div>
         <button
           onClick={() => setShowForm(true)}
-          className="w-11 h-11 rounded-full bg-primary flex items-center justify-center"
+          className="w-10 h-10 rounded-2xl gradient-primary flex items-center justify-center glow-primary-sm active:scale-90 transition-transform"
         >
-          <Plus className="w-5 h-5 text-primary-foreground" />
+          <Plus className="w-5 h-5 text-white" />
         </button>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 mb-6">
+      <div className="flex gap-2 mb-5 bg-secondary p-1 rounded-xl">
         <button
           onClick={() => setActiveTab("misurazioni")}
-          className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors ${activeTab === "misurazioni" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}
+          className={`flex-1 py-2 rounded-[10px] text-sm font-semibold transition-all ${activeTab === "misurazioni" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"}`}
         >
           Misurazioni
         </button>
         <button
           onClick={() => setActiveTab("metriche")}
-          className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors ${activeTab === "metriche" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}
+          className={`flex-1 py-2 rounded-[10px] text-sm font-semibold transition-all ${activeTab === "metriche" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"}`}
         >
           📊 Metriche
         </button>

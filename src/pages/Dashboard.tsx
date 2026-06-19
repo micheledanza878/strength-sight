@@ -5,7 +5,7 @@ import {
   isSameDay, parseISO, startOfWeek, subDays, getWeek, differenceInDays, addMonths, subMonths,
 } from "date-fns";
 import { it } from "date-fns/locale";
-import { ChevronRight, Flame, Trophy, ChevronLeft, LogOut } from "lucide-react";
+import { ChevronRight, Flame, Trophy, ChevronLeft, LogOut, Zap, TrendingUp } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useActivePlan } from "@/contexts/ActivePlanContext";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, LineChart, Line, CartesianGrid } from "recharts";
@@ -303,39 +303,39 @@ export default function Dashboard() {
   const currentPlan = plans.find(p => p.id === activePlanId);
 
   return (
-    <div className="px-5 pt-14 pb-24 min-h-screen">
-      <div className="flex items-center justify-between mb-1">
-        <h1 className="text-3xl font-bold">Workout</h1>
+    <div className="px-4 pt-14 pb-32 min-h-screen">
+
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">
+            Ciao, <span className="text-gradient-primary">atleta</span> 👋
+          </h1>
+          <p className="text-muted-foreground text-xs mt-0.5 capitalize">
+            {format(now, "EEEE d MMMM", { locale: it })}
+          </p>
+        </div>
         <button
-          onClick={() => {
-            logout();
-            navigate("/login");
-          }}
-          className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+          onClick={() => { logout(); navigate("/login"); }}
+          className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground active:scale-95 transition-transform"
           title="Logout"
         >
-          <LogOut className="w-5 h-5" />
+          <LogOut className="w-4 h-4" />
         </button>
       </div>
-      <p className="text-muted-foreground text-sm mb-4">
-        {format(now, "EEEE d MMMM", { locale: it })}
-      </p>
 
-      {/* Workout Plan Selector */}
+      {/* ── Plan Selector ── */}
       {plans.length > 0 && (
-        <div className="mb-6">
-          <label className="text-xs text-muted-foreground font-medium uppercase tracking-wider block mb-2">
-            Scheda allenamento
-          </label>
+        <div className="mb-5">
           <Select value={activePlanId || ""} onValueChange={changePlan}>
-            <SelectTrigger className="w-full bg-card border-0 h-12">
+            <SelectTrigger className="w-full bg-secondary border-0 h-11 text-sm font-medium rounded-xl">
               <SelectValue placeholder="Seleziona scheda" />
             </SelectTrigger>
             <SelectContent>
               {plans.map((plan) => (
                 <SelectItem key={plan.id} value={plan.id}>
                   {plan.name}
-                  {plan.duration_weeks && ` • ${plan.duration_weeks} sett.`}
+                  {plan.duration_weeks && ` · ${plan.duration_weeks} settimane`}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -343,111 +343,123 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Next Workout Card skeleton */}
+      {/* ── Skeleton ── */}
       {loading && (
-        <div className="space-y-3 mb-4">
-          <Skeleton className="w-full h-24 rounded-2xl" />
+        <div className="space-y-3">
+          <Skeleton className="w-full h-36 rounded-2xl" />
           <div className="grid grid-cols-3 gap-3">
-            <Skeleton className="h-16 rounded-2xl" />
-            <Skeleton className="h-16 rounded-2xl" />
-            <Skeleton className="h-16 rounded-2xl" />
+            <Skeleton className="h-20 rounded-2xl" />
+            <Skeleton className="h-20 rounded-2xl" />
+            <Skeleton className="h-20 rounded-2xl" />
           </div>
           <Skeleton className="w-full h-20 rounded-2xl" />
         </div>
       )}
 
-      {/* Next Workout Card */}
-      {!loading && nextPlanDay && <button
-        onClick={() => navigate(`/session/${nextPlanDay.id}`)}
-        className="w-full bg-card rounded-2xl p-5 mb-4 text-left flex items-center justify-between active:scale-[0.98] transition-transform"
-      >
-        <div>
-          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-1">Prossimo</p>
-          <p className="text-xl font-bold">{nextPlanDay.day_name}</p>
-          <p className="text-xs text-muted-foreground mt-1">Giorno {nextPlanDay.day_number}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-12 h-12 rounded-full flex items-center justify-center bg-primary/10">
-            <Flame className="w-6 h-6 text-primary" />
+      {/* ── Hero: Next Workout ── */}
+      {!loading && nextPlanDay && (
+        <button
+          onClick={() => navigate(`/session/${nextPlanDay.id}`)}
+          className="w-full card-hero p-5 mb-4 text-left active:scale-[0.98] transition-transform glow-primary-sm"
+        >
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <div className="flex items-center gap-1.5 mb-3">
+                <Zap className="w-3.5 h-3.5 text-primary" />
+                <p className="text-xs text-primary font-semibold uppercase tracking-widest">Prossimo allenamento</p>
+              </div>
+              <p className="text-2xl font-bold tracking-tight mb-1">{nextPlanDay.day_name}</p>
+              <p className="text-sm text-muted-foreground">
+                Giorno {nextPlanDay.day_number}
+                {currentPlan && ` · ${currentPlan.name}`}
+              </p>
+            </div>
+            <div className="w-14 h-14 rounded-2xl gradient-primary flex items-center justify-center glow-primary ml-3 flex-shrink-0">
+              <Flame className="w-7 h-7 text-white" />
+            </div>
           </div>
-          <ChevronRight className="w-5 h-5 text-muted-foreground" />
-        </div>
-      </button>}
 
-      {/* Summary Card */}
+          {/* CTA bar */}
+          <div className="mt-4 pt-4 border-t border-primary/20 flex items-center justify-between">
+            <span className="text-sm font-semibold text-primary">Inizia sessione</span>
+            <ChevronRight className="w-4 h-4 text-primary" />
+          </div>
+        </button>
+      )}
+
+      {/* ── Stats Row ── */}
       {!loading && (
-        <div className="bg-card rounded-2xl p-5 mb-4">
-          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-4">Riassunto</p>
-          <div className="space-y-3">
-            {topPRs.length > 0 && (
-              <div>
-                <p className="text-xs text-muted-foreground mb-2">🏆 Top PR</p>
-                <p className="text-sm font-semibold">{topPRs[0].exercise}</p>
-                <p className="text-xs text-muted-foreground">{topPRs[0].weight}kg × {topPRs[0].reps} rep</p>
-              </div>
-            )}
-            {lastMeasurementDaysAgo !== null && (
-              <div className="pt-2 border-t border-border">
-                <p className="text-xs text-muted-foreground">📅 Ultima misurazione</p>
-                <p className="text-sm font-semibold">{lastMeasurementDaysAgo} giorni fa</p>
-              </div>
-            )}
+        <div className="grid grid-cols-3 gap-2.5 mb-4">
+          <div className="bg-card border border-border rounded-2xl p-3.5 text-center">
+            <p className="text-[22px] font-bold leading-none mb-1">{streak}</p>
+            <p className="text-[10px] text-muted-foreground font-medium">🔥 Streak</p>
+          </div>
+          <div className="bg-card border border-border rounded-2xl p-3.5 text-center">
+            <p className="text-[22px] font-bold leading-none mb-1">{weekCount}</p>
+            <p className="text-[10px] text-muted-foreground font-medium">questa sett.</p>
+          </div>
+          <div className="bg-card border border-border rounded-2xl p-3.5 text-center">
+            <p className="text-[22px] font-bold leading-none mb-1">{monthCount}</p>
+            <p className="text-[10px] text-muted-foreground font-medium">questo mese</p>
           </div>
         </div>
       )}
 
-      {/* Stats Row */}
-      {!loading && (
-        <div className="grid grid-cols-3 gap-3 mb-4">
-          <div className="bg-card rounded-2xl p-4 text-center">
-            <p className="text-2xl font-bold">{streak}</p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">🔥 streak</p>
+      {/* ── Top PR Card ── */}
+      {!loading && topPRs.length > 0 && (
+        <div className="bg-card border border-border rounded-2xl p-4 mb-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Trophy className="w-4 h-4 text-yellow-500" />
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Top PR</p>
           </div>
-          <div className="bg-card rounded-2xl p-4 text-center">
-            <p className="text-2xl font-bold">{weekCount}</p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">questa sett.</p>
-          </div>
-          <div className="bg-card rounded-2xl p-4 text-center">
-            <p className="text-2xl font-bold">{monthCount}</p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">questo mese</p>
+          <div className="space-y-2.5">
+            {topPRs.map((pr, i) => (
+              <div key={i} className="flex items-center justify-between">
+                <p className="text-sm font-medium truncate flex-1 mr-3">{pr.exercise}</p>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <span className="text-sm font-bold text-primary">{pr.weight}kg</span>
+                  <span className="text-xs text-muted-foreground">×{pr.reps}</span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
 
-      {/* Last Workout */}
+      {/* ── Last Workout ── */}
       {lastDayData && lastWorkout && (
-        <div className="bg-card rounded-2xl p-5 mb-4">
-          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-1">Ultimo allenamento</p>
-          <p className="text-lg font-semibold">{lastDayData.label}</p>
-          <p className="text-sm text-muted-foreground">
-            {format(parseISO(lastWorkout.date), "d MMMM, HH:mm", { locale: it })}
+        <div className="bg-card border border-border rounded-2xl p-4 mb-4">
+          <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-2">Ultimo allenamento</p>
+          <p className="text-base font-semibold">{lastDayData.label}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {format(parseISO(lastWorkout.date), "d MMMM · HH:mm", { locale: it })}
           </p>
         </div>
       )}
 
-      {/* Weekly Volume Chart */}
+      {/* ── Weekly Volume Chart ── */}
       {weeklyVolumeChart.length > 1 && (
-        <div className="bg-card rounded-2xl p-5 mb-4">
-          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-4">Volume settimanale</p>
-          <div className="h-44">
+        <div className="bg-card border border-border rounded-2xl p-4 mb-4">
+          <div className="flex items-center gap-2 mb-4">
+            <TrendingUp className="w-4 h-4 text-primary" />
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Volume settimanale</p>
+          </div>
+          <div className="h-40">
             <ResponsiveContainer width="95%" height="100%" style={{ margin: "0 auto" }}>
               <LineChart data={weeklyVolumeChart} margin={{ top: 5, right: 10, left: -10, bottom: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis
                   dataKey="week"
-                  tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                  tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
                   axisLine={false}
                   tickLine={false}
                   angle={-45}
                   textAnchor="end"
                   height={60}
                 />
-                <YAxis
-                  tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                  width={40}
-                />
+                <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} width={40} />
                 <Tooltip
-                  contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 10, fontSize: 11 }}
+                  contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 12, fontSize: 11 }}
                   labelStyle={{ color: "hsl(var(--foreground))" }}
                   formatter={(v: number) => [`${v.toLocaleString()} kg`, "Volume"]}
                 />
@@ -455,9 +467,9 @@ export default function Dashboard() {
                   type="monotone"
                   dataKey="volume"
                   stroke="hsl(var(--primary))"
-                  strokeWidth={3}
-                  dot={{ fill: "hsl(var(--primary))", r: 4 }}
-                  activeDot={{ r: 6 }}
+                  strokeWidth={2.5}
+                  dot={{ fill: "hsl(var(--primary))", r: 3.5 }}
+                  activeDot={{ r: 5.5 }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -465,54 +477,54 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Volume Chart */}
+      {/* ── Session Volume Chart ── */}
       {volumeChart.length > 1 && (
-        <div className="bg-card rounded-2xl p-5 mb-4">
-          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-4">Volume per sessione</p>
-          <div className="h-36">
+        <div className="bg-card border border-border rounded-2xl p-4 mb-4">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">Volume per sessione</p>
+          <div className="h-32">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={volumeChart} barSize={20}>
+              <BarChart data={volumeChart} barSize={18}>
                 <XAxis dataKey="date" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
                 <YAxis hide />
                 <Tooltip
-                  contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 10, fontSize: 11 }}
+                  contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 12, fontSize: 11 }}
                   labelStyle={{ color: "hsl(var(--foreground))" }}
                   formatter={(v: number) => [`${v.toLocaleString()} kg`, "Volume"]}
                 />
-                <Bar dataKey="volume" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="volume" fill="hsl(var(--primary))" radius={[5, 5, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
           {monthVolume > 0 && (
             <p className="text-xs text-muted-foreground text-center mt-2">
-              {monthVolume.toLocaleString()} kg sollevati questo mese
+              <span className="text-foreground font-semibold">{monthVolume.toLocaleString()} kg</span> sollevati questo mese
             </p>
           )}
         </div>
       )}
 
-      {/* Compact Calendar */}
-      <div className="bg-card rounded-2xl p-5">
+      {/* ── Calendar ── */}
+      <div className="bg-card border border-border rounded-2xl p-4">
         <div className="flex items-center justify-between mb-3">
           <button
             onClick={() => setSelectedMonth(subMonths(selectedMonth, 1))}
-            className="text-muted-foreground hover:text-foreground transition-colors p-1"
+            className="w-8 h-8 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground active:scale-90 transition-transform"
           >
-            <ChevronLeft className="w-5 h-5" />
+            <ChevronLeft className="w-4 h-4" />
           </button>
-          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             {format(selectedMonth, "MMMM yyyy", { locale: it })}
           </p>
           <button
             onClick={() => setSelectedMonth(addMonths(selectedMonth, 1))}
-            className="text-muted-foreground hover:text-foreground transition-colors p-1"
+            className="w-8 h-8 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground active:scale-90 transition-transform"
           >
-            <ChevronRight className="w-5 h-5" />
+            <ChevronRight className="w-4 h-4" />
           </button>
         </div>
         <div className="grid grid-cols-7 gap-1 text-center">
           {["L", "M", "M", "G", "V", "S", "D"].map((d, i) => (
-            <span key={i} className="text-[10px] text-muted-foreground font-medium pb-1">{d}</span>
+            <span key={i} className="text-[10px] text-muted-foreground font-semibold pb-1.5 tracking-wider">{d}</span>
           ))}
           {Array.from({ length: firstDayOffset }).map((_, i) => (
             <span key={`empty-${i}`} />
@@ -523,10 +535,11 @@ export default function Dashboard() {
             return (
               <div
                 key={day.toISOString()}
-                className={`w-9 h-9 flex items-center justify-center rounded-full text-xs font-medium mx-auto
-                  ${isToday ? "ring-1 ring-primary text-primary" : ""}
-                  ${hasWorkout ? "bg-primary text-primary-foreground" : "text-muted-foreground"}
-                `}
+                className={[
+                  "w-8 h-8 flex items-center justify-center rounded-full text-xs font-medium mx-auto transition-colors",
+                  isToday && !hasWorkout ? "ring-1.5 ring-primary text-primary" : "",
+                  hasWorkout ? "gradient-primary text-white font-semibold" : !isToday ? "text-muted-foreground" : "",
+                ].join(" ")}
               >
                 {format(day, "d")}
               </div>

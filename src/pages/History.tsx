@@ -196,25 +196,24 @@ export default function History() {
   const prs = Object.entries(prMap).sort((a, b) => a[0].localeCompare(b[0]));
 
   return (
-    <div className="px-5 pt-14 pb-24 min-h-screen">
-      <h1 className="text-3xl font-bold mb-1">Storico</h1>
-      <p className="text-muted-foreground text-sm mb-4">I tuoi allenamenti</p>
+    <div className="px-4 pt-14 pb-32 min-h-screen">
+      <div className="mb-5">
+        <h1 className="text-2xl font-bold tracking-tight">Storico</h1>
+        <p className="text-muted-foreground text-xs mt-0.5">I tuoi allenamenti</p>
+      </div>
 
       {/* Workout Plan Selector */}
       {plans.length > 0 && (
-        <div className="mb-6">
-          <label className="text-xs text-muted-foreground font-medium uppercase tracking-wider block mb-2">
-            Scheda allenamento
-          </label>
+        <div className="mb-4">
           <Select value={currentPlanId || ""} onValueChange={changePlan}>
-            <SelectTrigger className="w-full bg-card border-0 h-12">
+            <SelectTrigger className="w-full bg-secondary border-0 h-11 text-sm font-medium rounded-xl">
               <SelectValue placeholder="Seleziona scheda" />
             </SelectTrigger>
             <SelectContent>
               {plans.map((plan) => (
                 <SelectItem key={plan.id} value={plan.id}>
                   {plan.name}
-                  {plan.duration_weeks && ` • ${plan.duration_weeks} sett.`}
+                  {plan.duration_weeks && ` · ${plan.duration_weeks} sett.`}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -222,16 +221,16 @@ export default function History() {
         </div>
       )}
 
-      <div className="flex gap-2 mb-6">
+      <div className="flex gap-2 mb-5 bg-secondary p-1 rounded-xl">
         <button
           onClick={() => setActiveTab("history")}
-          className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors ${activeTab === "history" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}
+          className={`flex-1 py-2 rounded-[10px] text-sm font-semibold transition-all ${activeTab === "history" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"}`}
         >
           Allenamenti
         </button>
         <button
           onClick={() => setActiveTab("records")}
-          className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors ${activeTab === "records" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}
+          className={`flex-1 py-2 rounded-[10px] text-sm font-semibold transition-all ${activeTab === "records" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"}`}
         >
           🏆 Record
         </button>

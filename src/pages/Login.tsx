@@ -76,19 +76,30 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-5 bg-background">
-      <div className="w-full max-w-sm">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="text-4xl font-bold mb-2">💪</div>
-          <h1 className="text-3xl font-bold">Strength Sight</h1>
-          <p className="text-sm text-muted-foreground mt-2">Traccia i tuoi progressi in palestra</p>
-        </div>
+    <div className="min-h-screen flex flex-col justify-end px-5 pb-10 bg-background relative overflow-hidden">
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Background glow */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-72 h-72 rounded-full bg-primary/15 blur-3xl pointer-events-none" />
+      <div className="absolute top-8 left-1/2 -translate-x-1/2 w-40 h-40 rounded-full bg-primary/20 blur-2xl pointer-events-none" />
+
+      {/* Logo block */}
+      <div className="absolute top-0 left-0 right-0 flex flex-col items-center justify-center" style={{ top: "12%" }}>
+        <div className="w-20 h-20 rounded-3xl gradient-primary flex items-center justify-center mb-5 glow-primary shadow-2xl">
+          <span className="text-4xl">💪</span>
+        </div>
+        <h1 className="text-3xl font-bold tracking-tight">Strength Sight</h1>
+        <p className="text-sm text-muted-foreground mt-2">Traccia i tuoi progressi in palestra</p>
+      </div>
+
+      {/* Form card */}
+      <div className="w-full bg-card border border-border rounded-3xl p-6 shadow-2xl">
+        <h2 className="text-lg font-bold mb-5">
+          {isRegister ? "Crea account" : "Accedi"}
+        </h2>
+
+        <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label htmlFor="email" className="block text-sm font-medium mb-1.5">
+            <label htmlFor="email" className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
               Email
             </label>
             <input
@@ -97,14 +108,14 @@ export default function Login() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="tue.email@example.com"
-              className="w-full px-4 py-3 rounded-xl bg-secondary text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-4 py-3 rounded-xl bg-secondary text-foreground text-sm placeholder:text-muted-foreground/60 outline-none focus:ring-2 focus:ring-primary transition-all"
               required
               disabled={isLoading}
             />
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium mb-1.5">
+            <label htmlFor="password" className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
               Password
             </label>
             <input
@@ -112,8 +123,8 @@ export default function Login() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="La tua password"
-              className="w-full px-4 py-3 rounded-xl bg-secondary text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary"
+              placeholder="••••••••"
+              className="w-full px-4 py-3 rounded-xl bg-secondary text-foreground text-sm placeholder:text-muted-foreground/60 outline-none focus:ring-2 focus:ring-primary transition-all"
               required
               disabled={isLoading}
             />
@@ -122,20 +133,19 @@ export default function Login() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full h-12 rounded-xl font-bold text-white bg-primary transition-transform active:scale-95 disabled:opacity-60"
+            className="w-full h-12 rounded-xl font-bold text-white gradient-primary glow-primary transition-all active:scale-95 disabled:opacity-60 mt-1"
           >
             {isLoading ? "Caricamento..." : isRegister ? "Crea account" : "Accedi"}
           </button>
         </form>
 
-        {/* Toggle login/register */}
-        <div className="mt-6 text-center">
+        <div className="mt-5 text-center">
           <p className="text-sm text-muted-foreground">
             {isRegister ? "Hai già un account?" : "Non hai un account?"}
             <button
               onClick={() => setIsRegister(!isRegister)}
               disabled={isLoading}
-              className="ml-2 text-primary font-medium hover:underline disabled:opacity-60"
+              className="ml-1.5 text-primary font-semibold disabled:opacity-60"
             >
               {isRegister ? "Accedi" : "Crea account"}
             </button>
