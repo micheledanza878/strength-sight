@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { getFoodGuide, type FoodGuideGroup } from '@/services/foodGuideService';
 
 const MEAL_TABS = [
@@ -74,33 +73,32 @@ export default function FoodGuide() {
     : tabGroups;
 
   return (
-    <div className="px-5 pt-14 pb-24 min-h-screen">
-      {/* Header */}
-      <div className="flex items-center gap-2 mb-1">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 -ml-2"
-          onClick={() => navigate('/diet')}
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </Button>
-        <h1 className="text-3xl font-bold">Guida Alimenti</h1>
-      </div>
-      <p className="text-muted-foreground text-sm mb-6 ml-8">
-        Equivalenze e grammature per ogni categoria
-      </p>
+    <div className="px-4 pt-14 pb-32 min-h-screen">
 
-      {/* Tabs */}
-      <div className="flex gap-2 mb-4">
+      {/* ── Header ── */}
+      <div className="flex items-center gap-3 mb-5">
+        <button
+          onClick={() => navigate('/diet')}
+          className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground active:scale-90 transition-transform flex-shrink-0"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Guida Alimenti</h1>
+          <p className="text-muted-foreground text-xs mt-0.5">Grammature e equivalenze per categoria</p>
+        </div>
+      </div>
+
+      {/* ── Meal Tabs (segmented) ── */}
+      <div className="flex gap-1 mb-4 bg-secondary p-1 rounded-xl">
         {MEAL_TABS.map(tab => (
           <button
             key={tab.key}
             onClick={() => { setActiveTab(tab.key); setActiveFilter(null); }}
-            className={`flex-1 rounded-full py-2 text-xs font-semibold transition-colors ${
+            className={`flex-1 py-2 rounded-[10px] text-xs font-semibold transition-all ${
               activeTab === tab.key
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                ? 'bg-card text-foreground shadow-sm'
+                : 'text-muted-foreground'
             }`}
           >
             {tab.label}
@@ -108,15 +106,15 @@ export default function FoodGuide() {
         ))}
       </div>
 
-      {/* Sub-filters */}
+      {/* ── Category chips ── */}
       {tabGroups.length > 1 && (
-        <div className="flex gap-2 flex-wrap mb-4">
+        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 mb-4">
           <button
             onClick={() => setActiveFilter(null)}
-            className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+            className={`shrink-0 rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors ${
               activeFilter === null
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                ? 'gradient-primary text-white'
+                : 'bg-secondary text-muted-foreground'
             }`}
           >
             Tutti
@@ -125,10 +123,10 @@ export default function FoodGuide() {
             <button
               key={g.groupId}
               onClick={() => setActiveFilter(g.groupId)}
-              className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+              className={`shrink-0 rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors ${
                 activeFilter === g.groupId
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  ? 'gradient-primary text-white'
+                  : 'bg-secondary text-muted-foreground'
               }`}
             >
               {g.groupName}
@@ -137,15 +135,15 @@ export default function FoodGuide() {
         </div>
       )}
 
-      {/* Content */}
+      {/* ── Content ── */}
       {loading ? (
         <div className="flex justify-center py-16">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {visibleGroups.length === 0 ? (
-            <p className="text-center text-sm text-muted-foreground py-8">
+            <p className="text-center text-sm text-muted-foreground py-10">
               Nessun dato disponibile
             </p>
           ) : (
@@ -154,12 +152,9 @@ export default function FoodGuide() {
                 key={group.groupId}
                 className="rounded-2xl border border-border bg-card overflow-hidden"
               >
-                {/* Group header */}
-                <div className="px-4 py-3 border-b border-border bg-muted/40">
-                  <p className="font-semibold text-sm">{group.groupName}</p>
+                <div className="px-4 py-3 border-b border-border">
+                  <p className="font-bold text-sm tracking-tight">{group.groupName}</p>
                 </div>
-
-                {/* Foods list */}
                 <div className="divide-y divide-border">
                   {group.foods.map(food => (
                     <div
@@ -167,7 +162,7 @@ export default function FoodGuide() {
                       className="flex items-center justify-between px-4 py-3"
                     >
                       <span className="text-sm">{food.name}</span>
-                      <span className="text-sm font-medium tabular-nums text-primary">
+                      <span className="text-sm font-bold tabular-nums text-primary">
                         {food.baseQuantityG}g
                       </span>
                     </div>

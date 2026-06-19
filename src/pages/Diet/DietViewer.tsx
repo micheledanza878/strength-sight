@@ -1,17 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { BookOpen, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { BookOpen, Loader2 } from 'lucide-react';
 import { MealCard } from '@/components/Diet/MealCard';
 import { DAYS_OF_WEEK } from '@/types/diet';
 import {
   getOrCreateWeeklyPlan,
   getDayView,
-  getWeeklyPlanWithMeals
 } from '@/services/dietService';
 import type { DayView } from '@/types/diet';
+
+const DAY_LABELS = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
 
 export default function DietViewer() {
   const { user } = useAuth();
@@ -20,11 +20,13 @@ export default function DietViewer() {
     const today = new Date().getDay();
     return (today - 1 + 7) % 7;
   };
-  const [selectedDay, setSelectedDay] = useState(getTodayAsAppDay());
+  const todayIndex = getTodayAsAppDay();
+  const [selectedDay, setSelectedDay] = useState(todayIndex);
   const [dayView, setDayView] = useState<DayView | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [weeklyPlanId, setWeeklyPlanId] = useState<string | null>(null);
+  const dayScrollRef = useRef<HTMLDivElement>(null);
 
   // Initialize: get or create weekly plan
   useEffect(() => {
@@ -63,17 +65,8 @@ export default function DietViewer() {
     loadDay();
   }, [weeklyPlanId, selectedDay]);
 
-  function handlePreviousDay() {
-    setSelectedDay((prev) => (prev === 0 ? 6 : prev - 1));
-  }
-
-  function handleNextDay() {
-    setSelectedDay((prev) => (prev === 6 ? 0 : prev + 1));
-  }
-
   async function handleFoodSwapped() {
     if (!weeklyPlanId) return;
-    // Refresh current day view
     try {
       const view = await getDayView(weeklyPlanId, selectedDay);
       setDayView(view);
@@ -82,118 +75,116 @@ export default function DietViewer() {
     }
   }
 
+  function handleSelectDay(index: number) {
+    setSelectedDay(index);
+    // Scroll the selected pill into center view
+    const container = dayScrollRef.current;
+    const pill = container?.children[index] as HTMLElement | undefined;
+    if (container && pill) {
+      const offset = pill.offsetLeft - container.offsetWidth / 2 + pill.offsetWidth / 2;
+      container.scrollTo({ left: offset, behavior: 'smooth' });
+    }
+  }
+
+  // Total kcal for current day
+  const totalKcal = dayView?.meals.reduce(
+    (sum, meal) => sum + meal.foods.reduce((s, f) => s + (f.calories || 0), 0),
+    0
+  ) ?? 0;
+
+  const sortedMeals = dayView?.meals.slice().sort((a, b) => {
+    const order: Record<string, number> = { colazione: 0, pranzo: 1, cena: 2 };
+    return (order[a.mealType] ?? 9) - (order[b.mealType] ?? 9);
+  }) ?? [];
+
   return (
-    <div className="px-4 pt-14 pb-32 min-h-screen">
-      <div className="flex items-center justify-between mb-5">
+    <div className="pt-14 pb-32 min-h-screen">
+
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between px-4 mb-5">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Dieta</h1>
           <p className="text-muted-foreground text-xs mt-0.5">Il tuo piano alimentare</p>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-10 w-10 rounded-xl bg-secondary"
+        <button
           onClick={() => navigate('/diet/foods')}
+          className="flex items-center gap-1.5 h-9 px-3 rounded-xl bg-secondary text-muted-foreground text-xs font-semibold active:scale-95 transition-transform"
         >
-          <BookOpen className="h-4 w-4" />
-        </Button>
+          <BookOpen className="h-3.5 w-3.5" />
+          Guida
+        </button>
       </div>
 
-      {/* Loading skeleton */}
-      {loading ? (
-        <div className="space-y-3">
-          <div className="space-y-2">
-            <Skeleton className="h-20 rounded-2xl" />
-            <Skeleton className="h-20 rounded-2xl" />
-            <Skeleton className="h-20 rounded-2xl" />
-          </div>
+      {/* ── Day Selector ── */}
+      <div
+        ref={dayScrollRef}
+        className="flex gap-2 overflow-x-auto no-scrollbar px-4 mb-4"
+      >
+        {DAY_LABELS.map((label, index) => {
+          const isToday = index === todayIndex;
+          const isSelected = index === selectedDay;
+          return (
+            <button
+              key={index}
+              onClick={() => handleSelectDay(index)}
+              disabled={refreshing}
+              className={[
+                'flex-shrink-0 flex flex-col items-center gap-0.5 w-12 py-2.5 rounded-2xl text-xs font-semibold transition-all active:scale-95',
+                isSelected
+                  ? 'gradient-primary text-white glow-primary-sm'
+                  : isToday
+                  ? 'bg-primary/10 text-primary border border-primary/30'
+                  : 'bg-card border border-border text-muted-foreground',
+              ].join(' ')}
+            >
+              <span>{label}</span>
+              {isToday && !isSelected && (
+                <span className="w-1 h-1 rounded-full bg-primary" />
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── Daily kcal summary ── */}
+      {!loading && totalKcal > 0 && (
+        <div className="mx-4 mb-4 bg-card border border-border rounded-2xl px-4 py-3 flex items-center justify-between">
+          <span className="text-xs text-muted-foreground font-medium">Totale giornaliero</span>
+          <span className="text-sm font-bold text-primary">{totalKcal} kcal</span>
         </div>
-      ) : (
-        <>
-          {/* Day Selector */}
-          <div className="space-y-3 mb-6">
-            {/* Day navigation */}
-            <div className="flex items-center justify-between gap-3">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handlePreviousDay}
-                disabled={refreshing}
-                className="h-8 w-8"
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </Button>
-
-              <div className="flex-1 text-center">
-                <p className="text-lg font-semibold">
-                  {DAYS_OF_WEEK[selectedDay]}
-                </p>
-              </div>
-
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleNextDay}
-                disabled={refreshing}
-                className="h-8 w-8"
-              >
-                <ChevronRight className="h-5 w-5" />
-              </Button>
-            </div>
-
-            {/* Day indicators */}
-            <div className="flex gap-1.5">
-              {DAYS_OF_WEEK.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => setSelectedDay(index)}
-                  disabled={refreshing}
-                  className={`h-2 flex-1 rounded-full transition-colors ${
-                    selectedDay === index
-                      ? 'bg-primary'
-                      : 'bg-muted'
-                  }`}
-                  aria-label={`Day ${index}`}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Meals */}
-          <div className="space-y-3">
-            {refreshing ? (
-              <div className="flex justify-center py-8">
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-              </div>
-            ) : dayView && dayView.meals.length > 0 ? (
-              dayView.meals
-                .sort((a, b) => {
-                  const order = { 'colazione': 0, 'pranzo': 1, 'cena': 2 };
-                  const aOrder = order[a.mealType as keyof typeof order] ?? 999;
-                  const bOrder = order[b.mealType as keyof typeof order] ?? 999;
-                  return aOrder - bOrder;
-                })
-                .map((meal) => (
-                  <MealCard
-                    key={meal.mealId}
-                    mealId={meal.mealId}
-                    mealType={meal.mealType}
-                    foods={meal.foods}
-                    onFoodSwapped={handleFoodSwapped}
-                    weeklyPlanId={weeklyPlanId || undefined}
-                    dayOfWeek={selectedDay}
-                  />
-                ))
-            ) : (
-              <div className="bg-card rounded-2xl p-8 text-center border border-border">
-                <p className="text-sm text-muted-foreground">
-                  Nessun pasto configurato per questo giorno
-                </p>
-              </div>
-            )}
-          </div>
-        </>
       )}
+
+      {/* ── Content ── */}
+      <div className="px-4 space-y-3">
+        {loading ? (
+          <>
+            <Skeleton className="h-36 rounded-2xl" />
+            <Skeleton className="h-36 rounded-2xl" />
+            <Skeleton className="h-36 rounded-2xl" />
+          </>
+        ) : refreshing ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : sortedMeals.length > 0 ? (
+          sortedMeals.map((meal) => (
+            <MealCard
+              key={meal.mealId}
+              mealId={meal.mealId}
+              mealType={meal.mealType}
+              foods={meal.foods}
+              onFoodSwapped={handleFoodSwapped}
+              weeklyPlanId={weeklyPlanId || undefined}
+              dayOfWeek={selectedDay}
+            />
+          ))
+        ) : (
+          <div className="bg-card border border-border rounded-2xl p-10 text-center">
+            <p className="text-2xl mb-2">🍽</p>
+            <p className="text-sm font-medium text-muted-foreground">Nessun pasto per questo giorno</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
