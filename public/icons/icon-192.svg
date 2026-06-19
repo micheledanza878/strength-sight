@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
+  <!-- Sfondo -->
+  <rect width="192" height="192" rx="40" fill="#000000"/>
+  <!-- Gradiente brand (viola → indaco) -->
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8B5CF6"/>
+      <stop offset="100%" stop-color="#6366F1"/>
+    </linearGradient>
+  </defs>
+  <!-- Bilanciere (barra orizzontale) -->
+  <rect x="24" y="88" width="144" height="16" rx="8" fill="url(#g)"/>
+  <!-- Disco sinistro grande -->
+  <rect x="20" y="60" width="20" height="72" rx="6" fill="url(#g)"/>
+  <!-- Disco sinistro piccolo -->
+  <rect x="44" y="72" width="12" height="48" rx="4" fill="#6366F1" opacity="0.7"/>
+  <!-- Disco destro grande -->
+  <rect x="152" y="60" width="20" height="72" rx="6" fill="url(#g)"/>
+  <!-- Disco destro piccolo -->
+  <rect x="136" y="72" width="12" height="48" rx="4" fill="#6366F1" opacity="0.7"/>
+</svg>

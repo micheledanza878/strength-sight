@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- Sfondo -->
+  <rect width="512" height="512" rx="96" fill="#000000"/>
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8B5CF6"/>
+      <stop offset="100%" stop-color="#6366F1"/>
+    </linearGradient>
+  </defs>
+  <!-- Bilanciere (barra orizzontale) -->
+  <rect x="56" y="232" width="400" height="48" rx="24" fill="url(#g)"/>
+  <!-- Disco sinistro grande -->
+  <rect x="48" y="152" width="56" height="208" rx="16" fill="url(#g)"/>
+  <!-- Disco sinistro piccolo -->
+  <rect x="112" y="184" width="32" height="144" rx="10" fill="#6366F1" opacity="0.7"/>
+  <!-- Disco destro grande -->
+  <rect x="408" y="152" width="56" height="208" rx="16" fill="url(#g)"/>
+  <!-- Disco destro piccolo -->
+  <rect x="368" y="184" width="32" height="144" rx="10" fill="#6366F1" opacity="0.7"/>
+</svg>
