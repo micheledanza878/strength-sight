@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO, differenceInMinutes } from "date-fns";
 import { it } from "date-fns/locale";
-import { ChevronDown, ChevronUp, Trophy, Filter } from "lucide-react";
+import { ChevronDown, ChevronUp, Trophy, Filter, ChevronRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
@@ -19,6 +20,12 @@ interface BodyPart {
   slug: string;
   name: string;
   icon: string;
+}
+
+/** Forma raw del mapping esercizio → parte del corpo restituita da Supabase */
+interface ExerciseBodyPartMapping {
+  exercise_name: string;
+  primary_body_part_id: string | null;
 }
 
 interface SetLog {
@@ -50,6 +57,7 @@ interface WorkoutPlan {
 }
 
 export default function History() {
+  const navigate = useNavigate();
   const [logs, setLogs] = useState<WorkoutLog[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"history" | "records">("history");
@@ -100,7 +108,7 @@ export default function History() {
 
       if (mappings && mappings.length > 0) {
         const map: Record<string, string> = {};
-        mappings.forEach((m: any) => {
+        (mappings as ExerciseBodyPartMapping[]).forEach((m) => {
           if (m.primary_body_part_id) {
             map[m.exercise_name] = m.primary_body_part_id;
           }
@@ -307,9 +315,16 @@ export default function History() {
                     <div className="px-5 pb-5 space-y-4 border-t border-border pt-4">
                       {Object.entries(byExercise).map(([exName, exSets]) => (
                         <div key={exName}>
-                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                            {exName}
-                          </p>
+                          <button
+                            onClick={() => navigate(`/exercise/${encodeURIComponent(exName)}`)}
+                            className="flex items-center gap-1 group mb-2"
+                            aria-label={`Analisi ${exName}`}
+                          >
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider group-hover:text-foreground transition-colors">
+                              {exName}
+                            </p>
+                            <ChevronRight className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </button>
                           <div className="flex flex-wrap gap-2">
                             {exSets.map((s, i) => (
                               <span key={i} className="bg-secondary rounded-lg px-3 py-2 text-xs">
@@ -362,12 +377,16 @@ export default function History() {
           <div className="space-y-2">
             {prs.map(([exercise, pr]) => (
               <div key={exercise} className="bg-card rounded-2xl p-4 flex items-center justify-between">
-                <div className="flex-1 mr-4">
-                  <p className="font-semibold text-sm">{exercise}</p>
+                <button
+                  onClick={() => navigate(`/exercise/${encodeURIComponent(exercise)}`)}
+                  className="flex-1 mr-4 text-left group"
+                  aria-label={`Analisi ${exercise}`}
+                >
+                  <p className="font-semibold text-sm group-hover:text-primary transition-colors">{exercise}</p>
                   <p className="text-xs text-muted-foreground">
                     {format(parseISO(pr.date), "d MMM yyyy", { locale: it })}
                   </p>
-                </div>
+                </button>
                 <div className="flex items-center gap-3 shrink-0">
                   <Trophy className="w-4 h-4 text-amber-400" />
                   <div className="text-right">

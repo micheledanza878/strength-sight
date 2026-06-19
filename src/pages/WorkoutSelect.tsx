@@ -23,6 +23,29 @@ interface WorkoutDay {
   muscles: { icon: string; name: string }[];
 }
 
+/** Forma raw restituita da Supabase per la query workout_plans con join aggregata */
+interface WorkoutPlanRaw {
+  id: string;
+  name: string;
+  description: string | null;
+  duration_weeks: number | null;
+  workout_plan_days: { count: number }[];
+}
+
+/** Forma raw di un giorno con join agli esercizi e alle parti del corpo */
+interface WorkoutPlanDayRaw {
+  id: string;
+  day_number: number;
+  day_name: string;
+  workout_plan_id: string;
+  workout_plan_exercises: WorkoutPlanExerciseRaw[];
+}
+
+interface WorkoutPlanExerciseRaw {
+  primary_body_part_id: string | null;
+  body_parts: { name: string; icon: string } | null;
+}
+
 export default function WorkoutSelect() {
   const navigate = useNavigate();
   const { activePlanId, setActivePlanId } = useActivePlan();
@@ -56,8 +79,11 @@ export default function WorkoutSelect() {
 
       if (error) throw error;
       setPlans(
-        (data || []).map((p: any) => ({
-          ...p,
+        ((data || []) as WorkoutPlanRaw[]).map((p) => ({
+          id: p.id,
+          name: p.name,
+          description: p.description,
+          duration_weeks: p.duration_weeks,
           day_count: p.workout_plan_days?.[0]?.count ?? 0,
         }))
       );
@@ -79,8 +105,8 @@ export default function WorkoutSelect() {
 
       if (error) throw error;
       setDays(
-        (data || []).map((d: any) => {
-          const exs: any[] = d.workout_plan_exercises || [];
+        ((data || []) as WorkoutPlanDayRaw[]).map((d) => {
+          const exs: WorkoutPlanExerciseRaw[] = d.workout_plan_exercises || [];
           const muscleMap = new Map<string, { icon: string; name: string }>();
           for (const ex of exs) {
             if (ex.body_parts && ex.primary_body_part_id) {

@@ -5,7 +5,7 @@ import {
   isSameDay, parseISO, startOfWeek, subDays, getWeek, differenceInDays, addMonths, subMonths,
 } from "date-fns";
 import { it } from "date-fns/locale";
-import { ChevronRight, Flame, Trophy, ChevronLeft, LogOut, Zap, TrendingUp } from "lucide-react";
+import { ChevronRight, Flame, Trophy, ChevronLeft, LogOut, Zap, TrendingUp, Bell, BellOff } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useActivePlan } from "@/contexts/ActivePlanContext";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, LineChart, Line, CartesianGrid } from "recharts";
@@ -21,6 +21,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { getUserId } from "@/lib/user";
 import { WORKOUT_DAYS, getNextWorkoutDay } from "@/data/workouts";
 import type { WorkoutDay } from "@/data/workouts";
+import { useNotifications } from "@/hooks/use-notifications";
+import { maybeNotifyStreakAtRisk, maybeNotifyMeasurementOverdue } from "@/lib/notifications";
 
 interface VolumePoint {
   date: string;
@@ -40,6 +42,17 @@ interface WorkoutPlan {
   duration_weeks: number | null;
 }
 
+/**
+ * Forma raw di un set_log con la join a workout_logs restituita dalla query
+ * `set_logs.select("weight, reps, workout_logs(started_at)")`.
+ * Supabase restituisce la relazione come oggetto singolo (not-null quando presente).
+ */
+interface SetLogWithWorkoutLog {
+  weight: number | null;
+  reps: number;
+  workout_logs: { started_at: string } | null;
+}
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const { logout } = useAuth();
@@ -51,6 +64,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   const [streak, setStreak] = useState(0);
+  const [hasWorkedOutToday, setHasWorkedOutToday] = useState(false);
   const [weekCount, setWeekCount] = useState(0);
   const [monthCount, setMonthCount] = useState(0);
   const [monthVolume, setMonthVolume] = useState(0);
@@ -61,6 +75,9 @@ export default function Dashboard() {
 
   const [plans, setPlans] = useState<WorkoutPlan[]>([]);
   const [selectedMonth, setSelectedMonth] = useState(new Date());
+
+  // ── Notifiche ──────────────────────────────────────────────────────────────
+  const { isEnabled, isSupported, isLoading: notifLoading, toggle: toggleNotifications } = useNotifications();
 
   useEffect(() => {
     const initializeData = async () => {
@@ -89,6 +106,24 @@ export default function Dashboard() {
       reloadData();
     }
   }, [activePlanId]);
+
+  // ── Trigger notifiche locali dopo il caricamento dei dati ─────────────────
+  // Scatta quando loading diventa false (dati pronti) e le notifiche sono abilitate.
+  // Le funzioni maybeNotify* controllano internamente se la notifica è già stata
+  // mostrata oggi (via localStorage) per evitare spam.
+  useEffect(() => {
+    if (loading || !isEnabled) return;
+
+    const triggerNotifications = async () => {
+      // Notifica 1: streak in pericolo (streak > 0 e non ha allenato oggi)
+      await maybeNotifyStreakAtRisk(streak, hasWorkedOutToday);
+
+      // Notifica 2: misurazioni in ritardo (soglia: 14 giorni)
+      await maybeNotifyMeasurementOverdue(lastMeasurementDaysAgo, 14);
+    };
+
+    triggerNotifications();
+  }, [loading, isEnabled, streak, hasWorkedOutToday, lastMeasurementDaysAgo]);
 
   async function loadPlans() {
     try {
@@ -166,6 +201,10 @@ export default function Dashboard() {
 
       // Streak
       const daySet = new Set(logs.map((l) => format(parseISO(l.started_at), "yyyy-MM-dd")));
+      const todayStr = format(new Date(), "yyyy-MM-dd");
+      const workedToday = daySet.has(todayStr);
+      setHasWorkedOutToday(workedToday);
+
       let s = 0;
       let check = new Date();
       if (!daySet.has(format(check, "yyyy-MM-dd"))) check = subDays(check, 1);
@@ -240,11 +279,11 @@ export default function Dashboard() {
 
     if (allSets) {
       const weeklyMap: Record<string, number> = {};
-      allSets.forEach((s) => {
-        const logDate = (s.workout_logs as any)?.started_at;
+      (allSets as SetLogWithWorkoutLog[]).forEach((s) => {
+        const logDate = s.workout_logs?.started_at;
         if (logDate) {
           const week = `W${getWeek(parseISO(logDate))}`;
-          weeklyMap[week] = (weeklyMap[week] || 0) + s.weight * s.reps;
+          weeklyMap[week] = (weeklyMap[week] || 0) + (s.weight ?? 0) * s.reps;
         }
       });
       const weeklyData = Object.entries(weeklyMap)
@@ -315,13 +354,42 @@ export default function Dashboard() {
             {format(now, "EEEE d MMMM", { locale: it })}
           </p>
         </div>
-        <button
-          onClick={() => { logout(); navigate("/login"); }}
-          className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground active:scale-95 transition-transform"
-          title="Logout"
-        >
-          <LogOut className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Toggle notifiche: visibile solo se il browser le supporta */}
+          {isSupported && (
+            <button
+              onClick={toggleNotifications}
+              disabled={notifLoading}
+              aria-label={isEnabled ? "Disattiva notifiche" : "Attiva notifiche"}
+              title={
+                isEnabled
+                  ? "Notifiche attive – clicca per disattivare"
+                  : "Attiva notifiche push"
+              }
+              className={[
+                "w-9 h-9 rounded-xl flex items-center justify-center transition-all active:scale-95",
+                isEnabled
+                  ? "bg-primary/20 text-primary"
+                  : "bg-secondary text-muted-foreground",
+                notifLoading ? "opacity-50 cursor-not-allowed" : "",
+              ].join(" ")}
+            >
+              {isEnabled ? (
+                <Bell className="w-4 h-4" />
+              ) : (
+                <BellOff className="w-4 h-4" />
+              )}
+            </button>
+          )}
+
+          <button
+            onClick={() => { logout(); navigate("/login"); }}
+            className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground active:scale-95 transition-transform"
+            title="Logout"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {/* ── Plan Selector ── */}
@@ -340,6 +408,18 @@ export default function Dashboard() {
               ))}
             </SelectContent>
           </Select>
+        </div>
+      )}
+
+      {/* ── Banner notifiche bloccate dal browser ─────────────────────────── */}
+      {/* Mostrato solo se l'utente ha cliccato il toggle MA il browser ha negato */}
+      {isSupported && Notification.permission === "denied" && (
+        <div
+          role="alert"
+          className="mb-4 rounded-2xl bg-yellow-500/10 border border-yellow-500/30 px-4 py-3 text-xs text-yellow-400 leading-relaxed"
+        >
+          <strong className="font-semibold">Notifiche bloccate.</strong> Vai nelle impostazioni
+          del browser e consenti le notifiche per questo sito, poi riprova.
         </div>
       )}
 

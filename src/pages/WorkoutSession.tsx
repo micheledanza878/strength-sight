@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Check, Trophy, RotateCcw, Clock, Play, Loader, Edit2 } from "lucide-react";
+import { ArrowLeft, Check, Trophy, RotateCcw, Clock, Play, Loader, Edit2, CloudOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import RestTimer from "@/components/RestTimer";
 import { useToast } from "@/hooks/use-toast";
 import { getUserId } from "@/lib/user";
+import { calculateProgression, ProgressionSuggestion } from "@/services/progressionService";
 
 interface SetEntry {
   reps: string;
@@ -77,6 +78,77 @@ export default function WorkoutSession() {
   const [completion, setCompletion] = useState<CompletionStats | null>(null);
   const [resumeDialog, setResumeDialog] = useState<string | null>(null);
   const [showResumePrompt, setShowResumePrompt] = useState(false);
+  // Mappa esercizio → suggerimento di progressione calcolato dalla sessione precedente
+  const [progressionSuggestions, setProgressionSuggestions] = useState<Record<string, ProgressionSuggestion>>({});
+
+  // Autosave state: tiene traccia dello stato dell'ultimo salvataggio automatico
+  type AutosaveStatus = "idle" | "saving" | "error";
+  const [autosaveStatus, setAutosaveStatus] = useState<AutosaveStatus>("idle");
+  // Ref per workoutLogId: le callback async lo leggono da qui per evitare
+  // closure stale (il ref è sempre aggiornato, lo stato React no in async).
+  const workoutLogIdRef = useRef<string | null>(null);
+
+  // ── AUTOSAVE ─────────────────────────────────────────────────────
+  //
+  // Persiste immediatamente un singolo set su Supabase via upsert.
+  // La chiave di conflitto è (workout_log_id, exercise_name, set_number):
+  // se l'utente de-marca e ri-marca un set il record viene aggiornato,
+  // non duplicato. RICHIEDE un UNIQUE constraint nel DB su queste tre colonne:
+  //   ALTER TABLE set_logs ADD CONSTRAINT set_logs_unique_set
+  //   UNIQUE (workout_log_id, exercise_name, set_number);
+  const autosaveSet = useCallback(
+    async (exName: string, setIdx: number, reps: string, weight: string) => {
+      const logId = workoutLogIdRef.current;
+      if (!logId) return; // log non ancora creato (raro ma possibile se la rete è lenta)
+
+      setAutosaveStatus("saving");
+      try {
+        const userId = await getUserId();
+        const { error } = await supabase.from("set_logs").upsert(
+          {
+            user_id: userId,
+            workout_log_id: logId,
+            exercise_name: exName,
+            set_number: setIdx + 1,
+            reps: parseInt(reps) || 0,
+            weight: parseFloat(weight) || 0,
+          },
+          { onConflict: "workout_log_id,exercise_name,set_number" }
+        );
+        if (error) throw error;
+        setAutosaveStatus("idle");
+      } catch (err) {
+        console.error("Autosave set fallito:", err);
+        setAutosaveStatus("error");
+      }
+    },
+    [] // stabile: legge workoutLogIdRef.current, non dipende da state React
+  );
+
+  // Rimuove il record dal DB quando l'utente de-seleziona "done",
+  // mantenendo coerenza tra stato locale e dati persistiti.
+  const autounsaveSet = useCallback(
+    async (exName: string, setIdx: number) => {
+      const logId = workoutLogIdRef.current;
+      if (!logId) return;
+
+      setAutosaveStatus("saving");
+      try {
+        const { error } = await supabase
+          .from("set_logs")
+          .delete()
+          .eq("workout_log_id", logId)
+          .eq("exercise_name", exName)
+          .eq("set_number", setIdx + 1);
+        if (error) throw error;
+        setAutosaveStatus("idle");
+      } catch (err) {
+        console.error("Autounsave set fallito:", err);
+        setAutosaveStatus("error");
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     loadDayData();
@@ -148,23 +220,51 @@ export default function WorkoutSession() {
     setSets(init);
   }, [exercises]);
 
-  // Auto-fill from previous session
+  // Auto-fill from previous session + calcolo suggerimenti di progressione
   useEffect(() => {
-    if (Object.keys(prevSets).length === 0) return;
+    if (Object.keys(prevSets).length === 0 || exercises.length === 0) return;
+
+    // Calcola i suggerimenti di double progression per ogni esercizio
+    const suggestions: Record<string, ProgressionSuggestion> = {};
+    exercises.forEach((ex) => {
+      const prev = prevSets[ex.exercise_name];
+      if (prev) {
+        suggestions[ex.exercise_name] = calculateProgression(
+          ex.exercise_name,
+          ex.reps_max,
+          ex.sets,
+          prev
+        );
+      }
+    });
+    setProgressionSuggestions(suggestions);
+
+    // Auto-fill: usa il peso SUGGERITO se c'è una progressione, altrimenti il peso precedente
     setSets((prev) => {
       const updated = { ...prev };
       Object.entries(prevSets).forEach(([exName, prevExSets]) => {
         if (updated[exName]) {
+          const suggestion = suggestions[exName];
+          // Peso da pre-compilare: suggerito se la condizione è soddisfatta, altrimenti il precedente
+          const weightToFill = suggestion?.shouldIncrease
+            ? String(suggestion.suggestedWeight)
+            : prevExSets[0]?.weight > 0
+            ? String(prevExSets[0].weight)
+            : "";
+
           updated[exName] = updated[exName].map((s, i) => ({
             ...s,
-            weight: s.weight === "" && prevExSets[i]?.weight > 0 ? String(prevExSets[i].weight) : s.weight,
+            // Per il peso usiamo il valore calcolato sopra (uguale per tutti i set,
+            // come avviene tipicamente in un allenamento con peso fisso per serie)
+            weight: s.weight === "" && weightToFill !== "" ? weightToFill : s.weight,
+            // Per le reps manteniamo quelle del set specifico della sessione precedente
             reps: s.reps === "" && prevExSets[i]?.reps > 0 ? String(prevExSets[i].reps) : s.reps,
           }));
         }
       });
       return updated;
     });
-  }, [prevSets]);
+  }, [prevSets, exercises]);
 
   // Elapsed workout timer
   useEffect(() => {
@@ -250,7 +350,10 @@ export default function WorkoutSession() {
       toast({ title: "Errore", description: "Impossibile iniziare l'allenamento", variant: "destructive" });
       return;
     }
-    if (data) setWorkoutLogId(data.id);
+    if (data) {
+      setWorkoutLogId(data.id);
+      workoutLogIdRef.current = data.id;
+    }
   }
 
   if (dayLoading) return <div className="p-5 pt-14 text-foreground">Caricamento...</div>;
@@ -281,6 +384,7 @@ export default function WorkoutSession() {
                     setShowResumePrompt(false);
                     setResumeDialog(null);
                     setWorkoutLogId(resumeDialog);
+                    workoutLogIdRef.current = resumeDialog;
                     setPhase("active");
                     startedAt.current = new Date();
                   }}
@@ -332,18 +436,29 @@ export default function WorkoutSession() {
 
         {/* Exercise list */}
         <div className="space-y-2 mb-8">
-          {exercises.map((ex, i) => (
-            <div key={ex.id} className="bg-card rounded-2xl px-4 py-3 flex items-center gap-3">
-              <span className="text-xl">{getExerciseIcon(ex.exercise_name)}</span>
-              <div className="flex-1">
-                <p className="font-medium text-sm">{ex.exercise_name}</p>
-                <p className="text-xs text-muted-foreground">
-                  {ex.sets} serie × {ex.reps_min}{ex.reps_max && ex.reps_max !== ex.reps_min ? `-${ex.reps_max}` : ""} reps
-                  {prevSets[ex.exercise_name]?.[0]?.weight > 0 ? ` · ${prevSets[ex.exercise_name][0].weight}kg` : ""}
-                </p>
+          {exercises.map((ex) => {
+            const suggestion = progressionSuggestions[ex.exercise_name];
+            return (
+              <div key={ex.id} className="bg-card rounded-2xl px-4 py-3 flex items-center gap-3">
+                <span className="text-xl">{getExerciseIcon(ex.exercise_name)}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm">{ex.exercise_name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {ex.sets} serie × {ex.reps_min}{ex.reps_max && ex.reps_max !== ex.reps_min ? `-${ex.reps_max}` : ""} reps
+                    {prevSets[ex.exercise_name]?.[0]?.weight > 0
+                      ? ` · ${suggestion?.shouldIncrease ? suggestion.suggestedWeight : prevSets[ex.exercise_name][0].weight}kg`
+                      : ""}
+                  </p>
+                </div>
+                {/* Badge progressione: visibile solo se l'algoritmo suggerisce un incremento */}
+                {suggestion?.shouldIncrease && (
+                  <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-500 whitespace-nowrap">
+                    +{suggestion.increment}kg
+                  </span>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Start button */}
@@ -405,79 +520,65 @@ export default function WorkoutSession() {
     }
 
     if (!current.done) {
+      // L'utente ha completato il set: aggiorna lo stato locale e
+      // salva immediatamente su Supabase (autosave non bloccante).
       setJustDone(`${exName}-${idx}`);
       setTimeout(() => setJustDone(null), 400);
 
-      // Mark set as done
       setSets((prev) => {
         const updated = [...(prev[exName] || [])];
         updated[idx] = { ...updated[idx], done: true };
         return { ...prev, [exName]: updated };
       });
+
+      // Autosave: leggiamo i valori dal current corrente (che non è ancora
+      // aggiornato nello state, ma i campi reps/weight non cambiano qui).
+      autosaveSet(exName, idx, current.reps, current.weight);
     } else {
+      // L'utente ha de-selezionato il set: rimuove il record dal DB.
       setSets((prev) => {
         const updated = [...(prev[exName] || [])];
         updated[idx] = { ...updated[idx], done: false };
         return { ...prev, [exName]: updated };
       });
+
+      autounsaveSet(exName, idx);
     }
   }
 
   async function savePartialWorkout() {
-    const userId = await getUserId();
-    const allSets = Object.entries(sets).flatMap(([exName, exSets]) =>
-      exSets.filter((s) => s.done).map((s, i) => ({
-        user_id: userId,
-        workout_log_id: workoutLogId ?? "",
-        exercise_name: exName,
-        set_number: i + 1,
-        reps: parseInt(s.reps) || 0,
-        weight: parseFloat(s.weight) || 0,
-      }))
-    );
-
-    if (workoutLogId && allSets.length > 0) {
-      try {
-        await supabase.from("set_logs").insert(allSets);
-      } catch (error) {
-        console.error("Errore salvataggio parziale:", error);
-      }
-    }
+    // Con l'autosave attivo, ogni set completato è già persistito su DB
+    // nel momento in cui viene marcato done. Questa funzione rimane come
+    // fallback per l'evento "unload" ma non deve più fare insert bulk
+    // (che causerebbe duplicati). Non fa nulla di aggiuntivo.
+    // Lasciata per compatibilità con l'event listener beforeunload.
   }
 
   async function finishWorkout() {
     setSaving(true);
 
-    const userId = await getUserId();
-    const allSets = Object.entries(sets).flatMap(([exName, exSets]) =>
-      exSets.filter((s) => s.done).map((s, i) => ({
-        user_id: userId,
-        workout_log_id: workoutLogId ?? "",
-        exercise_name: exName,
-        set_number: i + 1,
-        reps: parseInt(s.reps) || 0,
-        weight: parseFloat(s.weight) || 0,
-      }))
-    );
-
-    // Salva su DB solo se il log è stato creato correttamente
+    // I set sono già tutti su DB grazie all'autosave.
+    // Qui aggiorniamo solo il workout_log segnando la sessione come completata.
     if (workoutLogId) {
       try {
-        if (allSets.length > 0) {
-          await supabase.from("set_logs").insert(allSets);
-        }
         await supabase
           .from("workout_logs")
           .update({ completed_at: new Date().toISOString() })
           .eq("id", workoutLogId);
       } catch {
-        toast({ title: "Avviso", description: "Dati salvati parzialmente", variant: "destructive" });
+        toast({ title: "Avviso", description: "Errore nel chiudere la sessione", variant: "destructive" });
       }
     }
 
-    // Mostra sempre la schermata di completamento
-    const volume = allSets.reduce((acc, s) => acc + s.weight * s.reps, 0);
-    setCompletion({ duration: Math.round(elapsed / 60), sets: allSets.length, volume });
+    // Calcola le statistiche direttamente dallo stato locale (già in sync col DB)
+    const allDoneSets = Object.entries(sets).flatMap(([, exSets]) =>
+      exSets.filter((s) => s.done).map((s) => ({
+        reps: parseInt(s.reps) || 0,
+        weight: parseFloat(s.weight) || 0,
+      }))
+    );
+    const volume = allDoneSets.reduce((acc, s) => acc + s.weight * s.reps, 0);
+    setCompletion({ duration: Math.round(elapsed / 60), sets: allDoneSets.length, volume });
   }
 
   // Completion screen
@@ -550,9 +651,28 @@ export default function WorkoutSession() {
           </button>
         )}
         {phase === "active" && (
-          <div className="flex items-center gap-1.5 bg-secondary rounded-xl px-3 py-1.5">
-            <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-            <span className="text-sm font-bold tabular-nums">{formatElapsed(elapsed)}</span>
+          <div className="flex items-center gap-2">
+            {/* Indicatore autosave: non bloccante, scompare dopo il salvataggio */}
+            {autosaveStatus === "saving" && (
+              <div
+                aria-label="Salvataggio in corso"
+                title="Salvataggio in corso..."
+                className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"
+              />
+            )}
+            {autosaveStatus === "error" && (
+              <div
+                aria-label="Errore di salvataggio"
+                title="Salvataggio fallito. I dati potrebbero non essere stati salvati."
+                className="flex items-center gap-1 text-destructive"
+              >
+                <CloudOff className="w-3.5 h-3.5" />
+              </div>
+            )}
+            <div className="flex items-center gap-1.5 bg-secondary rounded-xl px-3 py-1.5">
+              <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+              <span className="text-sm font-bold tabular-nums">{formatElapsed(elapsed)}</span>
+            </div>
           </div>
         )}
       </div>
@@ -589,7 +709,13 @@ export default function WorkoutSession() {
       <div className="bg-card rounded-2xl p-5 mb-4 border-t-2 border-primary">
         <div className="flex items-center gap-3 mb-1">
           <span className="text-2xl">{getExerciseIcon(exercise.exercise_name)}</span>
-          <p className="text-lg font-bold">{exercise.exercise_name}</p>
+          <p className="text-lg font-bold flex-1">{exercise.exercise_name}</p>
+          {/* Badge progressione inline nell'header dell'esercizio */}
+          {progressionSuggestions[exercise.exercise_name]?.shouldIncrease && (
+            <span className="shrink-0 text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-500">
+              ↑ +{progressionSuggestions[exercise.exercise_name].increment}kg
+            </span>
+          )}
         </div>
         <p className="text-sm text-muted-foreground mb-4">
           {exercise.sets} × {exercise.reps_min}{exercise.reps_max && exercise.reps_max !== exercise.reps_min ? `-${exercise.reps_max}` : ""} reps
