@@ -5,7 +5,10 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
+  /* ── Tema scuro: valori di default (l'app nasce dark-first) ── */
+  :root,
+  [data-theme="dark"],
+  .dark {
     /* === Backgrounds === */
     --background: 220 13% 5%;
     --foreground: 0 0% 98%;
@@ -59,6 +62,102 @@
     --warning-foreground: 0 0% 100%;
     --success: 145 70% 40%;
     --success-foreground: 0 0% 100%;
+  }
+
+  /* ── Tema chiaro ────────────────────────────────────────────── */
+  [data-theme="light"],
+  .light {
+    /* === Backgrounds === */
+    --background: 220 20% 97%;
+    --foreground: 220 20% 10%;
+
+    /* === Cards === */
+    --card: 0 0% 100%;
+    --card-foreground: 220 20% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 20% 10%;
+
+    /* === Primary: stesso arancione vivace === */
+    --primary: 24 100% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    /* === Secondary === */
+    --secondary: 220 15% 92%;
+    --secondary-foreground: 220 20% 20%;
+
+    /* === Muted === */
+    --muted: 220 15% 92%;
+    --muted-foreground: 220 10% 46%;
+
+    /* === Accent: Green === */
+    --accent: 145 60% 36%;
+    --accent-foreground: 0 0% 100%;
+
+    /* === Destructive === */
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* === Borders & Inputs === */
+    --border: 220 15% 86%;
+    --input: 220 15% 92%;
+    --ring: 24 100% 50%;
+
+    /* === Radius (invariato) === */
+    --radius: 1.25rem;
+
+    /* === Sidebar === */
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 220 20% 20%;
+    --sidebar-primary: 24 100% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 15% 92%;
+    --sidebar-accent-foreground: 220 20% 20%;
+    --sidebar-border: 220 15% 86%;
+    --sidebar-ring: 24 100% 50%;
+
+    /* === Semantic tokens === */
+    --warning: 38 92% 45%;
+    --warning-foreground: 0 0% 100%;
+    --success: 145 60% 36%;
+    --success-foreground: 0 0% 100%;
+  }
+
+  /* ── Rispetta la preferenza di sistema quando il tema è "system" ── */
+  @media (prefers-color-scheme: light) {
+    :root:not(.dark):not(.light) {
+      --background: 220 20% 97%;
+      --foreground: 220 20% 10%;
+      --card: 0 0% 100%;
+      --card-foreground: 220 20% 10%;
+      --popover: 0 0% 100%;
+      --popover-foreground: 220 20% 10%;
+      --primary: 24 100% 50%;
+      --primary-foreground: 0 0% 100%;
+      --secondary: 220 15% 92%;
+      --secondary-foreground: 220 20% 20%;
+      --muted: 220 15% 92%;
+      --muted-foreground: 220 10% 46%;
+      --accent: 145 60% 36%;
+      --accent-foreground: 0 0% 100%;
+      --destructive: 0 72% 51%;
+      --destructive-foreground: 0 0% 100%;
+      --border: 220 15% 86%;
+      --input: 220 15% 92%;
+      --ring: 24 100% 50%;
+      --radius: 1.25rem;
+      --sidebar-background: 0 0% 98%;
+      --sidebar-foreground: 220 20% 20%;
+      --sidebar-primary: 24 100% 50%;
+      --sidebar-primary-foreground: 0 0% 100%;
+      --sidebar-accent: 220 15% 92%;
+      --sidebar-accent-foreground: 220 20% 20%;
+      --sidebar-border: 220 15% 86%;
+      --sidebar-ring: 24 100% 50%;
+      --warning: 38 92% 45%;
+      --warning-foreground: 0 0% 100%;
+      --success: 145 60% 36%;
+      --success-foreground: 0 0% 100%;
+    }
   }
 }
 
