@@ -1,15 +1,3 @@
-/**
- * ExerciseInsightsCard.tsx
- *
- * Card AI per la pagina ExerciseDetail: mostra tecnica, muscoli, varianti e
- * consigli per un esercizio. I dati vengono caricati via `getExerciseInsights`
- * con strategia cache-first (DB → Edge Function).
- *
- * Comportamento silently-fail: se il servizio ritorna null (errore di rete,
- * quota AI, esercizio sconosciuto) la card non viene montata — nessun
- * messaggio di errore che confonda l'utente.
- */
-
 import React, { useEffect, useState } from "react";
 import {
   Brain,
@@ -19,57 +7,20 @@ import {
   ExternalLink,
   Loader2,
   ChevronRight,
-  AlertTriangle,
 } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { getExerciseInsights, type ExerciseInsights } from "@/services/exerciseInsightsService";
 
-// ── Utility: rendering testo con **bold** senza dangerouslySetInnerHTML ─────────
-
-/**
- * Converte un segmento di testo con sintassi **grassetto** in nodi React.
- * Ogni token diventa un nodo JSX tipizzato — nessun HTML interpolato, nessun
- * rischio XSS sull'output raw dell'AI.
- *
- * Copiata/adattata dal pattern in RecipeDialog.tsx per mantenere coerenza
- * nel progetto senza creare una dipendenza circolare tra i due componenti.
- */
 export function parseBoldSegments(line: string): React.ReactNode[] {
   const parts = line.split(/(\*\*[^*]+\*\*)/g);
   return parts.map((part, idx) => {
     if (part.startsWith("**") && part.endsWith("**")) {
       return <strong key={idx}>{part.slice(2, -2)}</strong>;
     }
-    return part; // testo plain: React lo escapa automaticamente
+    return part;
   });
 }
 
-// ── Sub-componenti ──────────────────────────────────────────────────────────────
-
-/** Titolo di sezione con icona coerente alle card esistenti */
-function SectionHeader({
-  icon,
-  label,
-  iconColor = "text-primary",
-  iconBg = "bg-primary/10",
-}: {
-  icon: React.ReactNode;
-  label: string;
-  iconColor?: string;
-  iconBg?: string;
-}) {
-  return (
-    <div className="flex items-center gap-2 mb-2">
-      <div className={`w-7 h-7 rounded-lg ${iconBg} flex items-center justify-center shrink-0`}>
-        <span className={`${iconColor} [&>svg]:w-3.5 [&>svg]:h-3.5`}>{icon}</span>
-      </div>
-      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-        {label}
-      </span>
-    </div>
-  );
-}
-
-/** Badge colorato per i muscoli primari */
 function PrimaryMuscleBadge({ label }: { label: string }) {
   return (
     <span className="inline-flex items-center rounded-full bg-primary/15 text-primary text-xs font-medium px-2.5 py-1">
@@ -78,7 +29,6 @@ function PrimaryMuscleBadge({ label }: { label: string }) {
   );
 }
 
-/** Badge più leggero per i muscoli secondari */
 function SecondaryMuscleBadge({ label }: { label: string }) {
   return (
     <span className="inline-flex items-center rounded-full bg-secondary text-muted-foreground text-xs font-medium px-2.5 py-1">
@@ -87,13 +37,9 @@ function SecondaryMuscleBadge({ label }: { label: string }) {
   );
 }
 
-// ── Props ───────────────────────────────────────────────────────────────────────
-
 interface ExerciseInsightsCardProps {
   exerciseName: string;
 }
-
-// ── Componente principale ───────────────────────────────────────────────────────
 
 export function ExerciseInsightsCard({ exerciseName }: ExerciseInsightsCardProps) {
   const [loading, setLoading] = useState(true);
@@ -116,24 +62,14 @@ export function ExerciseInsightsCard({ exerciseName }: ExerciseInsightsCardProps
       }
     });
 
-    // Cleanup: se il componente viene smontato prima che la Promise risolva,
-    // non aggiorniamo uno stato su un componente non più montato.
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [exerciseName]);
 
-  // ── Silently-fail: nessun dato → nessuna card ────────────────────────────────
-  // Non mostriamo nemmeno un messaggio d'errore: la pagina funziona comunque,
-  // la card AI è un arricchimento opzionale.
-  if (!loading && data === null) {
-    return null;
-  }
+  if (!loading && data === null) return null;
 
-  // ── Skeleton di caricamento ──────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="bg-card rounded-2xl p-4 space-y-3" aria-busy="true" aria-label="Caricamento informazioni esercizio">
+      <div className="bg-card rounded-2xl p-4 space-y-3" aria-busy="true">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
             <Loader2 className="w-4 h-4 text-primary animate-spin" />
@@ -143,7 +79,6 @@ export function ExerciseInsightsCard({ exerciseName }: ExerciseInsightsCardProps
             <p className="text-xs text-muted-foreground">Analisi in corso…</p>
           </div>
         </div>
-        {/* Placeholder righe testo */}
         <div className="space-y-2 pt-1">
           <div className="h-3 bg-secondary rounded-full w-full animate-pulse" />
           <div className="h-3 bg-secondary rounded-full w-4/5 animate-pulse" />
@@ -153,13 +88,12 @@ export function ExerciseInsightsCard({ exerciseName }: ExerciseInsightsCardProps
     );
   }
 
-  // ── Render card con dati ─────────────────────────────────────────────────────
-  // A questo punto `data` è garantito non-null (l'early return sopra gestisce null).
   const insights = data!;
 
   return (
-    <div className="bg-card rounded-2xl p-4 space-y-5">
-      {/* Header card */}
+    <div className="bg-card rounded-2xl p-4 space-y-4">
+
+      {/* Header */}
       <div className="flex items-center gap-2">
         <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
           <Brain className="w-4 h-4 text-primary" />
@@ -170,117 +104,128 @@ export function ExerciseInsightsCard({ exerciseName }: ExerciseInsightsCardProps
         </div>
       </div>
 
-      {/* ── Tecnica ─────────────────────────────────────────────────────────── */}
-      {insights.technique && (
-        <section aria-label="Tecnica di esecuzione">
-          <SectionHeader
-            icon={<Dumbbell />}
-            label="Tecnica"
-            iconColor="text-amber-400"
-            iconBg="bg-amber-400/10"
-          />
-          <p className="text-sm leading-relaxed text-foreground">
-            {parseBoldSegments(insights.technique)}
-          </p>
-        </section>
-      )}
+      {/* Tab */}
+      <Tabs defaultValue="tecnica" className="w-full">
+        <TabsList className="grid grid-cols-3 w-full h-9 bg-secondary/60 rounded-xl p-1">
+          <TabsTrigger
+            value="tecnica"
+            className="flex items-center gap-1 text-xs rounded-lg data-[state=active]:bg-card data-[state=active]:text-amber-400 data-[state=active]:shadow-sm"
+          >
+            <Dumbbell className="w-3.5 h-3.5" />
+            Tecnica
+          </TabsTrigger>
+          <TabsTrigger
+            value="muscoli"
+            className="flex items-center gap-1 text-xs rounded-lg data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm"
+          >
+            <Layers className="w-3.5 h-3.5" />
+            Muscoli
+          </TabsTrigger>
+          <TabsTrigger
+            value="training"
+            className="flex items-center gap-1 text-xs rounded-lg data-[state=active]:bg-card data-[state=active]:text-emerald-400 data-[state=active]:shadow-sm"
+          >
+            <Lightbulb className="w-3.5 h-3.5" />
+            Training
+          </TabsTrigger>
+        </TabsList>
 
-      {/* ── Muscoli primari ──────────────────────────────────────────────────── */}
-      {insights.primaryMuscles.length > 0 && (
-        <section aria-label="Muscoli primari">
-          <SectionHeader
-            icon={<Layers />}
-            label="Muscoli primari"
-            iconColor="text-primary"
-            iconBg="bg-primary/10"
-          />
-          <div className="flex flex-wrap gap-2">
-            {insights.primaryMuscles.map((muscle) => (
-              <PrimaryMuscleBadge key={muscle} label={muscle} />
-            ))}
-          </div>
-        </section>
-      )}
+        {/* ── Tecnica ── */}
+        <TabsContent value="tecnica" className="mt-4 focus-visible:outline-none">
+          {insights.technique ? (
+            <div className="bg-amber-400/5 border border-amber-400/10 rounded-xl p-4">
+              <p className="text-sm leading-relaxed text-foreground">
+                {parseBoldSegments(insights.technique)}
+              </p>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-6">
+              Nessuna informazione disponibile.
+            </p>
+          )}
+        </TabsContent>
 
-      {/* ── Muscoli secondari ────────────────────────────────────────────────── */}
-      {insights.secondaryMuscles.length > 0 && (
-        <section aria-label="Muscoli secondari">
-          <SectionHeader
-            icon={<Layers />}
-            label="Muscoli secondari"
-            iconColor="text-muted-foreground"
-            iconBg="bg-secondary"
-          />
-          <div className="flex flex-wrap gap-2">
-            {insights.secondaryMuscles.map((muscle) => (
-              <SecondaryMuscleBadge key={muscle} label={muscle} />
-            ))}
-          </div>
-        </section>
-      )}
+        {/* ── Muscoli ── */}
+        <TabsContent value="muscoli" className="mt-4 focus-visible:outline-none space-y-4">
+          {insights.primaryMuscles.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                Primari
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {insights.primaryMuscles.map((m) => (
+                  <PrimaryMuscleBadge key={m} label={m} />
+                ))}
+              </div>
+            </div>
+          )}
+          {insights.primaryMuscles.length > 0 && insights.secondaryMuscles.length > 0 && (
+            <div className="border-t border-border/40" />
+          )}
+          {insights.secondaryMuscles.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                Secondari
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {insights.secondaryMuscles.map((m) => (
+                  <SecondaryMuscleBadge key={m} label={m} />
+                ))}
+              </div>
+            </div>
+          )}
+        </TabsContent>
 
-      {/* ── Varianti ─────────────────────────────────────────────────────────── */}
-      {insights.variations.length > 0 && (
-        <section aria-label="Varianti dell'esercizio">
-          <SectionHeader
-            icon={<ChevronRight />}
-            label="Varianti"
-            iconColor="text-blue-400"
-            iconBg="bg-blue-500/10"
-          />
-          <ul className="space-y-1.5" role="list">
-            {insights.variations.map((variant) => (
-              <li
-                key={variant}
-                className="flex items-start gap-2 text-sm text-foreground"
-              >
-                <span
-                  className="mt-1.5 w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0"
-                  aria-hidden="true"
-                />
-                {parseBoldSegments(variant)}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+        {/* ── Training (Varianti + Consigli) ── */}
+        <TabsContent value="training" className="mt-4 focus-visible:outline-none space-y-4">
+          {insights.variations.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-blue-400/80 uppercase tracking-wide mb-2">
+                Varianti
+              </p>
+              <ul className="space-y-2" role="list">
+                {insights.variations.map((v) => (
+                  <li key={v} className="flex items-start gap-2 text-sm text-foreground">
+                    <ChevronRight className="w-3.5 h-3.5 text-blue-400 mt-0.5 shrink-0" aria-hidden="true" />
+                    {parseBoldSegments(v)}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
-      {/* ── Consigli ─────────────────────────────────────────────────────────── */}
-      {insights.tips.length > 0 && (
-        <section aria-label="Consigli">
-          <SectionHeader
-            icon={<Lightbulb />}
-            label="Consigli"
-            iconColor="text-emerald-400"
-            iconBg="bg-emerald-500/10"
-          />
-          <ul className="space-y-2" role="list">
-            {insights.tips.map((tip, idx) => (
-              <li
-                key={idx}
-                className="flex items-start gap-2 text-sm text-foreground"
-              >
-                {/* Alterna tra check e warning in base alla posizione per varietà visiva;
-                    oppure usa sempre AlertTriangle se preferisci uniformità */}
-                <AlertTriangle
-                  className="w-3.5 h-3.5 text-amber-400 mt-0.5 shrink-0"
-                  aria-hidden="true"
-                />
-                <span>{parseBoldSegments(tip)}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+          {insights.variations.length > 0 && insights.tips.length > 0 && (
+            <div className="border-t border-border/40" />
+          )}
 
-      {/* ── Link YouTube ─────────────────────────────────────────────────────── */}
+          {insights.tips.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-emerald-400/80 uppercase tracking-wide mb-2">
+                Consigli
+              </p>
+              <ul className="space-y-2" role="list">
+                {insights.tips.map((tip, idx) => (
+                  <li key={idx} className="flex items-start gap-3 text-sm text-foreground bg-emerald-500/5 rounded-lg px-3 py-2">
+                    <span className="text-emerald-400 font-bold text-xs mt-0.5 shrink-0 w-4">
+                      {idx + 1}.
+                    </span>
+                    <span>{parseBoldSegments(tip)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
+
+      {/* YouTube — sempre visibile fuori dai tab */}
       {insights.youtubeUrl && (
         <a
           href={insights.youtubeUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center justify-center gap-2 w-full rounded-xl bg-red-500/10 hover:bg-red-500/20 active:bg-red-500/30 transition-colors text-red-500 font-medium text-sm py-3 px-4"
-          aria-label={`Guarda il tutorial di ${insights.exerciseName} su YouTube (apre in una nuova scheda)`}
+          aria-label={`Guarda il tutorial di ${insights.exerciseName} su YouTube`}
         >
           <ExternalLink className="w-4 h-4 shrink-0" aria-hidden="true" />
           Guarda tutorial su YouTube
