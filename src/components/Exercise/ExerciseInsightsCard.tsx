@@ -166,7 +166,7 @@ export function ExerciseInsightsCard({ exerciseName }: ExerciseInsightsCardProps
         </div>
         <div>
           <p className="text-sm font-semibold">Informazioni AI</p>
-          <p className="text-xs text-muted-foreground">Generato da Gemini</p>
+          <p className="text-xs text-muted-foreground">Generato da Claude</p>
         </div>
       </div>
 

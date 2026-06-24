@@ -1,22 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-// La chiave API risiede esclusivamente nell'ambiente server-side.
-// Viene configurata con: supabase secrets set GEMINI_API_KEY=<valore>
-// e NON è mai inclusa nel bundle JavaScript pubblico.
-const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 
-// Elenco di modelli in ordine di preferenza: si tenta il successivo in caso
-// di sovraccarico (503) o quota esaurita (429).
-const MODELS = [
-  "https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent",
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
-  "https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash-lite:generateContent",
-];
-
-// Headers CORS necessari per consentire le chiamate dal frontend (origine del
-// progetto Vite in sviluppo e dal dominio di produzione Vercel).
-// L'header Authorization è esplicitamente incluso perché il frontend Supabase
-// client lo aggiunge automaticamente.
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
@@ -24,7 +9,6 @@ const CORS_HEADERS = {
 };
 
 serve(async (req: Request) => {
-  // Preflight CORS: il browser invia OPTIONS prima della richiesta POST reale.
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: CORS_HEADERS });
   }
@@ -36,10 +20,8 @@ serve(async (req: Request) => {
     );
   }
 
-  // Verifica critica: la secret deve essere configurata nell'ambiente Supabase.
-  // Se manca, restituiamo 500 senza esporre dettagli al client.
-  if (!GEMINI_API_KEY) {
-    console.error("GEMINI_API_KEY non configurata nell'ambiente Supabase");
+  if (!ANTHROPIC_API_KEY) {
+    console.error("ANTHROPIC_API_KEY non configurata nell'ambiente Supabase");
     return new Response(
       JSON.stringify({ error: "Servizio di generazione ricette non disponibile" }),
       { status: 500, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
@@ -54,7 +36,6 @@ serve(async (req: Request) => {
     mealType = body.mealType;
     foods = body.foods;
 
-    // Validazione input: entrambi i campi sono obbligatori.
     if (!mealType || !Array.isArray(foods) || foods.length === 0) {
       return new Response(
         JSON.stringify({ error: "Parametri mancanti: mealType e foods sono obbligatori" }),
@@ -62,7 +43,6 @@ serve(async (req: Request) => {
       );
     }
 
-    // Validazione struttura degli alimenti per prevenire injection nel prompt.
     for (const food of foods) {
       if (
         typeof food.name !== "string" ||
@@ -82,8 +62,6 @@ serve(async (req: Request) => {
     );
   }
 
-  // Costruzione del prompt identica alla versione originale lato client,
-  // così non cambia il comportamento dell'AI.
   const mealLabel =
     mealType === "colazione" ? "colazione" : mealType === "pranzo" ? "pranzo" : "cena";
 
@@ -115,59 +93,51 @@ Rispondi in italiano usando ESCLUSIVAMENTE questo formato esatto:
 **Tempo di preparazione**: [minuti totali]
 **Consiglio dello chef**: [un suggerimento rapido sulla cottura o su come insaporire il piatto con le spezie]`;
 
-  const geminiBody = JSON.stringify({
-    contents: [{ parts: [{ text: prompt }] }],
-    generationConfig: { temperature: 0.7, maxOutputTokens: 2048 },
-  });
-
-  // Fallback automatico sui modelli in caso di errori temporanei.
-  let lastError = "";
-  for (const modelUrl of MODELS) {
-    let response: Response;
-    try {
-      response = await fetch(`${modelUrl}?key=${GEMINI_API_KEY}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: geminiBody,
-      });
-    } catch (networkErr) {
-      lastError = `Errore di rete verso Gemini: ${networkErr}`;
-      continue;
-    }
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 2048,
+        messages: [{ role: "user", content: prompt }],
+      }),
+    });
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
-      // Logghiamo lato server il dettaglio dell'errore Gemini,
-      // ma NON lo inoltriamo al client per non esporre info interne.
-      lastError = (err as { error?: { message?: string } })?.error?.message ?? `HTTP ${response.status}`;
-      console.error(`Gemini model ${modelUrl} error:`, lastError);
-
-      // Errore 400 (bad request) è permanente: inutile provare altri modelli.
-      if (response.status === 400) break;
-      // 429 e 503 sono transitori: proviamo il modello successivo.
-      continue;
-    }
-
-    const data = await response.json();
-    const parts: Array<{ text?: string; thought?: boolean }> =
-      data?.candidates?.[0]?.content?.parts ?? [];
-    const text = parts.filter((p) => !p.thought).map((p) => p.text ?? "").join("");
-
-    if (text) {
+      const errMsg = (err as { error?: { message?: string } })?.error?.message ?? `HTTP ${response.status}`;
+      console.error("Anthropic API error:", errMsg);
       return new Response(
-        JSON.stringify({ recipe: text }),
-        { status: 200, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "Generazione ricetta non disponibile al momento. Riprova tra qualche istante." }),
+        { status: 503, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
       );
     }
 
-    lastError = "Risposta vuota dal modello";
-  }
+    const data = await response.json();
+    const text: string = data?.content?.[0]?.text ?? "";
 
-  // Tutti i modelli hanno fallito: restituiamo un errore generico senza
-  // esporre i dettagli interni (lastError è già loggato server-side).
-  console.error("Tutti i modelli Gemini non disponibili. Ultimo errore:", lastError);
-  return new Response(
-    JSON.stringify({ error: "Generazione ricetta non disponibile al momento. Riprova tra qualche istante." }),
-    { status: 503, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
-  );
+    if (!text) {
+      console.error("Risposta vuota da Anthropic");
+      return new Response(
+        JSON.stringify({ error: "Generazione ricetta non disponibile al momento. Riprova tra qualche istante." }),
+        { status: 503, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
+      );
+    }
+
+    return new Response(
+      JSON.stringify({ recipe: text }),
+      { status: 200, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
+    );
+  } catch (err) {
+    console.error("Errore chiamata Anthropic:", err);
+    return new Response(
+      JSON.stringify({ error: "Generazione ricetta non disponibile al momento. Riprova tra qualche istante." }),
+      { status: 503, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
+    );
+  }
 });

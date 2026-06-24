@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer';
 import { Loader2 } from 'lucide-react';
 import { generateRecipe, type MealFood } from '@/services/geminiService';
 
@@ -15,20 +15,13 @@ interface RecipeDialogProps {
   foods: MealFood[];
 }
 
-/**
- * Converte un segmento di testo con sintassi **grassetto** in nodi React.
- * Non usa dangerouslySetInnerHTML: ogni token diventa un nodo JSX tipizzato,
- * eliminando completamente il rischio XSS su output raw dell'API.
- */
 function parseBoldSegments(line: string): React.ReactNode[] {
-  // Suddivide la riga attorno ai delimitatori **...**
   const parts = line.split(/(\*\*[^*]+\*\*)/g);
   return parts.map((part, idx) => {
     if (part.startsWith('**') && part.endsWith('**')) {
-      // Estrae il contenuto interno come testo puro — nessun HTML interpolato
       return <strong key={idx}>{part.slice(2, -2)}</strong>;
     }
-    return part; // testo plain: React lo escapa automaticamente
+    return part;
   });
 }
 
@@ -58,18 +51,15 @@ export function RecipeDialog({ isOpen, onClose, mealType, foods }: RecipeDialogP
   }, [isOpen]);
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-sm max-h-[85vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+    <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DrawerContent className="max-h-[85vh] flex flex-col">
+        <DrawerHeader className="shrink-0">
+          <DrawerTitle className="flex items-center gap-2">
             ✨ Idea piatto
-          </DialogTitle>
-        </DialogHeader>
+          </DrawerTitle>
+        </DrawerHeader>
 
-        <div
-          className="overflow-y-auto pr-1"
-          style={{ maxHeight: '65vh', WebkitOverflowScrolling: 'touch' }}
-        >
+        <div className="flex-1 overflow-y-auto px-4 pb-8" data-vaul-no-drag>
           {loading && (
             <div className="flex flex-col items-center justify-center py-12 gap-3">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -89,7 +79,7 @@ export function RecipeDialog({ isOpen, onClose, mealType, foods }: RecipeDialogP
             </div>
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+      </DrawerContent>
+    </Drawer>
   );
 }

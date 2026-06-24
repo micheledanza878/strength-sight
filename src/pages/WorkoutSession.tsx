@@ -846,11 +846,11 @@ export default function WorkoutSession() {
       </div>
 
       <Drawer open={!!insightsExercise} onOpenChange={(open) => !open && setInsightsExercise(null)}>
-        <DrawerContent className="max-h-[85vh] overflow-y-auto">
-          <DrawerHeader>
+        <DrawerContent className="max-h-[85vh] flex flex-col">
+          <DrawerHeader className="shrink-0">
             <DrawerTitle>{insightsExercise}</DrawerTitle>
           </DrawerHeader>
-          <div className="px-4 pb-8">
+          <div className="flex-1 overflow-y-auto px-4 pb-8" data-vaul-no-drag>
             {insightsExercise && <ExerciseInsightsCard exerciseName={insightsExercise} />}
           </div>
         </DrawerContent>
