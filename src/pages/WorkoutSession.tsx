@@ -846,11 +846,15 @@ export default function WorkoutSession() {
       </div>
 
       <Drawer open={!!insightsExercise} onOpenChange={(open) => !open && setInsightsExercise(null)}>
-        <DrawerContent className="max-h-[85vh] flex flex-col">
-          <DrawerHeader className="shrink-0">
+        <DrawerContent>
+          <DrawerHeader>
             <DrawerTitle>{insightsExercise}</DrawerTitle>
           </DrawerHeader>
-          <div className="flex-1 overflow-y-auto px-4 pb-8" data-vaul-no-drag>
+          <div
+            className="overflow-y-auto px-4 pb-8"
+            style={{ maxHeight: 'calc(75vh - 80px)', WebkitOverflowScrolling: 'touch' }}
+            data-vaul-no-drag
+          >
             {insightsExercise && <ExerciseInsightsCard exerciseName={insightsExercise} />}
           </div>
         </DrawerContent>
