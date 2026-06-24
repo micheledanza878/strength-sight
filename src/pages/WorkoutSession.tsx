@@ -6,6 +6,8 @@ import RestTimer from "@/components/RestTimer";
 import { useToast } from "@/hooks/use-toast";
 import { getUserId } from "@/lib/user";
 import { calculateProgression, ProgressionSuggestion } from "@/services/progressionService";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
+import { ExerciseInsightsCard } from "@/components/Exercise/ExerciseInsightsCard";
 
 interface SetEntry {
   reps: string;
@@ -77,6 +79,7 @@ export default function WorkoutSession() {
   const [justDone, setJustDone] = useState<string | null>(null);
   const [completion, setCompletion] = useState<CompletionStats | null>(null);
   const [resumeDialog, setResumeDialog] = useState<string | null>(null);
+  const [insightsExercise, setInsightsExercise] = useState<string | null>(null);
   const [showResumePrompt, setShowResumePrompt] = useState(false);
   // Mappa esercizio → suggerimento di progressione calcolato dalla sessione precedente
   const [progressionSuggestions, setProgressionSuggestions] = useState<Record<string, ProgressionSuggestion>>({});
@@ -724,7 +727,7 @@ export default function WorkoutSession() {
             </span>
           )}
           <button
-            onClick={() => navigate(`/exercise/${encodeURIComponent(exercise.exercise_name)}`)}
+            onClick={() => setInsightsExercise(exercise.exercise_name)}
             className="shrink-0 w-8 h-8 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground active:scale-90 transition-transform"
             aria-label={`Info su ${exercise.exercise_name}`}
           >
@@ -841,6 +844,17 @@ export default function WorkoutSession() {
           </button>
         )}
       </div>
+
+      <Drawer open={!!insightsExercise} onOpenChange={(open) => !open && setInsightsExercise(null)}>
+        <DrawerContent className="max-h-[85vh] overflow-y-auto">
+          <DrawerHeader>
+            <DrawerTitle>{insightsExercise}</DrawerTitle>
+          </DrawerHeader>
+          <div className="px-4 pb-8">
+            {insightsExercise && <ExerciseInsightsCard exerciseName={insightsExercise} />}
+          </div>
+        </DrawerContent>
+      </Drawer>
     </div>
   );
 }
