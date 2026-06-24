@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Check, Trophy, RotateCcw, Clock, Play, Loader, Edit2, CloudOff } from "lucide-react";
+import { ArrowLeft, Check, Trophy, RotateCcw, Clock, Play, Loader, Edit2, CloudOff, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import RestTimer from "@/components/RestTimer";
 import { useToast } from "@/hooks/use-toast";
@@ -456,6 +456,13 @@ export default function WorkoutSession() {
                     +{suggestion.increment}kg
                   </span>
                 )}
+                <button
+                  onClick={() => navigate(`/exercise/${encodeURIComponent(ex.exercise_name)}`)}
+                  className="shrink-0 w-8 h-8 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground active:scale-90 transition-transform"
+                  aria-label={`Info su ${ex.exercise_name}`}
+                >
+                  <Info className="w-4 h-4" />
+                </button>
               </div>
             );
           })}
@@ -716,6 +723,13 @@ export default function WorkoutSession() {
               ↑ +{progressionSuggestions[exercise.exercise_name].increment}kg
             </span>
           )}
+          <button
+            onClick={() => navigate(`/exercise/${encodeURIComponent(exercise.exercise_name)}`)}
+            className="shrink-0 w-8 h-8 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground active:scale-90 transition-transform"
+            aria-label={`Info su ${exercise.exercise_name}`}
+          >
+            <Info className="w-4 h-4" />
+          </button>
         </div>
         <p className="text-sm text-muted-foreground mb-4">
           {exercise.sets} × {exercise.reps_min}{exercise.reps_max && exercise.reps_max !== exercise.reps_min ? `-${exercise.reps_max}` : ""} reps
