@@ -86,6 +86,57 @@ export type Database = {
         }
         Relationships: []
       }
+      exercise_ai_info: {
+        Row: {
+          id: string
+          exercise_name: string
+          normalized_name: string
+          technique: string | null
+          primary_muscles: string[] | null
+          secondary_muscles: string[] | null
+          variations: string[] | null
+          tips: string[] | null
+          bodyweight_percentage: number | null
+          is_bodyweight: boolean | null
+          youtube_url: string | null
+          youtube_video_id: string | null
+          model_used: string | null
+          generated_at: string | null
+        }
+        Insert: {
+          id?: string
+          exercise_name: string
+          normalized_name: string
+          technique?: string | null
+          primary_muscles?: string[] | null
+          secondary_muscles?: string[] | null
+          variations?: string[] | null
+          tips?: string[] | null
+          bodyweight_percentage?: number | null
+          is_bodyweight?: boolean | null
+          youtube_url?: string | null
+          youtube_video_id?: string | null
+          model_used?: string | null
+          generated_at?: string | null
+        }
+        Update: {
+          id?: string
+          exercise_name?: string
+          normalized_name?: string
+          technique?: string | null
+          primary_muscles?: string[] | null
+          secondary_muscles?: string[] | null
+          variations?: string[] | null
+          tips?: string[] | null
+          bodyweight_percentage?: number | null
+          is_bodyweight?: boolean | null
+          youtube_url?: string | null
+          youtube_video_id?: string | null
+          model_used?: string | null
+          generated_at?: string | null
+        }
+        Relationships: []
+      }
       set_logs: {
         Row: {
           created_at: string

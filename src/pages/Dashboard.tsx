@@ -23,6 +23,7 @@ import { WORKOUT_DAYS, getNextWorkoutDay } from "@/data/workouts";
 import type { WorkoutDay } from "@/data/workouts";
 import { useNotifications } from "@/hooks/use-notifications";
 import { maybeNotifyStreakAtRisk, maybeNotifyMeasurementOverdue } from "@/lib/notifications";
+import { calculateSetVolume, DEFAULT_BODYWEIGHT_KG } from "@/services/bodweightVolumeService";
 
 interface VolumePoint {
   date: string;
@@ -48,6 +49,7 @@ interface WorkoutPlan {
  * Supabase restituisce la relazione come oggetto singolo (not-null quando presente).
  */
 interface SetLogWithWorkoutLog {
+  exercise_name: string;
   weight: number | null;
   reps: number;
   workout_logs: { started_at: string } | null;
@@ -75,6 +77,9 @@ export default function Dashboard() {
 
   const [plans, setPlans] = useState<WorkoutPlan[]>([]);
   const [selectedMonth, setSelectedMonth] = useState(new Date());
+  // Peso corporeo dell'utente: letto dalla misurazione più recente.
+  // Usato per stimare il volume degli esercizi bodyweight (peso = 0 o null).
+  const [userBodyweight, setUserBodyweight] = useState<number>(DEFAULT_BODYWEIGHT_KG);
 
   // ── Notifiche ──────────────────────────────────────────────────────────────
   const { isEnabled, isSupported, isLoading: notifLoading, toggle: toggleNotifications } = useNotifications();
@@ -233,22 +238,43 @@ export default function Dashboard() {
       }
     }
 
-    // Monthly volume from set_logs
+    // ── Peso corporeo utente ─────────────────────────────────────────────────
+    // Recupera la misurazione più recente con il campo `weight` valorizzato.
+    // Viene usato per stimare il volume degli esercizi bodyweight nei grafici.
+    const { data: latestMeasurement } = await supabase
+      .from("body_measurements")
+      .select("weight")
+      .eq("user_id", uid)
+      .not("weight", "is", null)
+      .order("measured_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    // Se non c'è nessuna misurazione con peso, manteniamo il fallback DEFAULT_BODYWEIGHT_KG
+    const bw: number = latestMeasurement?.weight ?? DEFAULT_BODYWEIGHT_KG;
+    setUserBodyweight(bw);
+
+    // Monthly volume from set_logs (con stima bodyweight)
     const { data: monthSets } = await supabase
       .from("set_logs")
-      .select("weight, reps")
+      .select("exercise_name, weight, reps")
       .eq("user_id", uid)
       .gte("created_at", monthStart.toISOString())
       .lte("created_at", monthEnd.toISOString());
 
     if (monthSets) {
-      setMonthVolume(monthSets.reduce((acc, s) => acc + s.weight * s.reps, 0));
+      setMonthVolume(
+        monthSets.reduce(
+          (acc, s) => acc + calculateSetVolume(s.weight, s.reps, s.exercise_name, bw),
+          0
+        )
+      );
     }
 
-    // Volume per session (last 8 completed)
+    // Volume per session (last 8 completed) — con stima bodyweight
     const { data: recentLogs } = await supabase
       .from("workout_logs")
-      .select("id, workout_day, started_at, set_logs(weight, reps)")
+      .select("id, workout_day, started_at, set_logs(exercise_name, weight, reps)")
       .eq("user_id", uid)
       .not("completed_at", "is", null)
       .order("started_at", { ascending: false })
@@ -257,23 +283,31 @@ export default function Dashboard() {
     if (recentLogs) {
       const points: VolumePoint[] = recentLogs
         .map((log) => {
-          const sets = (log.set_logs as { weight: number; reps: number }[]) || [];
-          const vol = sets.reduce((acc, s) => acc + s.weight * s.reps, 0);
+          const sets =
+            (log.set_logs as { exercise_name: string; weight: number | null; reps: number }[]) ||
+            [];
+          const vol = sets.reduce(
+            (acc, s) => acc + calculateSetVolume(s.weight, s.reps, s.exercise_name, bw),
+            0
+          );
           return {
             date: format(parseISO(log.started_at), "d/M"),
             volume: vol,
             day: log.workout_day,
           };
         })
+        // Filtro rimosso: anche sessioni solo bodyweight ora contribuiscono al grafico.
+        // Un volume 0 residuo indica sessioni con esercizi non classificati, che
+        // escludiamo per non inquinare il grafico con barre vuote.
         .filter((p) => p.volume > 0)
         .reverse();
       setVolumeChart(points);
     }
 
-    // Weekly volume (last 8 weeks)
+    // Weekly volume (last 8 weeks) — con stima bodyweight
     const { data: allSets } = await supabase
       .from("set_logs")
-      .select("weight, reps, workout_logs(started_at)")
+      .select("exercise_name, weight, reps, workout_logs(started_at)")
       .eq("user_id", uid)
       .gte("created_at", subDays(now, 56).toISOString());
 
@@ -283,7 +317,9 @@ export default function Dashboard() {
         const logDate = s.workout_logs?.started_at;
         if (logDate) {
           const week = `W${getWeek(parseISO(logDate))}`;
-          weeklyMap[week] = (weeklyMap[week] || 0) + (s.weight ?? 0) * s.reps;
+          weeklyMap[week] =
+            (weeklyMap[week] || 0) +
+            calculateSetVolume(s.weight, s.reps, s.exercise_name, bw);
         }
       });
       const weeklyData = Object.entries(weeklyMap)

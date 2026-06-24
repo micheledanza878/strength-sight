@@ -5,6 +5,7 @@ import { getUserId } from "@/lib/user";
 import { format, parseISO, startOfWeek, endOfWeek } from "date-fns";
 import { it } from "date-fns/locale";
 import { ArrowLeft, Trophy, TrendingUp, Dumbbell, BarChart3 } from "lucide-react";
+import { ExerciseInsightsCard } from "@/components/Exercise/ExerciseInsightsCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   LineChart,
@@ -237,6 +238,9 @@ export default function ExerciseDetail() {
           <p className="text-muted-foreground text-xs mt-0.5">Analisi esercizio</p>
         </div>
       </div>
+
+      {/* Card AI — visibile anche senza storico set, silently-fail se null */}
+      <ExerciseInsightsCard exerciseName={exerciseName} />
 
       {/* Skeleton loading */}
       {loading && (
