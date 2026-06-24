@@ -9,9 +9,9 @@ const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 // Elenco di modelli in ordine di preferenza: si tenta il successivo in caso
 // di sovraccarico (503) o quota esaurita (429).
 const MODELS = [
-  "https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent",
+  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
   "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
-  "https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash-lite:generateContent",
+  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent",
 ];
 
 // Headers CORS necessari per consentire le chiamate dal frontend (origine del
