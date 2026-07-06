@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, Trash2, Loader, ChevronUp, ChevronDown } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Loader, ChevronUp, ChevronDown, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import PageContainer from "@/components/PageContainer";
@@ -11,6 +11,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SkillPickerDialog } from "@/components/Exercise/SkillPickerDialog";
+import { Skill } from "@/data/skills";
 
 interface BodyPart {
   id: string;
@@ -29,6 +31,8 @@ interface Exercise {
   notes: string;
   order_number?: number;
   primary_body_part_id?: string;
+  tracking_unit?: "reps" | "seconds";
+  skill_slug?: string | null;
 }
 
 interface WorkoutDay {
@@ -48,6 +52,7 @@ export default function EditWorkoutDay() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [bodyParts, setBodyParts] = useState<BodyPart[]>([]);
+  const [skillPickerOpen, setSkillPickerOpen] = useState(false);
 
   useEffect(() => {
     loadBodyParts();
@@ -101,6 +106,8 @@ export default function EditWorkoutDay() {
           notes: ex.notes || "",
           order_number: ex.order_number,
           primary_body_part_id: ex.primary_body_part_id,
+          tracking_unit: ex.tracking_unit || "reps",
+          skill_slug: ex.skill_slug,
         })),
       });
     } catch (error) {
@@ -132,6 +139,27 @@ export default function EditWorkoutDay() {
         ],
       });
     }
+  }
+
+  function addSkillExercise(skill: Skill) {
+    if (!day) return;
+    const firstStep = skill.steps[0];
+    setDay({
+      ...day,
+      exercises: [
+        ...day.exercises,
+        {
+          exercise_name: skill.name,
+          sets: skill.recommendedSets,
+          reps_min: firstStep.targetMin,
+          reps_max: firstStep.targetMax ?? firstStep.targetMin,
+          rest_seconds: skill.recommendedRestSeconds,
+          notes: skill.warning || `Skill neurologica, a inizio seduta da fresco. Step 1: ${firstStep.name}.`,
+          tracking_unit: firstStep.targetType,
+          skill_slug: skill.slug,
+        },
+      ],
+    });
   }
 
   function removeExercise(exIdx: number) {
@@ -205,6 +233,8 @@ export default function EditWorkoutDay() {
         rest_seconds: ex.rest_seconds,
         notes: ex.notes || null,
         primary_body_part_id: ex.primary_body_part_id || null,
+        tracking_unit: ex.tracking_unit || "reps",
+        skill_slug: ex.skill_slug || null,
       }));
 
       if (exercisesToInsert.length > 0) {
@@ -264,7 +294,14 @@ export default function EditWorkoutDay() {
         {day.exercises.map((ex, exIdx) => (
           <div key={exIdx} className="bg-card border border-border rounded-2xl p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Esercizio {exIdx + 1}</p>
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                Esercizio {exIdx + 1}
+                {ex.skill_slug && (
+                  <span className="inline-flex items-center gap-1 normal-case font-semibold text-primary bg-primary/10 rounded-full px-2 py-0.5">
+                    <Sparkles className="w-3 h-3" /> Skill
+                  </span>
+                )}
+              </p>
               <div className="flex items-center gap-1.5">
                 <button onClick={() => moveExercise(exIdx, 'up')} disabled={exIdx === 0}
                   className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground disabled:opacity-30 active:scale-90 transition-transform">
@@ -307,13 +344,17 @@ export default function EditWorkoutDay() {
                   className="w-full h-10 bg-secondary rounded-xl px-3 text-sm text-center outline-none focus:ring-2 focus:ring-primary" min="1" />
               </div>
               <div>
-                <label className="text-[10px] text-muted-foreground block mb-1.5">Rep min</label>
+                <label className="text-[10px] text-muted-foreground block mb-1.5">
+                  {ex.tracking_unit === "seconds" ? "Sec min" : "Rep min"}
+                </label>
                 <input type="number" value={ex.reps_min}
                   onChange={(e) => updateExercise(exIdx, "reps_min", parseInt(e.target.value))}
                   className="w-full h-10 bg-secondary rounded-xl px-3 text-sm text-center outline-none focus:ring-2 focus:ring-primary" min="1" />
               </div>
               <div>
-                <label className="text-[10px] text-muted-foreground block mb-1.5">Rep max</label>
+                <label className="text-[10px] text-muted-foreground block mb-1.5">
+                  {ex.tracking_unit === "seconds" ? "Sec max" : "Rep max"}
+                </label>
                 <input type="number" value={ex.reps_max}
                   onChange={(e) => updateExercise(exIdx, "reps_max", parseInt(e.target.value))}
                   className="w-full h-10 bg-secondary rounded-xl px-3 text-sm text-center outline-none focus:ring-2 focus:ring-primary" min="1" />
@@ -337,12 +378,21 @@ export default function EditWorkoutDay() {
           </div>
         ))}
 
-        <button onClick={addExercise}
-          className="w-full h-12 rounded-2xl bg-secondary border border-dashed border-border text-muted-foreground font-semibold flex items-center justify-center gap-2 active:scale-95 transition-transform">
-          <Plus className="w-4 h-4" />
-          Aggiungi esercizio
-        </button>
+        <div className="grid grid-cols-2 gap-2">
+          <button onClick={addExercise}
+            className="h-12 rounded-2xl bg-secondary border border-dashed border-border text-muted-foreground font-semibold flex items-center justify-center gap-2 active:scale-95 transition-transform">
+            <Plus className="w-4 h-4" />
+            Esercizio
+          </button>
+          <button onClick={() => setSkillPickerOpen(true)}
+            className="h-12 rounded-2xl bg-primary/10 border border-dashed border-primary/40 text-primary font-semibold flex items-center justify-center gap-2 active:scale-95 transition-transform">
+            <Sparkles className="w-4 h-4" />
+            Skill
+          </button>
+        </div>
       </div>
+
+      <SkillPickerDialog open={skillPickerOpen} onOpenChange={setSkillPickerOpen} onSelect={addSkillExercise} />
 
       {/* ── Bottom CTA ── */}
       <div className="fixed bottom-6 left-4 right-4 max-w-[412px] mx-auto flex gap-3 md:sticky md:bottom-6 md:left-auto md:right-auto md:max-w-none md:w-full">

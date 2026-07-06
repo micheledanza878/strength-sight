@@ -7,8 +7,15 @@ import RestTimer from "@/components/RestTimer";
 import { useToast } from "@/hooks/use-toast";
 import { getUserId } from "@/lib/user";
 import { calculateProgression, ProgressionSuggestion } from "@/services/progressionService";
+import {
+  loadSkillProgress,
+  evaluateAndSaveSkillSession,
+  SkillProgressRow,
+} from "@/services/skillProgressionService";
+import { getSkill, getSkillStep } from "@/data/skills";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { ExerciseInsightsCard } from "@/components/Exercise/ExerciseInsightsCard";
+import { SkillLadderCard } from "@/components/Exercise/SkillLadderCard";
 
 interface SetEntry {
   reps: string;
@@ -16,10 +23,16 @@ interface SetEntry {
   done: boolean;
 }
 
+interface SkillLevelUp {
+  skillName: string;
+  newStepName: string;
+}
+
 interface CompletionStats {
   duration: number;
   sets: number;
   volume: number;
+  levelUps: SkillLevelUp[];
 }
 
 function formatElapsed(seconds: number) {
@@ -49,6 +62,8 @@ interface PlanExercise {
   reps_max: number | null;
   rest_seconds: number | null;
   notes: string | null;
+  tracking_unit: "reps" | "seconds" | null;
+  skill_slug: string | null;
 }
 
 interface PlanDay {
@@ -76,7 +91,9 @@ export default function WorkoutSession() {
   const [timerKey, setTimerKey] = useState(0);
   const [workoutLogId, setWorkoutLogId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [prevSets, setPrevSets] = useState<Record<string, { reps: number; weight: number }[]>>({});
+  const [prevSets, setPrevSets] = useState<Record<string, { reps: number; weight: number; hold_seconds: number }[]>>({});
+  // Progresso corrente (step + sedute pulite) per ogni skill presente nel giorno, keyed by skill_slug
+  const [skillProgress, setSkillProgress] = useState<Record<string, SkillProgressRow>>({});
   const [justDone, setJustDone] = useState<string | null>(null);
   const [completion, setCompletion] = useState<CompletionStats | null>(null);
   const [resumeDialog, setResumeDialog] = useState<string | null>(null);
@@ -101,9 +118,11 @@ export default function WorkoutSession() {
   //   ALTER TABLE set_logs ADD CONSTRAINT set_logs_unique_set
   //   UNIQUE (workout_log_id, exercise_name, set_number);
   const autosaveSet = useCallback(
-    async (exName: string, setIdx: number, reps: string, weight: string) => {
+    async (ex: PlanExercise, setIdx: number, reps: string, weight: string, currentStepOrder: number | null) => {
       const logId = workoutLogIdRef.current;
       if (!logId) return; // log non ancora creato (raro ma possibile se la rete è lenta)
+
+      const isSkillHold = ex.tracking_unit === "seconds";
 
       setAutosaveStatus("saving");
       try {
@@ -112,10 +131,13 @@ export default function WorkoutSession() {
           {
             user_id: userId,
             workout_log_id: logId,
-            exercise_name: exName,
+            exercise_name: ex.exercise_name,
             set_number: setIdx + 1,
-            reps: parseInt(reps) || 0,
-            weight: parseFloat(weight) || 0,
+            reps: isSkillHold ? null : parseInt(reps) || 0,
+            hold_seconds: isSkillHold ? parseInt(reps) || 0 : null,
+            weight: isSkillHold ? 0 : parseFloat(weight) || 0,
+            skill_slug: ex.skill_slug,
+            skill_step_order: ex.skill_slug ? currentStepOrder ?? 1 : null,
           },
           { onConflict: "workout_log_id,exercise_name,set_number" }
         );
@@ -228,9 +250,10 @@ export default function WorkoutSession() {
   useEffect(() => {
     if (Object.keys(prevSets).length === 0 || exercises.length === 0) return;
 
-    // Calcola i suggerimenti di double progression per ogni esercizio
+    // Calcola i suggerimenti di double progression solo per gli esercizi a peso/reps
     const suggestions: Record<string, ProgressionSuggestion> = {};
     exercises.forEach((ex) => {
+      if (ex.tracking_unit === "seconds") return;
       const prev = prevSets[ex.exercise_name];
       if (prev) {
         suggestions[ex.exercise_name] = calculateProgression(
@@ -243,32 +266,59 @@ export default function WorkoutSession() {
     });
     setProgressionSuggestions(suggestions);
 
-    // Auto-fill: usa il peso SUGGERITO se c'è una progressione, altrimenti il peso precedente
     setSets((prev) => {
       const updated = { ...prev };
       Object.entries(prevSets).forEach(([exName, prevExSets]) => {
-        if (updated[exName]) {
-          const suggestion = suggestions[exName];
-          // Peso da pre-compilare: suggerito se la condizione è soddisfatta, altrimenti il precedente
-          const weightToFill = suggestion?.shouldIncrease
-            ? String(suggestion.suggestedWeight)
-            : prevExSets[0]?.weight > 0
-            ? String(prevExSets[0].weight)
-            : "";
+        if (!updated[exName]) return;
+        const ex = exercises.find((e) => e.exercise_name === exName);
 
+        if (ex?.tracking_unit === "seconds") {
+          // Skill a tempo: niente peso, precompila i secondi con la tenuta della sessione precedente
           updated[exName] = updated[exName].map((s, i) => ({
             ...s,
-            // Per il peso usiamo il valore calcolato sopra (uguale per tutti i set,
-            // come avviene tipicamente in un allenamento con peso fisso per serie)
-            weight: s.weight === "" && weightToFill !== "" ? weightToFill : s.weight,
-            // Per le reps manteniamo quelle del set specifico della sessione precedente
-            reps: s.reps === "" && prevExSets[i]?.reps > 0 ? String(prevExSets[i].reps) : s.reps,
+            reps: s.reps === "" && prevExSets[i]?.hold_seconds > 0 ? String(prevExSets[i].hold_seconds) : s.reps,
           }));
+          return;
         }
+
+        const suggestion = suggestions[exName];
+        // Peso da pre-compilare: suggerito se la condizione è soddisfatta, altrimenti il precedente
+        const weightToFill = suggestion?.shouldIncrease
+          ? String(suggestion.suggestedWeight)
+          : prevExSets[0]?.weight > 0
+          ? String(prevExSets[0].weight)
+          : "";
+
+        updated[exName] = updated[exName].map((s, i) => ({
+          ...s,
+          // Per il peso usiamo il valore calcolato sopra (uguale per tutti i set,
+          // come avviene tipicamente in un allenamento con peso fisso per serie)
+          weight: s.weight === "" && weightToFill !== "" ? weightToFill : s.weight,
+          // Per le reps manteniamo quelle del set specifico della sessione precedente
+          reps: s.reps === "" && prevExSets[i]?.reps > 0 ? String(prevExSets[i].reps) : s.reps,
+        }));
       });
       return updated;
     });
   }, [prevSets, exercises]);
+
+  // Carica lo stato di avanzamento (step corrente + sedute pulite) per ogni skill del giorno
+  useEffect(() => {
+    const skillSlugs = Array.from(new Set(exercises.map((e) => e.skill_slug).filter((s): s is string => !!s)));
+    if (skillSlugs.length === 0) return;
+
+    (async () => {
+      try {
+        const userId = await getUserId();
+        const entries = await Promise.all(
+          skillSlugs.map(async (slug) => [slug, await loadSkillProgress(userId, slug)] as const)
+        );
+        setSkillProgress(Object.fromEntries(entries));
+      } catch (error) {
+        console.error("Errore caricamento progresso skill:", error);
+      }
+    })();
+  }, [exercises]);
 
   // Elapsed workout timer
   useEffect(() => {
@@ -321,15 +371,15 @@ export default function WorkoutSession() {
 
       const { data: lastSets } = await supabase
         .from("set_logs")
-        .select("exercise_name, set_number, reps, weight")
+        .select("exercise_name, set_number, reps, weight, hold_seconds")
         .eq("workout_log_id", lastLog.id)
         .order("set_number", { ascending: true });
 
       if (lastSets) {
-        const grouped: Record<string, { reps: number; weight: number }[]> = {};
+        const grouped: Record<string, { reps: number; weight: number; hold_seconds: number }[]> = {};
         lastSets.forEach((s) => {
           if (!grouped[s.exercise_name]) grouped[s.exercise_name] = [];
-          grouped[s.exercise_name].push({ reps: s.reps, weight: s.weight });
+          grouped[s.exercise_name].push({ reps: s.reps, weight: s.weight, hold_seconds: s.hold_seconds ?? 0 });
         });
         setPrevSets(grouped);
       }
@@ -358,6 +408,23 @@ export default function WorkoutSession() {
       setWorkoutLogId(data.id);
       workoutLogIdRef.current = data.id;
     }
+  }
+
+  // Info sullo step corrente di una skill (nome step, target, sedute pulite verso l'avanzamento)
+  function getSkillStepInfo(ex: PlanExercise) {
+    if (!ex.skill_slug) return null;
+    const skill = getSkill(ex.skill_slug);
+    if (!skill) return null;
+    const progress = skillProgress[ex.skill_slug];
+    const step = getSkillStep(skill, progress?.current_step_order ?? 1);
+    if (!step) return null;
+    return {
+      skill,
+      step,
+      stepIndex: skill.steps.findIndex((s) => s.order === step.order) + 1,
+      totalSteps: skill.steps.length,
+      cleanSessions: progress?.consecutive_clean_sessions ?? 0,
+    };
   }
 
   if (dayLoading) return <div className="p-5 pt-14 text-foreground">Caricamento...</div>;
@@ -442,20 +509,24 @@ export default function WorkoutSession() {
         <div className="space-y-2 mb-8">
           {exercises.map((ex) => {
             const suggestion = progressionSuggestions[ex.exercise_name];
+            const isHold = ex.tracking_unit === "seconds";
+            const skillInfo = getSkillStepInfo(ex);
             return (
               <div key={ex.id} className="bg-card rounded-2xl px-4 py-3 flex items-center gap-3">
-                <span className="text-xl">{getExerciseIcon(ex.exercise_name)}</span>
+                <span className="text-xl">{isHold ? "🧘" : getExerciseIcon(ex.exercise_name)}</span>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-sm">{ex.exercise_name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {ex.sets} serie × {ex.reps_min}{ex.reps_max && ex.reps_max !== ex.reps_min ? `-${ex.reps_max}` : ""} reps
-                    {prevSets[ex.exercise_name]?.[0]?.weight > 0
+                    {skillInfo
+                      ? `Step ${skillInfo.stepIndex}/${skillInfo.totalSteps} · ${skillInfo.step.name} · target ${skillInfo.step.targetMin}${skillInfo.step.targetMax ? `-${skillInfo.step.targetMax}` : ""}${isHold ? "s" : " reps"}`
+                      : `${ex.sets} serie × ${ex.reps_min}${ex.reps_max && ex.reps_max !== ex.reps_min ? `-${ex.reps_max}` : ""} ${isHold ? "sec" : "reps"}`}
+                    {!isHold && prevSets[ex.exercise_name]?.[0]?.weight > 0
                       ? ` · ${suggestion?.shouldIncrease ? suggestion.suggestedWeight : prevSets[ex.exercise_name][0].weight}kg`
                       : ""}
                   </p>
                 </div>
-                {/* Badge progressione: visibile solo se l'algoritmo suggerisce un incremento */}
-                {suggestion?.shouldIncrease && (
+                {/* Badge progressione peso: visibile solo se l'algoritmo suggerisce un incremento */}
+                {!isHold && suggestion?.shouldIncrease && (
                   <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-500 whitespace-nowrap">
                     +{suggestion.increment}kg
                   </span>
@@ -489,6 +560,8 @@ export default function WorkoutSession() {
   // ── ACTIVE WORKOUT ───────────────────────────────────────────────
   const exercise = exercises[currentExIdx];
   const exSets = sets[exercise?.exercise_name || ""] || [];
+  const isHoldExercise = exercise?.tracking_unit === "seconds";
+  const skillInfo = exercise ? getSkillStepInfo(exercise) : null;
   const totalExercises = exercises.length;
   const completedExercises = exercises.filter((ex) =>
     (sets[ex.exercise_name] || []).every((s) => s.done)
@@ -521,8 +594,14 @@ export default function WorkoutSession() {
     return weight > prevWeight || (weight === prevWeight && reps > prevReps);
   }
 
+  function isNewHoldPR(exName: string, holdSeconds: number): boolean {
+    const prevHold = Math.max(0, ...(prevSets[exName] || []).map((s) => s.hold_seconds ?? 0));
+    return holdSeconds > prevHold;
+  }
+
   function toggleSet(idx: number) {
-    const exName = exercise?.exercise_name || "";
+    if (!exercise) return;
+    const exName = exercise.exercise_name;
     const current = (sets[exName] || [])[idx];
 
     if (!current) {
@@ -544,7 +623,8 @@ export default function WorkoutSession() {
 
       // Autosave: leggiamo i valori dal current corrente (che non è ancora
       // aggiornato nello state, ma i campi reps/weight non cambiano qui).
-      autosaveSet(exName, idx, current.reps, current.weight);
+      const currentStepOrder = exercise?.skill_slug ? skillProgress[exercise.skill_slug]?.current_step_order ?? 1 : null;
+      autosaveSet(exercise, idx, current.reps, current.weight, currentStepOrder);
     } else {
       // L'utente ha de-selezionato il set: rimuove il record dal DB.
       setSets((prev) => {
@@ -589,7 +669,31 @@ export default function WorkoutSession() {
       }))
     );
     const volume = allDoneSets.reduce((acc, s) => acc + s.weight * s.reps, 0);
-    setCompletion({ duration: Math.round(elapsed / 60), sets: allDoneSets.length, volume });
+
+    // Valuta l'avanzamento di step per ogni skill allenata in questa seduta
+    const levelUps: SkillLevelUp[] = [];
+    const skillExercises = exercises.filter((ex) => ex.skill_slug);
+    if (skillExercises.length > 0) {
+      try {
+        const userId = await getUserId();
+        for (const ex of skillExercises) {
+          const loggedSets = (sets[ex.exercise_name] || [])
+            .filter((s) => s.done)
+            .map((s) => ({ value: parseInt(s.reps) || 0 }));
+          if (loggedSets.length === 0) continue;
+
+          const result = await evaluateAndSaveSkillSession(userId, ex.skill_slug!, loggedSets, ex.sets);
+          if (result?.leveledUp && result.newStep) {
+            const skill = getSkill(ex.skill_slug!);
+            levelUps.push({ skillName: skill?.name ?? ex.exercise_name, newStepName: result.newStep.name });
+          }
+        }
+      } catch (error) {
+        console.error("Errore valutazione progressione skill:", error);
+      }
+    }
+
+    setCompletion({ duration: Math.round(elapsed / 60), sets: allDoneSets.length, volume, levelUps });
   }
 
   // Completion screen
@@ -620,6 +724,18 @@ export default function WorkoutSession() {
               </p>
             </div>
           </div>
+
+          {completion.levelUps.length > 0 && (
+            <div className="space-y-2 mb-8">
+              {completion.levelUps.map((lvl, i) => (
+                <div key={i} className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4 text-left">
+                  <p className="text-sm font-bold text-emerald-500">🎉 {lvl.skillName}: livello superato!</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Nuovo step: {lvl.newStepName}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
           <button
             onClick={() => navigate("/")}
             className="w-full h-14 rounded-2xl font-bold text-white transition-transform active:scale-95 gradient-primary glow-primary"
@@ -719,10 +835,10 @@ export default function WorkoutSession() {
       {/* Current exercise */}
       <div className="bg-card rounded-2xl p-5 mb-4 border-t-2 border-primary">
         <div className="flex items-center gap-3 mb-1">
-          <span className="text-2xl">{getExerciseIcon(exercise.exercise_name)}</span>
+          <span className="text-2xl">{isHoldExercise ? "🧘" : getExerciseIcon(exercise.exercise_name)}</span>
           <p className="text-lg font-bold flex-1">{exercise.exercise_name}</p>
           {/* Badge progressione inline nell'header dell'esercizio */}
-          {progressionSuggestions[exercise.exercise_name]?.shouldIncrease && (
+          {!isHoldExercise && progressionSuggestions[exercise.exercise_name]?.shouldIncrease && (
             <span className="shrink-0 text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-500">
               ↑ +{progressionSuggestions[exercise.exercise_name].increment}kg
             </span>
@@ -735,10 +851,18 @@ export default function WorkoutSession() {
             <Info className="w-4 h-4" />
           </button>
         </div>
-        <p className="text-sm text-muted-foreground mb-4">
-          {exercise.sets} × {exercise.reps_min}{exercise.reps_max && exercise.reps_max !== exercise.reps_min ? `-${exercise.reps_max}` : ""} reps
-          {exercise.notes ? ` · ${exercise.notes}` : ""}
-        </p>
+        {skillInfo ? (
+          <p className="text-sm text-muted-foreground mb-4">
+            Step {skillInfo.stepIndex}/{skillInfo.totalSteps} · {skillInfo.step.name} · target {skillInfo.step.targetMin}
+            {skillInfo.step.targetMax ? `-${skillInfo.step.targetMax}` : ""}
+            {isHoldExercise ? "s" : " reps"} · {skillInfo.cleanSessions}/{skillInfo.step.criteriaSessions} sedute pulite
+          </p>
+        ) : (
+          <p className="text-sm text-muted-foreground mb-4">
+            {exercise.sets} × {exercise.reps_min}{exercise.reps_max && exercise.reps_max !== exercise.reps_min ? `-${exercise.reps_max}` : ""} {isHoldExercise ? "sec" : "reps"}
+            {exercise.notes ? ` · ${exercise.notes}` : ""}
+          </p>
+        )}
 
         <div className="space-y-2">
           {exSets.map((s, i) => {
@@ -759,30 +883,34 @@ export default function WorkoutSession() {
                   <input
                     type="number"
                     inputMode="numeric"
-                    placeholder="Rep"
+                    placeholder={isHoldExercise ? "Sec" : "Rep"}
                     value={s.reps}
                     onChange={(e) => updateSet(i, "reps", e.target.value)}
                     className={`w-16 h-12 bg-secondary rounded-xl px-2 text-foreground text-base text-center placeholder:text-muted-foreground outline-none transition-opacity ${s.done ? "opacity-50" : ""}`}
                   />
 
-                  <div className={`flex items-center flex-1 bg-secondary rounded-xl overflow-hidden h-12 transition-opacity ${s.done ? "opacity-50" : ""}`}>
-                    <button
-                      onClick={() => adjustWeight(i, -2.5)}
-                      className="h-full px-3 text-base font-bold text-muted-foreground active:bg-muted transition-colors"
-                    >−</button>
-                    <input
-                      type="number"
-                      inputMode="decimal"
-                      placeholder="kg"
-                      value={s.weight}
-                      onChange={(e) => updateSet(i, "weight", e.target.value)}
-                      className="flex-1 h-full bg-transparent text-foreground text-base text-center outline-none min-w-0 placeholder:text-muted-foreground"
-                    />
-                    <button
-                      onClick={() => adjustWeight(i, 2.5)}
-                      className="h-full px-3 text-base font-bold text-muted-foreground active:bg-muted transition-colors"
-                    >+</button>
-                  </div>
+                  {isHoldExercise ? (
+                    <div className="flex-1" />
+                  ) : (
+                    <div className={`flex items-center flex-1 bg-secondary rounded-xl overflow-hidden h-12 transition-opacity ${s.done ? "opacity-50" : ""}`}>
+                      <button
+                        onClick={() => adjustWeight(i, -2.5)}
+                        className="h-full px-3 text-base font-bold text-muted-foreground active:bg-muted transition-colors"
+                      >−</button>
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        placeholder="kg"
+                        value={s.weight}
+                        onChange={(e) => updateSet(i, "weight", e.target.value)}
+                        className="flex-1 h-full bg-transparent text-foreground text-base text-center outline-none min-w-0 placeholder:text-muted-foreground"
+                      />
+                      <button
+                        onClick={() => adjustWeight(i, 2.5)}
+                        className="h-full px-3 text-base font-bold text-muted-foreground active:bg-muted transition-colors"
+                      >+</button>
+                    </div>
+                  )}
 
                   <button
                     onClick={() => toggleSet(i)}
@@ -794,7 +922,10 @@ export default function WorkoutSession() {
                     <Check className="w-5 h-5" />
                   </button>
 
-                  {s.done && isNewPR(exercise?.exercise_name || "", parseFloat(s.weight) || 0, parseInt(s.reps) || 0) && (
+                  {s.done && !isHoldExercise && isNewPR(exercise?.exercise_name || "", parseFloat(s.weight) || 0, parseInt(s.reps) || 0) && (
+                    <div className="text-amber-400 text-xs font-bold">🏆 PR</div>
+                  )}
+                  {s.done && isHoldExercise && isNewHoldPR(exercise?.exercise_name || "", parseInt(s.reps) || 0) && (
                     <div className="text-amber-400 text-xs font-bold">🏆 PR</div>
                   )}
                 </div>
@@ -856,6 +987,9 @@ export default function WorkoutSession() {
             style={{ maxHeight: 'calc(75vh - 80px)', WebkitOverflowScrolling: 'touch' }}
             data-vaul-no-drag
           >
+            {insightsExercise && exercises.find((e) => e.exercise_name === insightsExercise)?.skill_slug && (
+              <SkillLadderCard skillSlug={exercises.find((e) => e.exercise_name === insightsExercise)!.skill_slug!} />
+            )}
             {insightsExercise && <ExerciseInsightsCard exerciseName={insightsExercise} />}
           </div>
         </DrawerContent>
