@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getUserId } from "@/lib/user";
 import { useActivePlan } from "@/contexts/ActivePlanContext";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronRight, ArrowLeft, Loader, Plus, Edit2, Trash2, Play } from "lucide-react";
+import { ChevronRight, ArrowLeft, Loader, Plus, Edit2, Trash2, Play, Sparkles } from "lucide-react";
 import PageContainer from "@/components/PageContainer";
 
 interface WorkoutPlan {
@@ -183,6 +183,13 @@ export default function WorkoutSelect() {
 
           <div className="flex gap-2 flex-shrink-0 ml-2">
             <button
+              onClick={() => navigate("/skills")}
+              className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary active:scale-90 transition-transform"
+              aria-label="Skill calisthenics"
+            >
+              <Sparkles className="w-4 h-4" />
+            </button>
+            <button
               onClick={() => navigate(`/edit-plan/${selectedPlan}`)}
               className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground active:scale-90 transition-transform"
             >
@@ -292,12 +299,21 @@ export default function WorkoutSelect() {
           <h1 className="text-2xl font-bold tracking-tight">Schede</h1>
           <p className="text-muted-foreground text-xs mt-0.5">I tuoi programmi</p>
         </div>
-        <button
-          onClick={() => navigate("/create-plan")}
-          className="w-10 h-10 rounded-2xl gradient-primary flex items-center justify-center glow-primary-sm active:scale-90 transition-transform"
-        >
-          <Plus className="w-5 h-5 text-white" />
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => navigate("/skills")}
+            className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary active:scale-90 transition-transform"
+            aria-label="Skill calisthenics"
+          >
+            <Sparkles className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => navigate("/create-plan")}
+            className="w-10 h-10 rounded-2xl gradient-primary flex items-center justify-center glow-primary-sm active:scale-90 transition-transform"
+          >
+            <Plus className="w-5 h-5 text-white" />
+          </button>
+        </div>
       </div>
 
       {loading ? (

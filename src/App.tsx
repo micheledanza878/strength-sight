@@ -15,6 +15,7 @@ import History from "./pages/History";
 import CreateWorkoutPlan from "./pages/CreateWorkoutPlan";
 import EditWorkoutPlan from "./pages/EditWorkoutPlan";
 import EditWorkoutDay from "./pages/EditWorkoutDay";
+import SkillsLibrary from "./pages/SkillsLibrary";
 import DietViewer from "./pages/Diet/DietViewer";
 import FoodGuide from "./pages/Diet/FoodGuide";
 import ExerciseDetail from "./pages/ExerciseDetail";
@@ -37,6 +38,7 @@ function AppContent() {
         <Route path="/create-plan" element={<CreateWorkoutPlan />} />
         <Route path="/edit-plan/:planId" element={<EditWorkoutPlan />} />
         <Route path="/edit-day/:dayId" element={<EditWorkoutDay />} />
+        <Route path="/skills" element={<SkillsLibrary />} />
         <Route path="/exercise/:name" element={<ExerciseDetail />} />
       </Route>
       <Route path="*" element={<NotFound />} />
