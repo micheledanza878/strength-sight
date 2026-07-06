@@ -147,16 +147,16 @@ export default function DietViewer() {
         })}
       </div>
 
-      {/* ── Daily kcal summary ── */}
-      {!loading && totalKcal > 0 && (
-        <div className="mx-4 mb-4 bg-card border border-border rounded-2xl px-4 py-3 flex items-center justify-between">
-          <span className="text-xs text-muted-foreground font-medium">Totale giornaliero</span>
-          <span className="text-sm font-bold text-primary">{totalKcal} kcal</span>
-        </div>
-      )}
-
       {/* ── Content ── */}
-      <div className="px-4 space-y-3">
+      <div className="px-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 lg:gap-6 items-start">
+        {/* ── Daily kcal summary ── */}
+        {!loading && totalKcal > 0 && (
+          <div className="md:col-span-2 lg:col-span-3 bg-card border border-border rounded-2xl px-4 py-3 flex items-center justify-between">
+            <span className="text-xs text-muted-foreground font-medium">Totale giornaliero</span>
+            <span className="text-sm font-bold text-primary">{totalKcal} kcal</span>
+          </div>
+        )}
+
         {loading ? (
           <>
             <Skeleton className="h-36 rounded-2xl" />
@@ -164,7 +164,7 @@ export default function DietViewer() {
             <Skeleton className="h-36 rounded-2xl" />
           </>
         ) : refreshing ? (
-          <div className="flex justify-center py-12">
+          <div className="md:col-span-2 lg:col-span-3 flex justify-center py-12">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
         ) : sortedMeals.length > 0 ? (
@@ -180,7 +180,7 @@ export default function DietViewer() {
             />
           ))
         ) : (
-          <div className="bg-card border border-border rounded-2xl p-10 text-center">
+          <div className="md:col-span-2 lg:col-span-3 bg-card border border-border rounded-2xl p-10 text-center">
             <p className="text-2xl mb-2">🍽</p>
             <p className="text-sm font-medium text-muted-foreground">Nessun pasto per questo giorno</p>
           </div>

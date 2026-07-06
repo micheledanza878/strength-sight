@@ -25,6 +25,7 @@ import { useNotifications } from "@/hooks/use-notifications";
 import { maybeNotifyStreakAtRisk, maybeNotifyMeasurementOverdue } from "@/lib/notifications";
 import { calculateSetVolume, DEFAULT_BODYWEIGHT_KG } from "@/services/bodweightVolumeService";
 import PageContainer from "@/components/PageContainer";
+import { StatCard } from "@/components/StatCard";
 
 interface VolumePoint {
   date: string;
@@ -473,11 +474,14 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* ── Content Grid: dal blocco Hero al Calendario ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 lg:gap-6">
+
       {/* ── Hero: Next Workout ── */}
       {!loading && nextPlanDay && (
         <button
           onClick={() => navigate(`/session/${nextPlanDay.id}`)}
-          className="w-full card-hero p-5 mb-4 text-left active:scale-[0.98] transition-transform glow-primary-sm"
+          className="w-full card-hero p-5 text-left active:scale-[0.98] transition-transform glow-primary-sm md:col-span-2 lg:col-span-3"
         >
           <div className="flex items-start justify-between">
             <div className="flex-1">
@@ -506,25 +510,18 @@ export default function Dashboard() {
 
       {/* ── Stats Row ── */}
       {!loading && (
-        <div className="grid grid-cols-3 gap-2.5 mb-4">
-          <div className="bg-card border border-border rounded-2xl p-3.5 text-center">
-            <p className="text-[22px] font-bold leading-none mb-1">{streak}</p>
-            <p className="text-[10px] text-muted-foreground font-medium">🔥 Streak</p>
-          </div>
-          <div className="bg-card border border-border rounded-2xl p-3.5 text-center">
-            <p className="text-[22px] font-bold leading-none mb-1">{weekCount}</p>
-            <p className="text-[10px] text-muted-foreground font-medium">questa sett.</p>
-          </div>
-          <div className="bg-card border border-border rounded-2xl p-3.5 text-center">
-            <p className="text-[22px] font-bold leading-none mb-1">{monthCount}</p>
-            <p className="text-[10px] text-muted-foreground font-medium">questo mese</p>
+        <div className="md:col-span-2 lg:col-span-3">
+          <div className="grid grid-cols-3 gap-2.5">
+            <StatCard align="center" label="🔥 Streak" value={streak} />
+            <StatCard align="center" label="questa sett." value={weekCount} />
+            <StatCard align="center" label="questo mese" value={monthCount} />
           </div>
         </div>
       )}
 
       {/* ── Top PR Card ── */}
       {!loading && topPRs.length > 0 && (
-        <div className="bg-card border border-border rounded-2xl p-4 mb-4">
+        <div className="bg-card border border-border rounded-2xl p-4">
           <div className="flex items-center gap-2 mb-3">
             <Trophy className="w-4 h-4 text-yellow-500" />
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Top PR</p>
@@ -545,7 +542,7 @@ export default function Dashboard() {
 
       {/* ── Last Workout ── */}
       {lastDayData && lastWorkout && (
-        <div className="bg-card border border-border rounded-2xl p-4 mb-4">
+        <div className="bg-card border border-border rounded-2xl p-4">
           <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-2">Ultimo allenamento</p>
           <p className="text-base font-semibold">{lastDayData.label}</p>
           <p className="text-xs text-muted-foreground mt-0.5">
@@ -556,7 +553,7 @@ export default function Dashboard() {
 
       {/* ── Weekly Volume Chart ── */}
       {weeklyVolumeChart.length > 1 && (
-        <div className="bg-card border border-border rounded-2xl p-4 mb-4">
+        <div className="bg-card border border-border rounded-2xl p-4 md:col-span-2 lg:col-span-3">
           <div className="flex items-center gap-2 mb-4">
             <TrendingUp className="w-4 h-4 text-primary" />
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Volume settimanale</p>
@@ -596,7 +593,7 @@ export default function Dashboard() {
 
       {/* ── Session Volume Chart ── */}
       {volumeChart.length > 1 && (
-        <div className="bg-card border border-border rounded-2xl p-4 mb-4">
+        <div className="bg-card border border-border rounded-2xl p-4 md:col-span-2 lg:col-span-2">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">Volume per sessione</p>
           <div className="h-32">
             <ResponsiveContainer width="100%" height="100%">
@@ -621,7 +618,7 @@ export default function Dashboard() {
       )}
 
       {/* ── Calendar ── */}
-      <div className="bg-card border border-border rounded-2xl p-4">
+      <div className="bg-card border border-border rounded-2xl p-4 md:col-span-2 lg:col-span-1">
         <div className="flex items-center justify-between mb-3">
           <button
             onClick={() => setSelectedMonth(subMonths(selectedMonth, 1))}
@@ -663,6 +660,8 @@ export default function Dashboard() {
             );
           })}
         </div>
+      </div>
+
       </div>
     </PageContainer>
   );

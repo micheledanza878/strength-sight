@@ -262,7 +262,7 @@ export default function History() {
               <p className="text-muted-foreground text-xs mt-2">Inizia il tuo primo allenamento per vedere i dati qui</p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 lg:gap-6 items-start">
               {filteredLogs.map((log) => {
               const day = WORKOUT_DAYS.find((d) => d.id === log.workout_day);
               const duration = differenceInMinutes(parseISO(log.completed_at), parseISO(log.started_at));
@@ -375,7 +375,7 @@ export default function History() {
             <p className="text-muted-foreground text-xs mt-2">Completa un allenamento per registrare i tuoi PR</p>
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 lg:gap-6">
             {prs.map(([exercise, pr]) => (
               <div key={exercise} className="bg-card rounded-2xl p-4 flex items-center justify-between">
                 <button

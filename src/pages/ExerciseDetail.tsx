@@ -8,6 +8,7 @@ import { ArrowLeft, Trophy, TrendingUp, Dumbbell, BarChart3 } from "lucide-react
 import { ExerciseInsightsCard } from "@/components/Exercise/ExerciseInsightsCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import PageContainer from "@/components/PageContainer";
+import { StatCard } from "@/components/StatCard";
 import {
   LineChart,
   Line,
@@ -268,144 +269,151 @@ export default function ExerciseDetail() {
       )}
 
       {!loading && sessions.length > 0 && (
-        <div className="space-y-4">
+        <div className="space-y-4 md:space-y-5">
 
-          {/* ── Card statistiche principali ── */}
-          <div className="grid grid-cols-2 gap-3">
-            {/* Best set */}
-            <div className="bg-card rounded-2xl p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 rounded-lg bg-amber-400/10 flex items-center justify-center">
-                  <Trophy className="w-4 h-4 text-amber-400" />
-                </div>
-                <span className="text-xs font-medium text-muted-foreground">Best set</span>
-              </div>
-              {bestSet ? (
-                <>
-                  <p className="text-2xl font-bold tracking-tight">{bestSet.weight}kg</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{bestSet.reps} rep</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {format(parseISO(bestSet.date), "d MMM yyyy", { locale: it })}
-                  </p>
-                </>
-              ) : (
-                <p className="text-muted-foreground text-xs">Nessun dato</p>
-              )}
+          {/* ── Sidebar statistiche + contenuto principale (grafici) ── */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5 lg:gap-6 items-start">
+
+            {/* Sidebar: card statistiche principali */}
+            <div className="md:col-span-1 grid grid-cols-2 md:grid-cols-1 gap-3 md:gap-4">
+              {/* Best set */}
+              <StatCard
+                icon={<Trophy className="w-4 h-4 text-amber-400" />}
+                label="Best set"
+                value={bestSet ? `${bestSet.weight}kg` : "—"}
+                subtext={
+                  bestSet ? (
+                    <>
+                      <p className="text-xs text-muted-foreground">{bestSet.reps} rep</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {format(parseISO(bestSet.date), "d MMM yyyy", { locale: it })}
+                      </p>
+                    </>
+                  ) : (
+                    "Nessun dato"
+                  )
+                }
+              />
+
+              {/* Max 1RM stimato */}
+              <StatCard
+                icon={<TrendingUp className="w-4 h-4 text-primary" />}
+                label="Massimale stimato"
+                value={`${maxRM.toFixed(1)}kg`}
+                subtext={
+                  <>
+                    <p className="text-xs text-muted-foreground">1RM (formula Epley)</p>
+                    <p className="text-xs text-muted-foreground mt-1">{sessions.length} sessioni</p>
+                  </>
+                }
+              />
             </div>
 
-            {/* Max 1RM stimato */}
-            <div className="bg-card rounded-2xl p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <TrendingUp className="w-4 h-4 text-primary" />
+            {/* Contenuto principale: grafici */}
+            <div className="md:col-span-2 space-y-4 md:space-y-5">
+
+              {/* ── Grafico 1RM nel tempo ── */}
+              {rm1Data.length >= 2 && (
+                <div className="bg-card rounded-2xl p-4">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <TrendingUp className="w-4 h-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold">Massimale stimato (1RM)</p>
+                      <p className="text-xs text-muted-foreground">Progressione nel tempo · formula Epley</p>
+                    </div>
+                  </div>
+                  <ResponsiveContainer width="100%" height={160}>
+                    <LineChart data={rm1Data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis
+                        dataKey="date"
+                        tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                        tickLine={false}
+                        axisLine={false}
+                        interval="preserveStartEnd"
+                      />
+                      <YAxis
+                        tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                        tickLine={false}
+                        axisLine={false}
+                        domain={["auto", "auto"]}
+                        unit="kg"
+                      />
+                      <Tooltip content={<CustomTooltip1RM />} />
+                      <ReferenceLine
+                        y={maxRM}
+                        stroke="hsl(var(--primary))"
+                        strokeDasharray="4 4"
+                        strokeOpacity={0.5}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="rm"
+                        stroke="hsl(var(--primary))"
+                        strokeWidth={2.5}
+                        dot={{ r: 3, fill: "hsl(var(--primary))", strokeWidth: 0 }}
+                        activeDot={{ r: 5, fill: "hsl(var(--primary))" }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
                 </div>
-                <span className="text-xs font-medium text-muted-foreground">Massimale stimato</span>
-              </div>
-              <p className="text-2xl font-bold tracking-tight">{maxRM.toFixed(1)}kg</p>
-              <p className="text-xs text-muted-foreground mt-0.5">1RM (formula Epley)</p>
-              <p className="text-xs text-muted-foreground mt-1">{sessions.length} sessioni</p>
+              )}
+
+              {/* Messaggio se c'è solo una sessione */}
+              {rm1Data.length === 1 && (
+                <div className="bg-card rounded-2xl p-4 flex items-center gap-3">
+                  <TrendingUp className="w-5 h-5 text-muted-foreground shrink-0" />
+                  <p className="text-xs text-muted-foreground">
+                    Completa almeno 2 sessioni con questo esercizio per vedere il grafico della progressione.
+                  </p>
+                </div>
+              )}
+
+              {/* ── Grafico volume settimanale ── */}
+              {weeklyVolume.length >= 1 && (
+                <div className="bg-card rounded-2xl p-4">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                      <BarChart3 className="w-4 h-4 text-blue-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold">Volume per settimana</p>
+                      <p className="text-xs text-muted-foreground">Somma peso × reps di ogni set</p>
+                    </div>
+                  </div>
+                  <ResponsiveContainer width="100%" height={140}>
+                    <BarChart data={weeklyVolume} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                      <XAxis
+                        dataKey="week"
+                        tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <YAxis
+                        tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                        tickLine={false}
+                        axisLine={false}
+                        unit="kg"
+                      />
+                      <Tooltip content={<CustomTooltipVolume />} />
+                      <Bar dataKey="volume" fill="#60a5fa" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+
             </div>
           </div>
-
-          {/* ── Grafico 1RM nel tempo ── */}
-          {rm1Data.length >= 2 && (
-            <div className="bg-card rounded-2xl p-4">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <TrendingUp className="w-4 h-4 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold">Massimale stimato (1RM)</p>
-                  <p className="text-xs text-muted-foreground">Progressione nel tempo · formula Epley</p>
-                </div>
-              </div>
-              <ResponsiveContainer width="100%" height={160}>
-                <LineChart data={rm1Data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis
-                    dataKey="date"
-                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                    tickLine={false}
-                    axisLine={false}
-                    interval="preserveStartEnd"
-                  />
-                  <YAxis
-                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                    tickLine={false}
-                    axisLine={false}
-                    domain={["auto", "auto"]}
-                    unit="kg"
-                  />
-                  <Tooltip content={<CustomTooltip1RM />} />
-                  <ReferenceLine
-                    y={maxRM}
-                    stroke="hsl(var(--primary))"
-                    strokeDasharray="4 4"
-                    strokeOpacity={0.5}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="rm"
-                    stroke="hsl(var(--primary))"
-                    strokeWidth={2.5}
-                    dot={{ r: 3, fill: "hsl(var(--primary))", strokeWidth: 0 }}
-                    activeDot={{ r: 5, fill: "hsl(var(--primary))" }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-
-          {/* Messaggio se c'è solo una sessione */}
-          {rm1Data.length === 1 && (
-            <div className="bg-card rounded-2xl p-4 flex items-center gap-3">
-              <TrendingUp className="w-5 h-5 text-muted-foreground shrink-0" />
-              <p className="text-xs text-muted-foreground">
-                Completa almeno 2 sessioni con questo esercizio per vedere il grafico della progressione.
-              </p>
-            </div>
-          )}
-
-          {/* ── Grafico volume settimanale ── */}
-          {weeklyVolume.length >= 1 && (
-            <div className="bg-card rounded-2xl p-4">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                  <BarChart3 className="w-4 h-4 text-blue-400" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold">Volume per settimana</p>
-                  <p className="text-xs text-muted-foreground">Somma peso × reps di ogni set</p>
-                </div>
-              </div>
-              <ResponsiveContainer width="100%" height={140}>
-                <BarChart data={weeklyVolume} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                  <XAxis
-                    dataKey="week"
-                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                    tickLine={false}
-                    axisLine={false}
-                    unit="kg"
-                  />
-                  <Tooltip content={<CustomTooltipVolume />} />
-                  <Bar dataKey="volume" fill="#60a5fa" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
 
           {/* ── Ultime sessioni ── */}
           <div>
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 px-1">
               Ultime sessioni
             </h2>
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5 items-start">
               {recentSessions.map((session, idx) => {
                 const sortedSets = [...session.sets].sort((a, b) => a.set_number - b.set_number);
                 return (

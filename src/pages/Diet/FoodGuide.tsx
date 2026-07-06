@@ -142,7 +142,7 @@ export default function FoodGuide() {
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 lg:gap-6 items-start">
           {visibleGroups.length === 0 ? (
             <p className="text-center text-sm text-muted-foreground py-10">
               Nessun dato disponibile

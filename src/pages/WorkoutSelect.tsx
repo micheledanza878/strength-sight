@@ -209,11 +209,11 @@ export default function WorkoutSelect() {
             <p className="text-sm font-medium text-muted-foreground">Nessun giorno configurato</p>
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 lg:gap-6 items-start">
             {days.map((day) => (
               <div
                 key={day.id}
-                className="bg-card border border-border rounded-2xl overflow-hidden"
+                className="col-span-1 bg-card border border-border rounded-2xl overflow-hidden"
               >
                 <div className="flex items-stretch gap-0">
 
@@ -311,7 +311,7 @@ export default function WorkoutSelect() {
           <p className="text-xs text-muted-foreground">Crea la tua prima scheda di allenamento</p>
         </div>
       ) : (
-        <div className="flex flex-col gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 lg:gap-6 items-start">
           {plans.map((plan) => {
             const isActive = activePlanId === plan.id;
             return (
@@ -323,7 +323,7 @@ export default function WorkoutSelect() {
                   loadDays(plan.id);
                 }}
                 className={[
-                  "w-full rounded-2xl p-4 text-left active:scale-[0.98] transition-all",
+                  "col-span-1 w-full rounded-2xl p-4 text-left active:scale-[0.98] transition-all",
                   isActive ? "card-hero" : "bg-card border border-border"
                 ].join(" ")}
               >
