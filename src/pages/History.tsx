@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { WORKOUT_DAYS } from "@/data/workouts";
 import { getUserId } from "@/lib/user";
+import PageContainer from "@/components/PageContainer";
 
 interface BodyPart {
   id: string;
@@ -204,7 +205,7 @@ export default function History() {
   const prs = Object.entries(prMap).sort((a, b) => a[0].localeCompare(b[0]));
 
   return (
-    <div className="px-4 pt-14 pb-32 min-h-screen">
+    <PageContainer variant="wide" className="px-4 pt-14 pb-32 min-h-screen">
       <div className="mb-5">
         <h1 className="text-2xl font-bold tracking-tight">Storico</h1>
         <p className="text-muted-foreground text-xs mt-0.5">I tuoi allenamenti</p>
@@ -401,6 +402,6 @@ export default function History() {
           }
         </>
       )}
-    </div>
+    </PageContainer>
   );
 }

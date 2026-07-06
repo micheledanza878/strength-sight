@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import PageContainer from "@/components/PageContainer";
 import { ArrowLeft, Check, Trophy, RotateCcw, Clock, Play, Loader, Edit2, CloudOff, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import RestTimer from "@/components/RestTimer";
@@ -374,7 +375,7 @@ export default function WorkoutSession() {
   // ── PREVIEW SCREEN ──────────────────────────────────────────────
   if (phase === "preview") {
     return (
-      <div className="min-h-screen px-5 pt-14 pb-32 max-w-full overflow-x-hidden">
+      <PageContainer variant="narrow" className="min-h-screen px-5 pt-14 pb-32 max-w-full overflow-x-hidden">
         {showResumePrompt && (
           <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm px-5">
             <div className="w-full max-w-sm bg-card rounded-2xl p-6 text-center shadow-xl">
@@ -472,7 +473,7 @@ export default function WorkoutSession() {
         </div>
 
         {/* Start button */}
-        <div className="fixed bottom-8 left-4 right-4 max-w-[412px] mx-auto">
+        <div className="fixed bottom-8 left-4 right-4 max-w-[412px] mx-auto md:sticky md:bottom-8 md:left-auto md:right-auto md:max-w-none md:w-full">
           <button
             onClick={handleStartWorkout}
             className="w-full h-16 rounded-2xl font-bold text-white text-lg flex items-center justify-center gap-3 transition-transform active:scale-95 gradient-primary glow-primary"
@@ -481,7 +482,7 @@ export default function WorkoutSession() {
             Inizia allenamento
           </button>
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
@@ -633,7 +634,7 @@ export default function WorkoutSession() {
   if (!exercise || !dayData) return <div className="p-5 pt-14 text-foreground">Caricamento...</div>;
 
   return (
-    <div className="min-h-screen px-5 pt-14 pb-24 max-w-full overflow-x-hidden">
+    <PageContainer variant="narrow" className="min-h-screen px-5 pt-14 pb-24 max-w-full overflow-x-hidden">
       {showTimer && (
         <RestTimer
           key={timerKey}
@@ -818,7 +819,7 @@ export default function WorkoutSession() {
       </div>
 
       {/* Navigation */}
-      <div className="flex gap-3 fixed bottom-24 left-4 right-4 max-w-[412px] mx-auto">
+      <div className="flex gap-3 fixed bottom-24 left-4 right-4 max-w-[412px] mx-auto md:sticky md:bottom-24 md:left-auto md:right-auto md:max-w-none md:w-full">
         {currentExIdx > 0 && (
           <button
             onClick={() => setCurrentExIdx((i) => i - 1)}
@@ -859,6 +860,6 @@ export default function WorkoutSession() {
           </div>
         </DrawerContent>
       </Drawer>
-    </div>
+    </PageContainer>
   );
 }

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Plus, Trash2, Loader, ChevronUp, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import PageContainer from "@/components/PageContainer";
 import {
   Select,
   SelectContent,
@@ -233,7 +234,7 @@ export default function EditWorkoutDay() {
   const smallInputClass = "w-full h-10 bg-secondary border border-border rounded-xl px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary transition-all";
 
   return (
-    <div className="min-h-screen px-4 pt-14 pb-32">
+    <PageContainer variant="narrow" className="min-h-screen px-4 pt-14 pb-32">
 
       {/* ── Header ── */}
       <div className="flex items-center gap-3 mb-6">
@@ -344,7 +345,7 @@ export default function EditWorkoutDay() {
       </div>
 
       {/* ── Bottom CTA ── */}
-      <div className="fixed bottom-6 left-4 right-4 max-w-[412px] mx-auto flex gap-3">
+      <div className="fixed bottom-6 left-4 right-4 max-w-[412px] mx-auto flex gap-3 md:sticky md:bottom-6 md:left-auto md:right-auto md:max-w-none md:w-full">
         <button onClick={() => navigate(-1)}
           className="flex-1 h-14 rounded-2xl bg-secondary text-foreground font-semibold active:scale-95 transition-transform">
           Annulla
@@ -354,6 +355,6 @@ export default function EditWorkoutDay() {
           {saving ? <><Loader className="w-4 h-4 animate-spin" /> Salvataggio...</> : "✓ Salva"}
         </button>
       </div>
-    </div>
+    </PageContainer>
   );
 }

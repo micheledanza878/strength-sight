@@ -1,28 +1,15 @@
-import { Home, Dumbbell, Activity, History, Apple } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-
-const tabs = [
-  { path: "/", icon: Home, label: "Home" },
-  { path: "/workout", icon: Dumbbell, label: "Schede" },
-  { path: "/diet", icon: Apple, label: "Dieta" },
-  { path: "/history", icon: History, label: "Storico" },
-  { path: "/body", icon: Activity, label: "Corpo" },
-];
+import { tabs, isImmersiveRoute } from "@/config/navigation";
 
 export default function BottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  if (
-    location.pathname.startsWith("/session") ||
-    location.pathname.startsWith("/edit-plan") ||
-    location.pathname.startsWith("/edit-day") ||
-    location.pathname.startsWith("/create-plan")
-  ) return null;
+  if (isImmersiveRoute(location.pathname)) return null;
 
   return (
-    <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[428px] z-50 pointer-events-none">
+    <div className="md:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[428px] z-50 pointer-events-none">
       {/* Gradient fade */}
       <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-background via-background/80 to-transparent" />
 

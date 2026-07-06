@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import PageContainer from "@/components/PageContainer";
 import { supabase } from "@/integrations/supabase/client";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from "recharts";
 import { format, parseISO, differenceInDays } from "date-fns";
@@ -345,7 +346,7 @@ export default function BodyTracking() {
   };
 
   return (
-    <div className="px-4 pt-14 pb-32 min-h-screen max-w-full overflow-x-hidden">
+    <PageContainer variant="narrow" className="px-4 pt-14 pb-32 min-h-screen max-w-full overflow-x-hidden">
       <div className="flex items-center justify-between mb-5">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Corpo</h1>
@@ -661,7 +662,7 @@ export default function BodyTracking() {
 
       {/* Add Form Fullscreen */}
       {showForm && (
-        <div className="fixed inset-0 bg-background px-5 pt-14 pb-32 flex flex-col overflow-y-auto" style={{ zIndex: 51 }}>
+        <div className="fixed inset-0 bg-background px-5 pt-14 pb-32 flex flex-col overflow-y-auto md:static md:max-w-xl md:mx-auto md:my-8 md:rounded-2xl md:border" style={{ zIndex: 51 }}>
           {/* Header */}
           <div className="flex items-center gap-3 mb-6">
             <button onClick={closeForm} className="text-muted-foreground">
@@ -721,7 +722,7 @@ export default function BodyTracking() {
           </div>
 
           {/* Navigation buttons */}
-          <div className="fixed bottom-8 left-4 right-4 max-w-[412px] mx-auto flex gap-3 shrink-0">
+          <div className="fixed bottom-8 left-4 right-4 max-w-[412px] mx-auto flex gap-3 shrink-0 md:sticky md:bottom-8 md:left-auto md:right-auto md:max-w-none md:w-full">
             {step !== "base" && (
               <button
                 onClick={prevStep}
@@ -762,6 +763,6 @@ export default function BodyTracking() {
           </div>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

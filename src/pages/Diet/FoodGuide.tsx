@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Loader2 } from 'lucide-react';
 import { getFoodGuide, type FoodGuideGroup } from '@/services/foodGuideService';
+import PageContainer from '@/components/PageContainer';
 
 const MEAL_TABS = [
   { key: 'colazione', label: 'Colazione' },
@@ -73,7 +74,7 @@ export default function FoodGuide() {
     : tabGroups;
 
   return (
-    <div className="px-4 pt-14 pb-32 min-h-screen">
+    <PageContainer variant="default" className="px-4 pt-14 pb-32 min-h-screen">
 
       {/* ── Header ── */}
       <div className="flex items-center gap-3 mb-5">
@@ -173,6 +174,6 @@ export default function FoodGuide() {
           )}
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

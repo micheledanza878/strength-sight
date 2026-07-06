@@ -10,6 +10,7 @@ import {
   getDayView,
 } from '@/services/dietService';
 import type { DayView } from '@/types/diet';
+import PageContainer from '@/components/PageContainer';
 
 const DAY_LABELS = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
 
@@ -98,7 +99,7 @@ export default function DietViewer() {
   }) ?? [];
 
   return (
-    <div className="pt-14 pb-32 min-h-screen">
+    <PageContainer variant="default" className="pt-14 pb-32 min-h-screen">
 
       {/* ── Header ── */}
       <div className="flex items-center justify-between px-4 mb-5">
@@ -185,6 +186,6 @@ export default function DietViewer() {
           </div>
         )}
       </div>
-    </div>
+    </PageContainer>
   );
 }

@@ -24,6 +24,7 @@ import type { WorkoutDay } from "@/data/workouts";
 import { useNotifications } from "@/hooks/use-notifications";
 import { maybeNotifyStreakAtRisk, maybeNotifyMeasurementOverdue } from "@/lib/notifications";
 import { calculateSetVolume, DEFAULT_BODYWEIGHT_KG } from "@/services/bodweightVolumeService";
+import PageContainer from "@/components/PageContainer";
 
 interface VolumePoint {
   date: string;
@@ -378,7 +379,7 @@ export default function Dashboard() {
   const currentPlan = plans.find(p => p.id === activePlanId);
 
   return (
-    <div className="px-4 pt-14 pb-32 min-h-screen">
+    <PageContainer variant="wide" className="px-4 pt-14 pb-32 min-h-screen">
 
       {/* ── Header ── */}
       <div className="flex items-center justify-between mb-5">
@@ -663,6 +664,6 @@ export default function Dashboard() {
           })}
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 }

@@ -4,6 +4,7 @@ import { ArrowLeft, Plus, X, Loader, ChevronRight, ChevronUp, ChevronDown } from
 import { supabase } from "@/integrations/supabase/client";
 import { getUserId } from "@/lib/user";
 import { useToast } from "@/hooks/use-toast";
+import PageContainer from "@/components/PageContainer";
 import {
   Select,
   SelectContent,
@@ -233,7 +234,7 @@ export default function CreateWorkoutPlan() {
   const smallInputClass = "w-full h-10 bg-secondary border border-border rounded-xl px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary transition-all";
 
   return (
-    <div className="min-h-screen px-4 pt-14 pb-32">
+    <PageContainer variant="narrow" className="min-h-screen px-4 pt-14 pb-32">
 
       {/* ── Header ── */}
       <div className="flex items-center gap-3 mb-5">
@@ -417,7 +418,7 @@ export default function CreateWorkoutPlan() {
       )}
 
       {/* ── Bottom CTA ── */}
-      <div className="fixed bottom-6 left-4 right-4 max-w-[412px] mx-auto">
+      <div className="fixed bottom-6 left-4 right-4 max-w-[412px] mx-auto md:sticky md:bottom-6 md:left-auto md:right-auto md:max-w-none md:w-full">
         {step === "exercises" ? (
           <button onClick={savePlan} disabled={saving}
             className="w-full h-14 rounded-2xl gradient-primary glow-primary text-white font-bold text-base flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-60">
@@ -430,6 +431,6 @@ export default function CreateWorkoutPlan() {
           </button>
         )}
       </div>
-    </div>
+    </PageContainer>
   );
 }

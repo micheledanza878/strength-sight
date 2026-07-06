@@ -5,6 +5,7 @@ import { getUserId } from "@/lib/user";
 import { useActivePlan } from "@/contexts/ActivePlanContext";
 import { useToast } from "@/hooks/use-toast";
 import { ChevronRight, ArrowLeft, Loader, Plus, Edit2, Trash2, Play } from "lucide-react";
+import PageContainer from "@/components/PageContainer";
 
 interface WorkoutPlan {
   id: string;
@@ -154,7 +155,7 @@ export default function WorkoutSelect() {
     const isActive = activePlanId === selectedPlan;
 
     return (
-      <div className="px-4 pt-14 pb-32 min-h-screen">
+      <PageContainer variant="default" className="px-4 pt-14 pb-32 min-h-screen">
 
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
@@ -277,13 +278,13 @@ export default function WorkoutSelect() {
             ))}
           </div>
         )}
-      </div>
+      </PageContainer>
     );
   }
 
   // ── VISTA LISTA SCHEDE ────────────────────────────────────────
   return (
-    <div className="px-4 pt-14 pb-32 min-h-screen">
+    <PageContainer variant="default" className="px-4 pt-14 pb-32 min-h-screen">
 
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
@@ -352,6 +353,6 @@ export default function WorkoutSelect() {
           })}
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

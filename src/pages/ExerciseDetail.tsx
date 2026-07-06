@@ -7,6 +7,7 @@ import { it } from "date-fns/locale";
 import { ArrowLeft, Trophy, TrendingUp, Dumbbell, BarChart3 } from "lucide-react";
 import { ExerciseInsightsCard } from "@/components/Exercise/ExerciseInsightsCard";
 import { Skeleton } from "@/components/ui/skeleton";
+import PageContainer from "@/components/PageContainer";
 import {
   LineChart,
   Line,
@@ -223,7 +224,7 @@ export default function ExerciseDetail() {
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
-    <div className="px-4 pt-14 pb-32 min-h-screen">
+    <PageContainer variant="default" className="px-4 pt-14 pb-32 min-h-screen">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <button
@@ -452,6 +453,6 @@ export default function ExerciseDetail() {
 
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }
