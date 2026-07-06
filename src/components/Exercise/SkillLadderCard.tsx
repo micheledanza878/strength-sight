@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { Check, Lock, Loader2, PlayCircle, ChevronDown, ChevronUp } from "lucide-react";
-import { getSkill, Skill, SkillStep } from "@/data/skills";
+import { getSkill, getRelatedSkills, Skill, SkillStep } from "@/data/skills";
 import { loadSkillProgress, SkillProgressRow } from "@/services/skillProgressionService";
 import { getUserId } from "@/lib/user";
 import { getExerciseInsights, ExerciseInsights } from "@/services/exerciseInsightsService";
 
 interface SkillLadderCardProps {
   skillSlug: string;
+  /** Se fornita, rende le skill collegate cliccabili per saltare alla loro scala. */
+  onNavigateSkill?: (slug: string) => void;
 }
 
 /** Query pulita per la ricerca AI/YouTube: niente frecce o parentesi, un esercizio per volta. */
@@ -15,7 +17,7 @@ function buildStepQuery(skill: Skill, step: SkillStep): string {
   return `${skill.name} - ${cleanName}`;
 }
 
-export function SkillLadderCard({ skillSlug }: SkillLadderCardProps) {
+export function SkillLadderCard({ skillSlug, onNavigateSkill }: SkillLadderCardProps) {
   const skill = getSkill(skillSlug);
   const [progress, setProgress] = useState<SkillProgressRow | null>(null);
   const [expandedStep, setExpandedStep] = useState<number | null>(null);
@@ -41,6 +43,7 @@ export function SkillLadderCard({ skillSlug }: SkillLadderCardProps) {
   if (!skill) return null;
 
   const currentStepOrder = progress?.current_step_order ?? 1;
+  const related = getRelatedSkills(skill);
 
   async function toggleStepVideo(step: SkillStep) {
     if (!skill) return;
@@ -62,13 +65,39 @@ export function SkillLadderCard({ skillSlug }: SkillLadderCardProps) {
       <p className="text-sm font-bold mb-1">{skill.name} — scala di progressione</p>
       {skill.warning && <p className="text-xs text-amber-500 mb-1">{skill.warning}</p>}
       {skill.prerequisite && (
-        <p className="text-xs text-muted-foreground mb-3">Prerequisito: {skill.prerequisite}</p>
+        <p className="text-xs text-muted-foreground mb-1">Prerequisito: {skill.prerequisite}</p>
+      )}
+      {related.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          {related.map(({ skill: relatedSkill, relation }) =>
+            onNavigateSkill ? (
+              <button
+                key={relatedSkill.slug}
+                type="button"
+                onClick={() => onNavigateSkill(relatedSkill.slug)}
+                title={relation.note}
+                className="text-[10px] font-medium bg-secondary rounded-full px-2 py-1 text-muted-foreground active:scale-95 transition-transform"
+              >
+                {relation.type === "prerequisite" ? "richiede" : "propedeutica"}: {relatedSkill.name}
+              </button>
+            ) : (
+              <span
+                key={relatedSkill.slug}
+                title={relation.note}
+                className="text-[10px] font-medium bg-secondary rounded-full px-2 py-1 text-muted-foreground"
+              >
+                {relation.type === "prerequisite" ? "richiede" : "propedeutica"}: {relatedSkill.name}
+              </span>
+            )
+          )}
+        </div>
       )}
 
       <div className="space-y-2">
         {skill.steps.map((step) => {
           const done = step.order < currentStepOrder;
           const active = step.order === currentStepOrder;
+          const isNextUp = step.order === currentStepOrder + 1;
           const isExpanded = expandedStep === step.order;
           const video = videoByStep[step.order];
           const isLoading = videoLoading === step.order;
@@ -88,7 +117,14 @@ export function SkillLadderCard({ skillSlug }: SkillLadderCardProps) {
                   {done ? <Check className="w-3.5 h-3.5" /> : step.order}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className={`text-sm font-medium ${active ? "text-primary" : ""}`}>{step.name}</p>
+                  <p className={`text-sm font-medium flex items-center gap-1.5 ${active ? "text-primary" : ""}`}>
+                    {step.name}
+                    {isNextUp && (
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-primary bg-primary/10 rounded-full px-1.5 py-0.5 shrink-0">
+                        ▶ Prossimo
+                      </span>
+                    )}
+                  </p>
                   <p className="text-xs text-muted-foreground">
                     Target {step.targetMin}
                     {step.targetMax ? `-${step.targetMax}` : ""}

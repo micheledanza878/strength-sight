@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import PageContainer from "@/components/PageContainer";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
-import { SKILLS, Skill, SkillCategory, getSkill, getSkillStep } from "@/data/skills";
+import { SKILLS, Skill, SkillCategory, getSkill, getSkillStep, getNextStep, getRelatedSkills } from "@/data/skills";
 import { SkillProgressRow } from "@/services/skillProgressionService";
 import { SkillLadderCard } from "@/components/Exercise/SkillLadderCard";
 
@@ -173,6 +173,10 @@ export default function SkillsLibrary() {
                   {skillsInCategory.map((skill) => {
                     const progress = progressBySlug[skill.slug];
                     const currentStep = progress ? getSkillStep(skill, progress.current_step_order) : null;
+                    const nextStep = currentStep
+                      ? getNextStep(skill, currentStep.order)
+                      : getSkillStep(skill, 1);
+                    const related = getRelatedSkills(skill);
                     return (
                       <div key={skill.slug} className="bg-card border border-border rounded-2xl p-4">
                         <button
@@ -186,15 +190,39 @@ export default function SkillsLibrary() {
                           </p>
                           {currentStep ? (
                             <p className="text-xs text-primary mt-1">
-                              Step {currentStep.order}/{skill.steps.length} · {currentStep.name}
+                              Ora: Step {currentStep.order}/{skill.steps.length} · {currentStep.name}
                             </p>
                           ) : (
                             <p className="text-xs text-muted-foreground mt-1">Non ancora iniziata</p>
                           )}
+                          {nextStep ? (
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              → Prossimo allenamento: {nextStep.name}
+                            </p>
+                          ) : currentStep ? (
+                            <p className="text-xs text-emerald-500 mt-0.5">🏁 Skill completata</p>
+                          ) : null}
                           {skill.warning && (
                             <p className="text-[11px] text-amber-500 mt-1 line-clamp-2">{skill.warning}</p>
                           )}
                         </button>
+
+                        {related.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 mt-2">
+                            {related.map(({ skill: relatedSkill, relation }) => (
+                              <button
+                                key={relatedSkill.slug}
+                                type="button"
+                                onClick={() => setLadderSkillSlug(relatedSkill.slug)}
+                                title={relation.note}
+                                className="text-[10px] font-medium bg-secondary rounded-full px-2 py-1 text-muted-foreground active:scale-95 transition-transform"
+                              >
+                                {relation.type === "prerequisite" ? "richiede" : "propedeutica"}: {relatedSkill.name}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+
                         <button
                           type="button"
                           onClick={() => setDayPickerSkill(skill)}
@@ -252,7 +280,9 @@ export default function SkillsLibrary() {
             style={{ maxHeight: "calc(75vh - 80px)", WebkitOverflowScrolling: "touch" }}
             data-vaul-no-drag
           >
-            {ladderSkillSlug && <SkillLadderCard skillSlug={ladderSkillSlug} />}
+            {ladderSkillSlug && (
+              <SkillLadderCard skillSlug={ladderSkillSlug} onNavigateSkill={setLadderSkillSlug} />
+            )}
           </div>
         </DrawerContent>
       </Drawer>

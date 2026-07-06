@@ -41,6 +41,15 @@ export interface SkillStep {
   notes?: string;
 }
 
+export type SkillRelationType = "prerequisite" | "propedeutico";
+
+export interface SkillRelation {
+  /** slug dell'altra skill collegata */
+  slug: string;
+  type: SkillRelationType;
+  note: string;
+}
+
 export interface Skill {
   slug: string;
   name: string;
@@ -51,6 +60,8 @@ export interface Skill {
   prerequisite?: string;
   /** true per le 4 skill consigliate ora; le altre restano un menù per cicli futuri. */
   isPriority?: boolean;
+  /** Altre skill del catalogo collegate a questa (prerequisito o propedeutica). */
+  relatedSkills?: SkillRelation[];
   recommendedSets: number;
   recommendedRestSeconds: number;
   steps: SkillStep[];
@@ -86,6 +97,9 @@ export const SKILLS: Skill[] = [
     category: "statiche-spinta",
     type: "static",
     warning: "Élite. Prereq: freestanding handstand di 60s+ con controllo perfetto.",
+    relatedSkills: [
+      { slug: "handstand", type: "prerequisite", note: "Serve una freestanding handstand di 60s+ con controllo perfetto." },
+    ],
     recommendedSets: 3,
     recommendedRestSeconds: 120,
     steps: [
@@ -135,6 +149,9 @@ export const SKILLS: Skill[] = [
     category: "statiche-trazione",
     type: "static",
     isPriority: true,
+    relatedSkills: [
+      { slug: "dragon-flag", type: "propedeutico", note: "Ottimo propedeutico: allena catena posteriore e core in estensione." },
+    ],
     recommendedSets: 3,
     recommendedRestSeconds: 90,
     warning: "Prep: active/scapular hang, skin the cat controllato.",
@@ -274,6 +291,9 @@ export const SKILLS: Skill[] = [
     category: "dinamiche-trazione",
     type: "dynamic",
     warning: "Trazione orizzontale dinamica. Prereq: Front Lever statico solido (10s+).",
+    relatedSkills: [
+      { slug: "front-lever", type: "prerequisite", note: "Serve un Front Lever statico solido (10s+)." },
+    ],
     recommendedSets: 4,
     recommendedRestSeconds: 120,
     steps: [
@@ -290,6 +310,9 @@ export const SKILLS: Skill[] = [
     type: "eccentric",
     warning: "⚠️ Élite. Estremamente stressante per bicipiti e spalla in estensione. Prereq: German hang + Back lever solidi.",
     prerequisite: "10 German Hang completi (entrata/uscita controllata) + 5 Pelican Push-ups profondi.",
+    relatedSkills: [
+      { slug: "back-lever", type: "prerequisite", note: "Serve un Back Lever solido (comprende il German hang)." },
+    ],
     recommendedSets: 4,
     recommendedRestSeconds: 150,
     steps: [
@@ -338,6 +361,9 @@ export const SKILLS: Skill[] = [
     type: "dynamic",
     warning: "Bilanciamento + forza spalle + flessibilità attiva (compressione). Prereq: Handstand solida freestanding.",
     prerequisite: "30 secondi di verticale libera stabile + mobilità di Pike/Straddle a terra.",
+    relatedSkills: [
+      { slug: "handstand", type: "prerequisite", note: "Serve una handstand solida freestanding (30s+)." },
+    ],
     recommendedSets: 4,
     recommendedRestSeconds: 120,
     steps: [
@@ -354,6 +380,9 @@ export const SKILLS: Skill[] = [
     category: "dinamiche-spinta",
     type: "eccentric",
     warning: "Transizione dinamica tra Handstand e Forearm Stand. Prereq: stabilità su entrambe le tenute.",
+    relatedSkills: [
+      { slug: "handstand", type: "prerequisite", note: "Serve stabilità in handstand prima di lavorare la transizione." },
+    ],
     recommendedSets: 4,
     recommendedRestSeconds: 120,
     steps: [
@@ -369,6 +398,10 @@ export const SKILLS: Skill[] = [
     category: "dinamiche-spinta",
     type: "eccentric",
     warning: "Élite. Handstand to Planche Push-up. Prereq: HSPU + Planche Lean solidi.",
+    relatedSkills: [
+      { slug: "hspu", type: "prerequisite", note: "Serve un HSPU solido." },
+      { slug: "straddle-planche", type: "prerequisite", note: "Serve una Planche Lean solida." },
+    ],
     recommendedSets: 4,
     recommendedRestSeconds: 150,
     steps: [
@@ -428,6 +461,10 @@ export const SKILLS: Skill[] = [
     category: "gambe",
     type: "dynamic",
     warning: "Prereq: Pistol e Shrimp squat solidi. Richiede estrema mobilità di anca e caviglia.",
+    relatedSkills: [
+      { slug: "pistol-squat", type: "prerequisite", note: "Serve un Pistol Squat solido." },
+      { slug: "shrimp-squat", type: "prerequisite", note: "Serve uno Shrimp Squat solido." },
+    ],
     recommendedSets: 4,
     recommendedRestSeconds: 90,
     steps: [
@@ -443,4 +480,22 @@ export function getSkill(slug: string): Skill | undefined {
 
 export function getSkillStep(skill: Skill, stepOrder: number): SkillStep | undefined {
   return skill.steps.find((s) => s.order === stepOrder);
+}
+
+/**
+ * Riferimento esplicito al prossimo step da allenare dopo quello corrente,
+ * oppure undefined se lo step corrente è già l'ultimo (skill completa).
+ */
+export function getNextStep(skill: Skill, currentStepOrder: number): SkillStep | undefined {
+  return getSkillStep(skill, currentStepOrder + 1);
+}
+
+export function getRelatedSkills(skill: Skill): { skill: Skill; relation: SkillRelation }[] {
+  if (!skill.relatedSkills) return [];
+  return skill.relatedSkills
+    .map((relation) => {
+      const related = getSkill(relation.slug);
+      return related ? { skill: related, relation } : null;
+    })
+    .filter((v): v is { skill: Skill; relation: SkillRelation } => v !== null);
 }
