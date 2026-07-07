@@ -276,6 +276,26 @@ export default function SkillsLibrary() {
           <DialogHeader>
             <DialogTitle>Aggiungi {dayPickerSkill?.name} a...</DialogTitle>
           </DialogHeader>
+
+          {dayPickerSkill &&
+            getRelatedSkills(dayPickerSkill)
+              .filter(({ skill: relatedSkill }) => !progressBySlug[relatedSkill.slug])
+              .map(({ skill: relatedSkill, relation }) => (
+                <div key={relatedSkill.slug} className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 text-xs">
+                  <p className="text-amber-500">
+                    {relation.type === "prerequisite" ? "Serve prima" : "Consigliata prima"}: <strong>{relatedSkill.name}</strong> — non
+                    l'hai ancora avviata. {relation.note}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setDayPickerSkill(relatedSkill)}
+                    className="mt-2 text-[11px] font-semibold text-amber-500 underline underline-offset-2"
+                  >
+                    Aggiungi {relatedSkill.name} invece
+                  </button>
+                </div>
+              ))}
+
           <div className="space-y-2">
             {days.length === 0 && (
               <p className="text-sm text-muted-foreground">Nessun giorno nella scheda "{CALISTHENICS_PLAN_NAME}".</p>
