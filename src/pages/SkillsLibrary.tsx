@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Star, Plus, Loader, Check } from "lucide-react";
+import { ArrowLeft, Star, Plus, Loader, Check, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getUserId } from "@/lib/user";
-import { useActivePlan } from "@/contexts/ActivePlanContext";
 import { useToast } from "@/hooks/use-toast";
 import PageContainer from "@/components/PageContainer";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -11,6 +10,10 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/u
 import { SKILLS, Skill, SkillCategory, getSkill, getSkillStep, getNextStep, getRelatedSkills } from "@/data/skills";
 import { SkillProgressRow } from "@/services/skillProgressionService";
 import { SkillLadderCard } from "@/components/Exercise/SkillLadderCard";
+import { getDayTypeFromName, isSkillCompatibleWithDay, describeMismatch } from "@/lib/skillDayType";
+
+/** Nome della scheda dedicata al calisthenics: le skill si aggiungono sempre lì, mai in una scheda mista. */
+const CALISTHENICS_PLAN_NAME = "Calisthenics";
 
 const CATEGORY_LABELS: Record<SkillCategory, string> = {
   "statiche-spinta": "Statiche — spinta",
@@ -38,11 +41,12 @@ interface PlanDay {
 
 export default function SkillsLibrary() {
   const navigate = useNavigate();
-  const { activePlanId } = useActivePlan();
   const { toast } = useToast();
 
   const [progressBySlug, setProgressBySlug] = useState<Record<string, SkillProgressRow>>({});
   const [loadingProgress, setLoadingProgress] = useState(true);
+  const [calisthenicsPlanId, setCalisthenicsPlanId] = useState<string | null>(null);
+  const [planLookupDone, setPlanLookupDone] = useState(false);
   const [days, setDays] = useState<PlanDay[]>([]);
   const [dayPickerSkill, setDayPickerSkill] = useState<Skill | null>(null);
   const [addingToDay, setAddingToDay] = useState<string | null>(null);
@@ -50,11 +54,31 @@ export default function SkillsLibrary() {
 
   useEffect(() => {
     loadProgress();
+    loadCalisthenicsPlan();
   }, []);
 
-  useEffect(() => {
-    if (activePlanId) loadDays(activePlanId);
-  }, [activePlanId]);
+  // Le skill si aggiungono sempre alla scheda "Calisthenics" (giorni Pull/Push/Gambe
+  // puliti), mai a una scheda mista tipo ipertrofia dove i giorni mescolano petto/dorso.
+  async function loadCalisthenicsPlan() {
+    try {
+      const userId = await getUserId();
+      const { data, error } = await supabase
+        .from("workout_plans")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("name", CALISTHENICS_PLAN_NAME)
+        .maybeSingle();
+      if (error) throw error;
+      if (data) {
+        setCalisthenicsPlanId(data.id);
+        loadDays(data.id);
+      }
+    } catch (error) {
+      console.error("Errore ricerca scheda Calisthenics:", error);
+    } finally {
+      setPlanLookupDone(true);
+    }
+  }
 
   async function loadProgress() {
     try {
@@ -149,9 +173,10 @@ export default function SkillsLibrary() {
         i cicli futuri: meglio non aggiungerlo finché non chiudi almeno il muscle-up.
       </p>
 
-      {!activePlanId && (
+      {planLookupDone && !calisthenicsPlanId && (
         <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 mb-5 text-xs text-amber-500">
-          Nessuna scheda attiva: seleziona una scheda in "Schede" prima di poter aggiungere una skill a un giorno.
+          Non trovo una scheda chiamata "{CALISTHENICS_PLAN_NAME}": creane una da "Schede" con giorni Pull/Push/Gambe
+          per poter aggiungere le skill.
         </div>
       )}
 
@@ -226,7 +251,7 @@ export default function SkillsLibrary() {
                         <button
                           type="button"
                           onClick={() => setDayPickerSkill(skill)}
-                          disabled={!activePlanId}
+                          disabled={!calisthenicsPlanId}
                           className="mt-3 w-full h-9 rounded-xl bg-primary/10 text-primary text-xs font-semibold flex items-center justify-center gap-1.5 active:scale-95 transition-transform disabled:opacity-40"
                         >
                           <Plus className="w-3.5 h-3.5" /> Aggiungi a un giorno
@@ -248,23 +273,43 @@ export default function SkillsLibrary() {
             <DialogTitle>Aggiungi {dayPickerSkill?.name} a...</DialogTitle>
           </DialogHeader>
           <div className="space-y-2">
-            {days.length === 0 && <p className="text-sm text-muted-foreground">Nessun giorno nella scheda attiva.</p>}
-            {days.map((day) => (
-              <button
-                key={day.id}
-                type="button"
-                disabled={addingToDay === day.id}
-                onClick={() => dayPickerSkill && addSkillToDay(dayPickerSkill, day.id)}
-                className="w-full text-left bg-secondary rounded-xl p-3 flex items-center justify-between active:scale-95 transition-transform disabled:opacity-60"
-              >
-                <span className="text-sm font-medium">Giorno {day.day_number} · {day.day_name}</span>
-                {addingToDay === day.id ? (
-                  <Loader className="w-4 h-4 animate-spin text-muted-foreground" />
-                ) : (
-                  <Check className="w-4 h-4 text-muted-foreground" />
-                )}
-              </button>
-            ))}
+            {days.length === 0 && (
+              <p className="text-sm text-muted-foreground">Nessun giorno nella scheda "{CALISTHENICS_PLAN_NAME}".</p>
+            )}
+            {dayPickerSkill &&
+              [...days]
+                .sort((a, b) => {
+                  const aCompat = isSkillCompatibleWithDay(dayPickerSkill, getDayTypeFromName(a.day_name));
+                  const bCompat = isSkillCompatibleWithDay(dayPickerSkill, getDayTypeFromName(b.day_name));
+                  return aCompat === bCompat ? a.day_number - b.day_number : aCompat ? -1 : 1;
+                })
+                .map((day) => {
+                  const dayType = getDayTypeFromName(day.day_name);
+                  const mismatch = describeMismatch(dayPickerSkill, dayType);
+                  return (
+                    <button
+                      key={day.id}
+                      type="button"
+                      disabled={addingToDay === day.id}
+                      onClick={() => addSkillToDay(dayPickerSkill, day.id)}
+                      className={`w-full text-left rounded-xl p-3 active:scale-95 transition-transform disabled:opacity-60 ${
+                        mismatch ? "bg-amber-500/10 border border-amber-500/30" : "bg-secondary"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">Giorno {day.day_number} · {day.day_name}</span>
+                        {addingToDay === day.id ? (
+                          <Loader className="w-4 h-4 animate-spin text-muted-foreground" />
+                        ) : mismatch ? (
+                          <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+                        ) : (
+                          <Check className="w-4 h-4 text-muted-foreground" />
+                        )}
+                      </div>
+                      {mismatch && <p className="text-[11px] text-amber-500 mt-1">{mismatch}</p>}
+                    </button>
+                  );
+                })}
           </div>
         </DialogContent>
       </Dialog>
