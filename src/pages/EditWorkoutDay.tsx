@@ -12,7 +12,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SkillPickerDialog } from "@/components/Exercise/SkillPickerDialog";
-import { Skill } from "@/data/skills";
+import { Skill, getSkillStep } from "@/data/skills";
+import { loadSkillProgress } from "@/services/skillProgressionService";
+import { getUserId } from "@/lib/user";
 
 interface BodyPart {
   id: string;
@@ -141,24 +143,32 @@ export default function EditWorkoutDay() {
     }
   }
 
-  function addSkillExercise(skill: Skill) {
+  async function addSkillExercise(skill: Skill) {
     if (!day) return;
-    const firstStep = skill.steps[0];
-    setDay({
-      ...day,
-      exercises: [
-        ...day.exercises,
-        {
-          exercise_name: skill.name,
-          sets: skill.recommendedSets,
-          reps_min: firstStep.targetMin,
-          reps_max: firstStep.targetMax ?? firstStep.targetMin,
-          rest_seconds: skill.recommendedRestSeconds,
-          notes: skill.warning || `Skill neurologica, a inizio seduta da fresco. Step 1: ${firstStep.name}.`,
-          tracking_unit: firstStep.targetType,
-          skill_slug: skill.slug,
-        },
-      ],
+    // Usa lo step già sbloccato (se esiste un progresso), altrimenti il primo
+    // step della progressione: mai la skill "completa".
+    const userId = await getUserId().catch(() => null);
+    const progress = userId ? await loadSkillProgress(userId, skill.slug).catch(() => null) : null;
+    const currentStep = getSkillStep(skill, progress?.current_step_order ?? 1) ?? skill.steps[0];
+
+    setDay((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        exercises: [
+          ...prev.exercises,
+          {
+            exercise_name: `${skill.name} — ${currentStep.name}`,
+            sets: skill.recommendedSets,
+            reps_min: currentStep.targetMin,
+            reps_max: currentStep.targetMax ?? currentStep.targetMin,
+            rest_seconds: skill.recommendedRestSeconds,
+            notes: skill.warning || `Skill neurologica, a inizio seduta da fresco. Step ${currentStep.order}/${skill.steps.length}.`,
+            tracking_unit: currentStep.targetType,
+            skill_slug: skill.slug,
+          },
+        ],
+      };
     });
   }
 

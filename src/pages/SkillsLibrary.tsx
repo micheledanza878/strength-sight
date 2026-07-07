@@ -130,23 +130,26 @@ export default function SkillsLibrary() {
       if (existingError) throw existingError;
 
       const nextOrder = (existing?.[0]?.order_number ?? 0) + 1;
-      const firstStep = skill.steps[0];
+      // Usa lo step che l'utente ha già sbloccato (se esiste un progresso), altrimenti
+      // il primo step della progressione: mai la skill "completa".
+      const progress = progressBySlug[skill.slug];
+      const currentStep = getSkillStep(skill, progress?.current_step_order ?? 1) ?? skill.steps[0];
 
       const { error } = await supabase.from("workout_plan_exercises").insert({
         workout_plan_day_id: dayId,
-        exercise_name: skill.name,
+        exercise_name: `${skill.name} — ${currentStep.name}`,
         order_number: nextOrder,
         sets: skill.recommendedSets,
-        reps_min: firstStep.targetMin,
-        reps_max: firstStep.targetMax ?? firstStep.targetMin,
+        reps_min: currentStep.targetMin,
+        reps_max: currentStep.targetMax ?? currentStep.targetMin,
         rest_seconds: skill.recommendedRestSeconds,
-        notes: skill.warning || `Skill neurologica, a inizio seduta da fresco. Step 1: ${firstStep.name}.`,
-        tracking_unit: firstStep.targetType,
+        notes: skill.warning || `Skill neurologica, a inizio seduta da fresco. Step ${currentStep.order}/${skill.steps.length}.`,
+        tracking_unit: currentStep.targetType,
         skill_slug: skill.slug,
       });
       if (error) throw error;
 
-      toast({ title: "Skill aggiunta", description: `${skill.name} è stata aggiunta alla scheda.` });
+      toast({ title: "Skill aggiunta", description: `${skill.name} — ${currentStep.name} è stata aggiunta alla scheda.` });
       setDayPickerSkill(null);
     } catch (error) {
       console.error("Errore aggiunta skill al giorno:", error);
