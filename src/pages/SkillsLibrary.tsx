@@ -62,16 +62,20 @@ export default function SkillsLibrary() {
   async function loadCalisthenicsPlan() {
     try {
       const userId = await getUserId();
+      // ilike invece di un confronto esatto: tollera maiuscole/minuscole diverse,
+      // spazi in più nel nome, e non va in errore se per sbaglio esistono più
+      // schede con "Calisthenics" nel nome (prende la più recente).
       const { data, error } = await supabase
         .from("workout_plans")
-        .select("id")
+        .select("id, created_at")
         .eq("user_id", userId)
-        .eq("name", CALISTHENICS_PLAN_NAME)
-        .maybeSingle();
+        .ilike("name", `%${CALISTHENICS_PLAN_NAME}%`)
+        .order("created_at", { ascending: false });
       if (error) throw error;
-      if (data) {
-        setCalisthenicsPlanId(data.id);
-        loadDays(data.id);
+      const plan = data?.[0];
+      if (plan) {
+        setCalisthenicsPlanId(plan.id);
+        loadDays(plan.id);
       }
     } catch (error) {
       console.error("Errore ricerca scheda Calisthenics:", error);
