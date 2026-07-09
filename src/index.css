@@ -166,6 +166,11 @@
     @apply border-border;
   }
 
+  html {
+    overflow-x: hidden;
+    width: 100%;
+  }
+
   body {
     @apply bg-background text-foreground;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
@@ -176,11 +181,14 @@
     user-select: none;
     max-width: 428px;
     margin: 0 auto;
+    overflow-x: hidden;
+    width: 100vw;
   }
 
   #root {
     width: 100%;
     min-height: 100vh;
+    overflow-x: hidden;
   }
 
   /* === Typography scale === */
