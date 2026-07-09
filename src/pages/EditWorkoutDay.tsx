@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SkillPickerDialog } from "@/components/Exercise/SkillPickerDialog";
-import { Skill, getSkillStep } from "@/data/skills";
+import { Skill, getSkillStep } from "@/services/skillsService";
 import { loadSkillProgress } from "@/services/skillProgressionService";
 import { getUserId } from "@/lib/user";
 

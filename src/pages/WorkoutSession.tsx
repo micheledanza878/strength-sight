@@ -12,7 +12,7 @@ import {
   evaluateAndSaveSkillSession,
   SkillProgressRow,
 } from "@/services/skillProgressionService";
-import { getSkill, getSkillStep } from "@/data/skills";
+import { fetchSkills, getSkill, getSkillStep, Skill } from "@/services/skillsService";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { ExerciseInsightsCard } from "@/components/Exercise/ExerciseInsightsCard";
 import { SkillLadderCard } from "@/components/Exercise/SkillLadderCard";
@@ -94,6 +94,9 @@ export default function WorkoutSession() {
   const [prevSets, setPrevSets] = useState<Record<string, { reps: number; weight: number; hold_seconds: number }[]>>({});
   // Progresso corrente (step + sedute pulite) per ogni skill presente nel giorno, keyed by skill_slug
   const [skillProgress, setSkillProgress] = useState<Record<string, SkillProgressRow>>({});
+  // Catalogo skill (letto da Supabase, cache-ato da skillsService): serve per
+  // risolvere skill_slug → nome/step/warning degli esercizi di tipo skill.
+  const [skills, setSkills] = useState<Skill[]>([]);
   const [justDone, setJustDone] = useState<string | null>(null);
   const [completion, setCompletion] = useState<CompletionStats | null>(null);
   const [resumeDialog, setResumeDialog] = useState<string | null>(null);
@@ -179,6 +182,23 @@ export default function WorkoutSession() {
   useEffect(() => {
     loadDayData();
   }, [dayId]);
+
+  // Catalogo skill: indipendente dal giorno caricato, si carica una sola
+  // volta (fetchSkills() è cache-ato) e serve a risolvere skill_slug → Skill.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await fetchSkills();
+        if (!cancelled) setSkills(data);
+      } catch (error) {
+        console.error("Errore caricamento catalogo skill:", error);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function loadDayData() {
     if (!dayId) return;
@@ -413,7 +433,7 @@ export default function WorkoutSession() {
   // Info sullo step corrente di una skill (nome step, target, sedute pulite verso l'avanzamento)
   function getSkillStepInfo(ex: PlanExercise) {
     if (!ex.skill_slug) return null;
-    const skill = getSkill(ex.skill_slug);
+    const skill = getSkill(skills, ex.skill_slug);
     if (!skill) return null;
     const progress = skillProgress[ex.skill_slug];
     const step = getSkillStep(skill, progress?.current_step_order ?? 1);
@@ -677,15 +697,17 @@ export default function WorkoutSession() {
       try {
         const userId = await getUserId();
         for (const ex of skillExercises) {
+          const skill = getSkill(skills, ex.skill_slug!);
+          if (!skill) continue; // catalogo non ancora caricato o slug sconosciuto: salta senza bloccare il salvataggio
+
           const loggedSets = (sets[ex.exercise_name] || [])
             .filter((s) => s.done)
             .map((s) => ({ value: parseInt(s.reps) || 0 }));
           if (loggedSets.length === 0) continue;
 
-          const result = await evaluateAndSaveSkillSession(userId, ex.skill_slug!, loggedSets, ex.sets);
+          const result = await evaluateAndSaveSkillSession(userId, skill, loggedSets, ex.sets);
           if (result?.leveledUp && result.newStep) {
-            const skill = getSkill(ex.skill_slug!);
-            levelUps.push({ skillName: skill?.name ?? ex.exercise_name, newStepName: result.newStep.name });
+            levelUps.push({ skillName: skill.name, newStepName: result.newStep.name });
           }
         }
       } catch (error) {

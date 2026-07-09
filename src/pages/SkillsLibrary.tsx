@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import PageContainer from "@/components/PageContainer";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
-import { SKILLS, Skill, SkillCategory, getSkill, getSkillStep, getNextStep, getRelatedSkills } from "@/data/skills";
+import { fetchSkills, Skill, SkillCategory, getSkill, getSkillStep, getNextStep, getRelatedSkills } from "@/services/skillsService";
 import { SkillProgressRow } from "@/services/skillProgressionService";
 import { SkillLadderCard } from "@/components/Exercise/SkillLadderCard";
 import { getDayTypeFromName, isSkillCompatibleWithDay, describeMismatch } from "@/lib/skillDayType";
@@ -43,6 +43,9 @@ export default function SkillsLibrary() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const [skills, setSkills] = useState<Skill[]>([]);
+  const [skillsLoading, setSkillsLoading] = useState(true);
+  const [skillsError, setSkillsError] = useState(false);
   const [progressBySlug, setProgressBySlug] = useState<Record<string, SkillProgressRow>>({});
   const [loadingProgress, setLoadingProgress] = useState(true);
   const [calisthenicsPlanId, setCalisthenicsPlanId] = useState<string | null>(null);
@@ -53,9 +56,22 @@ export default function SkillsLibrary() {
   const [ladderSkillSlug, setLadderSkillSlug] = useState<string | null>(null);
 
   useEffect(() => {
+    loadSkillsCatalog();
     loadProgress();
     loadCalisthenicsPlan();
   }, []);
+
+  async function loadSkillsCatalog() {
+    try {
+      const data = await fetchSkills();
+      setSkills(data);
+    } catch (error) {
+      console.error("Errore caricamento catalogo skill:", error);
+      setSkillsError(true);
+    } finally {
+      setSkillsLoading(false);
+    }
+  }
 
   // Le skill si aggiungono sempre alla scheda "Calisthenics" (giorni Pull/Push/Gambe
   // puliti), mai a una scheda mista tipo ipertrofia dove i giorni mescolano petto/dorso.
@@ -187,14 +203,18 @@ export default function SkillsLibrary() {
         </div>
       )}
 
-      {loadingProgress ? (
+      {skillsLoading || loadingProgress ? (
         <div className="flex items-center justify-center h-40">
           <Loader className="w-6 h-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : skillsError ? (
+        <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-4 text-sm text-destructive text-center">
+          Impossibile caricare il catalogo skill. Riprova più tardi.
         </div>
       ) : (
         <div className="space-y-5">
           {CATEGORY_ORDER.map((category) => {
-            const skillsInCategory = SKILLS.filter((s) => s.category === category);
+            const skillsInCategory = skills.filter((s) => s.category === category);
             if (skillsInCategory.length === 0) return null;
             return (
               <div key={category}>
@@ -208,7 +228,7 @@ export default function SkillsLibrary() {
                     const nextStep = currentStep
                       ? getNextStep(skill, currentStep.order)
                       : getSkillStep(skill, 1);
-                    const related = getRelatedSkills(skill);
+                    const related = getRelatedSkills(skill, skills);
                     return (
                       <div key={skill.slug} className="bg-card border border-border rounded-2xl p-4">
                         <button
@@ -281,7 +301,7 @@ export default function SkillsLibrary() {
           </DialogHeader>
 
           {dayPickerSkill &&
-            getRelatedSkills(dayPickerSkill)
+            getRelatedSkills(dayPickerSkill, skills)
               .filter(({ skill: relatedSkill }) => !progressBySlug[relatedSkill.slug])
               .map(({ skill: relatedSkill, relation }) => (
                 <div key={relatedSkill.slug} className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 text-xs">
@@ -345,7 +365,7 @@ export default function SkillsLibrary() {
       <Drawer open={!!ladderSkillSlug} onOpenChange={(open) => !open && setLadderSkillSlug(null)}>
         <DrawerContent>
           <DrawerHeader>
-            <DrawerTitle>{ladderSkillSlug ? getSkill(ladderSkillSlug)?.name : ""}</DrawerTitle>
+            <DrawerTitle>{ladderSkillSlug ? getSkill(skills, ladderSkillSlug)?.name : ""}</DrawerTitle>
           </DrawerHeader>
           <div
             className="overflow-y-auto px-4 pb-8"

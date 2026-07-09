@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Check, Lock, Loader2, PlayCircle, ChevronDown, ChevronUp } from "lucide-react";
-import { getSkill, getRelatedSkills, Skill, SkillStep } from "@/data/skills";
+import { Check, Lock, Loader2, Loader, PlayCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { fetchSkills, getSkill, getRelatedSkills, Skill, SkillStep } from "@/services/skillsService";
 import { loadSkillProgress, SkillProgressRow } from "@/services/skillProgressionService";
 import { getUserId } from "@/lib/user";
 import { getExerciseInsights, ExerciseInsights } from "@/services/exerciseInsightsService";
@@ -18,11 +18,33 @@ function buildStepQuery(skill: Skill, step: SkillStep): string {
 }
 
 export function SkillLadderCard({ skillSlug, onNavigateSkill }: SkillLadderCardProps) {
-  const skill = getSkill(skillSlug);
+  const [skills, setSkills] = useState<Skill[]>([]);
+  const [skillsLoading, setSkillsLoading] = useState(true);
+  const [skillsError, setSkillsError] = useState(false);
   const [progress, setProgress] = useState<SkillProgressRow | null>(null);
   const [expandedStep, setExpandedStep] = useState<number | null>(null);
   const [videoByStep, setVideoByStep] = useState<Record<number, ExerciseInsights | null>>({});
   const [videoLoading, setVideoLoading] = useState<number | null>(null);
+
+  // Il catalogo skill è cache-ato da fetchSkills(): qui serve solo per
+  // risolvere skillSlug → Skill completa (con step e collegamenti).
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await fetchSkills();
+        if (!cancelled) setSkills(data);
+      } catch (error) {
+        console.error("Errore caricamento catalogo skill:", error);
+        if (!cancelled) setSkillsError(true);
+      } finally {
+        if (!cancelled) setSkillsLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -40,10 +62,27 @@ export function SkillLadderCard({ skillSlug, onNavigateSkill }: SkillLadderCardP
     };
   }, [skillSlug]);
 
+  if (skillsLoading) {
+    return (
+      <div className="bg-card border border-border rounded-2xl p-4 mb-4 flex items-center justify-center h-24">
+        <Loader className="w-5 h-5 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (skillsError) {
+    return (
+      <div className="bg-card border border-border rounded-2xl p-4 mb-4">
+        <p className="text-sm text-destructive">Impossibile caricare il catalogo skill. Riprova più tardi.</p>
+      </div>
+    );
+  }
+
+  const skill = getSkill(skills, skillSlug);
   if (!skill) return null;
 
   const currentStepOrder = progress?.current_step_order ?? 1;
-  const related = getRelatedSkills(skill);
+  const related = getRelatedSkills(skill, skills);
 
   async function toggleStepVideo(step: SkillStep) {
     if (!skill) return;

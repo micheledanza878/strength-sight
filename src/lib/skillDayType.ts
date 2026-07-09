@@ -1,4 +1,4 @@
-import { Skill, SkillCategory } from "@/data/skills";
+import { Skill, SkillCategory } from "@/services/skillsService";
 
 /**
  * Classificazione semplificata usata per capire in quali giorni ha senso

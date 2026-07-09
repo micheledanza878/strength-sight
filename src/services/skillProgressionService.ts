@@ -9,7 +9,7 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
-import { Skill, SkillStep, getSkill, getSkillStep } from "@/data/skills";
+import { Skill, SkillStep, getSkillStep } from "@/services/skillsService";
 
 export interface SkillProgressRow {
   skill_slug: string;
@@ -108,17 +108,18 @@ export function applyProgressionResult(skill: Skill, progress: SkillProgressRow,
 /**
  * Valuta la seduta appena conclusa per una skill e persiste il nuovo stato su Supabase.
  * Ritorna il risultato (utile per mostrare un messaggio di avanzamento nella schermata finale).
+ *
+ * Il chiamante passa direttamente l'oggetto `skill` (già caricato dal catalogo
+ * via skillsService.fetchSkills()): questo servizio non ha più un catalogo
+ * globale da cui recuperarlo per slug, dato che le skill vivono ora su Supabase.
  */
 export async function evaluateAndSaveSkillSession(
   userId: string,
-  skillSlug: string,
+  skill: Skill,
   loggedSets: LoggedSetValue[],
   expectedSets: number
 ): Promise<ProgressionResult | null> {
-  const skill = getSkill(skillSlug);
-  if (!skill) return null;
-
-  const progress = await loadSkillProgress(userId, skillSlug);
+  const progress = await loadSkillProgress(userId, skill.slug);
   const currentStep = getSkillStep(skill, progress.current_step_order);
   if (!currentStep) return null;
 
@@ -128,7 +129,7 @@ export async function evaluateAndSaveSkillSession(
   const { error } = await supabase.from("user_skill_progress").upsert(
     {
       user_id: userId,
-      skill_slug: skillSlug,
+      skill_slug: skill.slug,
       current_step_order: result.progress.current_step_order,
       consecutive_clean_sessions: result.progress.consecutive_clean_sessions,
       last_trained_at: new Date().toISOString(),
