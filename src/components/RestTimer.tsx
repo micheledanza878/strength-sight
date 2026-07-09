@@ -76,7 +76,7 @@ export default function RestTimer({ seconds, color = "hsl(var(--primary))", onCo
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/95 backdrop-blur-sm">
-      <div className="flex flex-col items-center gap-6 w-full px-4 sm:px-8">
+      <div className="flex flex-col items-center gap-3 landscape:gap-2 w-full px-4 sm:px-8">
 
         <button onClick={onDismiss} className="absolute top-14 right-6 text-muted-foreground">
           <X className="w-6 h-6" />
@@ -85,7 +85,7 @@ export default function RestTimer({ seconds, color = "hsl(var(--primary))", onCo
         <p className="text-muted-foreground text-sm font-medium uppercase tracking-widest">Recupero</p>
 
         {/* Circular timer */}
-        <div className="relative w-52 h-52">
+        <div className="relative w-52 h-52 landscape:w-40 landscape:h-40">
           <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
             <circle cx="50" cy="50" r="45" fill="none" stroke="hsl(var(--secondary))" strokeWidth="5" />
             <circle
