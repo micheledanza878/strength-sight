@@ -200,6 +200,11 @@
       overflow-y: auto;
     }
 
+    /* CRITICAL: Disable min-h-screen that forces 100vh */
+    .min-h-screen {
+      min-height: auto !important;
+    }
+
     /* Reduce padding drastically in landscape */
     .pt-14 {
       padding-top: 0.25rem !important;
