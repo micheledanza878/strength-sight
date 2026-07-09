@@ -174,13 +174,13 @@
     -webkit-tap-highlight-color: transparent;
     overscroll-behavior: none;
     user-select: none;
-    overflow-x: hidden;
+    max-width: 428px;
+    margin: 0 auto;
   }
 
   #root {
     width: 100%;
     min-height: 100vh;
-    overflow-x: hidden;
   }
 
   /* === Typography scale === */
