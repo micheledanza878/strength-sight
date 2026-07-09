@@ -564,7 +564,7 @@ export default function WorkoutSession() {
         </div>
 
         {/* Start button */}
-        <div className="fixed bottom-8 left-4 right-4 max-w-[412px] mx-auto md:sticky md:bottom-8 md:left-auto md:right-auto md:max-w-none md:w-full">
+        <div className="fixed bottom-8 left-3 right-3 sm:left-4 sm:right-4 max-w-[412px] mx-auto md:sticky md:bottom-8 md:left-auto md:right-auto md:max-w-none md:w-full">
           <button
             onClick={handleStartWorkout}
             className="w-full h-16 rounded-2xl font-bold text-white text-lg flex items-center justify-center gap-3 transition-transform active:scale-95 gradient-primary glow-primary"
@@ -972,7 +972,7 @@ export default function WorkoutSession() {
       </div>
 
       {/* Navigation */}
-      <div className="flex gap-3 fixed bottom-24 left-4 right-4 max-w-[412px] mx-auto md:sticky md:bottom-24 md:left-auto md:right-auto md:max-w-none md:w-full">
+      <div className="flex gap-3 fixed bottom-24 left-3 right-3 sm:left-4 sm:right-4 max-w-[412px] mx-auto md:sticky md:bottom-24 md:left-auto md:right-auto md:max-w-none md:w-full">
         {currentExIdx > 0 && (
           <button
             onClick={() => setCurrentExIdx((i) => i - 1)}

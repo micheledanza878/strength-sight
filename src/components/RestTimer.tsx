@@ -76,7 +76,7 @@ export default function RestTimer({ seconds, color = "hsl(var(--primary))", onCo
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/95 backdrop-blur-sm">
-      <div className="flex flex-col items-center gap-6 w-full px-8">
+      <div className="flex flex-col items-center gap-6 w-full px-4 sm:px-8">
 
         <button onClick={onDismiss} className="absolute top-14 right-6 text-muted-foreground">
           <X className="w-6 h-6" />

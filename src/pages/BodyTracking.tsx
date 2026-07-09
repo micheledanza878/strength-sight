@@ -715,7 +715,7 @@ export default function BodyTracking() {
           </div>
 
           {/* Navigation buttons */}
-          <div className="fixed bottom-8 left-4 right-4 max-w-[412px] mx-auto flex gap-3 shrink-0 md:sticky md:bottom-8 md:left-auto md:right-auto md:max-w-none md:w-full">
+          <div className="fixed bottom-8 left-3 right-3 sm:left-4 sm:right-4 max-w-[412px] mx-auto flex gap-3 shrink-0 md:sticky md:bottom-8 md:left-auto md:right-auto md:max-w-none md:w-full">
             {step !== "base" && (
               <button
                 onClick={prevStep}

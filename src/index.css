@@ -169,6 +169,7 @@
   html {
     overflow-x: hidden;
     width: 100%;
+    max-width: 100%;
   }
 
   body {
@@ -179,10 +180,10 @@
     -webkit-tap-highlight-color: transparent;
     overscroll-behavior: none;
     user-select: none;
-    max-width: 428px;
+    width: 100%;
+    max-width: 100%;
     margin: 0 auto;
     overflow-x: hidden;
-    width: 100vw;
   }
 
   #root {

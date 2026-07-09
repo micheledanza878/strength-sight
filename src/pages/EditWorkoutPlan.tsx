@@ -479,7 +479,7 @@ export default function EditWorkoutPlan() {
       )}
 
       {/* ── Bottom CTA ── */}
-      <div className="fixed bottom-6 left-4 right-4 max-w-[412px] mx-auto flex gap-3 md:sticky md:bottom-6 md:left-auto md:right-auto md:max-w-none md:w-full">
+      <div className="fixed bottom-6 left-3 right-3 sm:left-4 sm:right-4 max-w-[412px] mx-auto flex gap-3 md:sticky md:bottom-6 md:left-auto md:right-auto md:max-w-none md:w-full">
         <button
           onClick={() => {
             if (step === "plan") navigate(-1);
