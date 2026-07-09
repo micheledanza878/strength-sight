@@ -193,10 +193,38 @@
     overflow-x: hidden;
   }
 
-  @media (orientation: landscape) {
+  @media (orientation: landscape) and (max-height: 500px) {
     #root {
       min-height: auto;
       height: 100vh;
+      overflow-y: auto;
+    }
+
+    /* Reduce padding drastically in landscape */
+    .pt-14 {
+      padding-top: 0.25rem !important;
+    }
+
+    .pb-32,
+    .pb-24 {
+      padding-bottom: 0.25rem !important;
+    }
+
+    /* Allow tab scrolling in landscape */
+    #exercise-tabs {
+      overflow-x: auto !important;
+      flex-wrap: nowrap;
+    }
+
+    /* Shrink timer in landscape */
+    #timer-circle {
+      width: 10rem !important;
+      height: 10rem !important;
+    }
+
+    /* Reduce gap in timer */
+    .gap-6 {
+      gap: 0.5rem !important;
     }
   }
 
