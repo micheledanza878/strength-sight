@@ -270,7 +270,7 @@ export default function WorkoutSession() {
   // ── PREVIEW SCREEN ──────────────────────────────────────────────
   if (phase === "preview") {
     return (
-      <div className="min-h-screen px-5 pt-14 pb-32 max-w-full overflow-x-hidden">
+      <div className="min-h-screen px-5 pt-14 pb-32 max-w-full">
         {showResumePrompt && (
           <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm px-5">
             <div className="w-full max-w-sm bg-card rounded-2xl p-6 text-center shadow-xl">
@@ -527,7 +527,7 @@ export default function WorkoutSession() {
   if (!exercise || !dayData) return <div className="p-5 pt-14 text-foreground">Caricamento...</div>;
 
   return (
-    <div className="min-h-screen px-5 pt-14 pb-24 max-w-full overflow-x-hidden">
+    <div className="min-h-screen px-5 pt-14 pb-24 max-w-full">
       {showTimer && (
         <RestTimer
           key={timerKey}
@@ -572,7 +572,7 @@ export default function WorkoutSession() {
       </div>
 
       {/* Exercise selector */}
-      <div className="flex flex-wrap gap-2 pb-3 mb-5">
+      <div className="flex flex-nowrap gap-2 pb-3 mb-5 overflow-x-auto -mx-5 px-5 no-scrollbar">
         {exercises.map((ex, i) => {
           const done = (sets[ex.exercise_name] || []).every((s) => s.done);
           const active = i === currentExIdx;
