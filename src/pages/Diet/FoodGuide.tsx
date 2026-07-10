@@ -109,7 +109,7 @@ export default function FoodGuide() {
 
       {/* ── Category chips ── */}
       {tabGroups.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 mb-4">
+        <div className="flex flex-wrap gap-2 mb-4">
           <button
             onClick={() => setActiveFilter(null)}
             className={`shrink-0 rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors ${
