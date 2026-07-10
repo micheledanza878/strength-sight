@@ -16,13 +16,26 @@ import {
 export async function getOrCreateWeeklyPlan(
   userId: string
 ): Promise<DietWeeklyPlan> {
-  // First, try to get existing plan
-  const { data: existingPlan } = await supabase
+  // First, try to get existing plan. A user can have multiple weekly plans
+  // over time (versioning: start_date/end_date/is_active) — only one is
+  // ever active at a time, so we filter on that instead of assuming a
+  // single row per user_id.
+  //
+  // IMPORTANT: surface a query error here instead of silently falling
+  // through to the insert below. A previous version of this function
+  // ignored the error, so any transient failure (or, before is_active
+  // existed, more than one row matching user_id) was silently treated as
+  // "no plan yet" and created a brand new empty plan — which is exactly
+  // how duplicate weekly_plans rows for the same user ended up in
+  // production.
+  const { data: existingPlan, error: fetchError } = await supabase
     .from('diet_weekly_plans')
     .select('*')
     .eq('user_id', userId)
-    .single();
+    .eq('is_active', true)
+    .maybeSingle();
 
+  if (fetchError) throw fetchError;
   if (existingPlan) {
     return existingPlan;
   }

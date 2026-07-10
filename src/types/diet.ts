@@ -20,6 +20,9 @@ export interface Food {
 export interface DietWeeklyPlan {
   id: string;
   user_id: string;
+  start_date?: string | null;
+  end_date?: string | null;
+  is_active: boolean;
   created_at?: string;
   updated_at?: string;
 }

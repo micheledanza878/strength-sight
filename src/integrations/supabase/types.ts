@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       body_measurements: {
         Row: {
+          addome_cm: number | null
           arms: number | null
           avambraccio_cm: number | null
           body_fat: number | null
@@ -33,6 +34,7 @@ export type Database = {
           petto_torace_cm: number | null
           polpaccio_cm: number | null
           schiena_altezza_dorsali_cm: number | null
+          somma_pliche_mm: number | null
           spalle_ampiezza_cm: number | null
           user_id: string | null
           vita_cm: number | null
@@ -40,6 +42,7 @@ export type Database = {
           weight: number | null
         }
         Insert: {
+          addome_cm?: number | null
           arms?: number | null
           avambraccio_cm?: number | null
           body_fat?: number | null
@@ -57,6 +60,7 @@ export type Database = {
           petto_torace_cm?: number | null
           polpaccio_cm?: number | null
           schiena_altezza_dorsali_cm?: number | null
+          somma_pliche_mm?: number | null
           spalle_ampiezza_cm?: number | null
           user_id?: string | null
           vita_cm?: number | null
@@ -64,6 +68,7 @@ export type Database = {
           weight?: number | null
         }
         Update: {
+          addome_cm?: number | null
           arms?: number | null
           avambraccio_cm?: number | null
           body_fat?: number | null
@@ -81,6 +86,7 @@ export type Database = {
           petto_torace_cm?: number | null
           polpaccio_cm?: number | null
           schiena_altezza_dorsali_cm?: number | null
+          somma_pliche_mm?: number | null
           spalle_ampiezza_cm?: number | null
           user_id?: string | null
           vita_cm?: number | null
@@ -241,19 +247,28 @@ export type Database = {
       diet_weekly_plans: {
         Row: {
           created_at: string | null
+          end_date: string | null
           id: string
+          is_active: boolean
+          start_date: string | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
           created_at?: string | null
+          end_date?: string | null
           id?: string
+          is_active?: boolean
+          start_date?: string | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
           created_at?: string | null
+          end_date?: string | null
           id?: string
+          is_active?: boolean
+          start_date?: string | null
           updated_at?: string | null
           user_id?: string
         }

@@ -269,6 +269,7 @@ export async function getWeeklyAdherence(
     .from('diet_weekly_plans')
     .select('id')
     .eq('user_id', userId)
+    .eq('is_active', true)
     .maybeSingle();
 
   if (planError) {
