@@ -160,10 +160,10 @@ export default function FoodGuide() {
                   {group.foods.map(food => (
                     <div
                       key={food.foodId}
-                      className="flex items-center justify-between px-4 py-3"
+                      className="flex items-center justify-between gap-3 px-4 py-3"
                     >
-                      <span className="text-sm">{food.name}</span>
-                      <span className="text-sm font-bold tabular-nums text-primary">
+                      <span className="text-sm min-w-0 truncate">{food.name}</span>
+                      <span className="text-sm font-bold tabular-nums text-primary shrink-0">
                         {food.baseQuantityG}g
                       </span>
                     </div>
