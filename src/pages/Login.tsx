@@ -76,7 +76,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-end px-5 pb-10 bg-background relative overflow-hidden">
+    <div className="min-h-screen flex flex-col justify-center px-5 py-10 bg-background relative overflow-hidden">
 
       {/* Background glow */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-72 h-72 rounded-full bg-primary/15 blur-3xl pointer-events-none" />
