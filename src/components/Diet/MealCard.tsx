@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { ArrowRightLeft, Sparkles } from 'lucide-react';
+import { ArrowRightLeft, Sparkles, Plus } from 'lucide-react';
 import { MEAL_TYPES } from '@/types/diet';
 import { FoodSwapModal } from './FoodSwapModal';
+import { AddFoodModal } from './AddFoodModal';
 import { RecipeDialog } from './RecipeDialog';
 
 interface MealCardProps {
@@ -39,6 +40,7 @@ export function MealCard({
   dayOfWeek
 }: MealCardProps) {
   const [swapModalOpen, setSwapModalOpen] = useState(false);
+  const [addModalOpen, setAddModalOpen] = useState(false);
   const [selectedFood, setSelectedFood] = useState<MealCardProps['foods'][0] | null>(null);
   const [recipeOpen, setRecipeOpen] = useState(false);
 
@@ -110,6 +112,15 @@ export function MealCard({
           )}
         </div>
 
+        {/* ── Add food CTA ── */}
+        <button
+          onClick={() => setAddModalOpen(true)}
+          className="w-full flex items-center justify-center gap-2 py-3 border-t border-border text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors active:bg-secondary/50"
+        >
+          <Plus className="h-3.5 w-3.5 text-primary" />
+          Aggiungi alimento
+        </button>
+
         {/* ── Recipe CTA (bottom of card, only if foods present) ── */}
         {foods.length > 0 && (
           <button
@@ -121,6 +132,16 @@ export function MealCard({
           </button>
         )}
       </div>
+
+      <AddFoodModal
+        isOpen={addModalOpen}
+        onClose={() => setAddModalOpen(false)}
+        mealType={mealType}
+        weeklyPlanId={weeklyPlanId}
+        dayOfWeek={dayOfWeek}
+        existingFoodCount={foods.length}
+        onFoodAdded={onFoodSwapped}
+      />
 
       <RecipeDialog
         isOpen={recipeOpen}

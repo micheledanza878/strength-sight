@@ -351,3 +351,27 @@ export async function createMeal(
   if (error) throw error;
   return data;
 }
+
+/**
+ * Get an existing meal for a specific day/type, or create it if it doesn't
+ * exist yet. Used to lazily materialize meals (e.g. snacks) the first time
+ * the user adds a food to them, so we don't need to pre-seed empty rows.
+ */
+export async function getOrCreateMeal(
+  weeklyPlanId: string,
+  dayOfWeek: number,
+  mealType: string
+): Promise<DietMeal> {
+  const { data: existing, error: fetchError } = await supabase
+    .from('diet_meals')
+    .select('*')
+    .eq('weekly_plan_id', weeklyPlanId)
+    .eq('day_of_week', dayOfWeek)
+    .eq('meal_type', mealType)
+    .maybeSingle();
+
+  if (fetchError) throw fetchError;
+  if (existing) return existing;
+
+  return createMeal(weeklyPlanId, dayOfWeek, mealType);
+}

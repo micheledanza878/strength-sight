@@ -93,16 +93,26 @@ export default function DietViewer() {
     0
   ) ?? 0;
 
-  const sortedMeals = dayView?.meals.slice().sort((a, b) => {
-    const order: Record<string, number> = {
-      colazione: 0,
-      spuntino_mattutino: 1,
-      pranzo: 2,
-      spuntino_pomeridiano: 3,
-      cena: 4
-    };
-    return (order[a.mealType] ?? 9) - (order[b.mealType] ?? 9);
-  }) ?? [];
+  // Fixed meal order. We always render all five slots (snacks included) so the
+  // user can add foods to an empty snack even if it doesn't exist in the DB yet.
+  const MEAL_ORDER = [
+    'colazione',
+    'spuntino_mattutino',
+    'pranzo',
+    'spuntino_pomeridiano',
+    'cena',
+  ];
+
+  const sortedMeals = MEAL_ORDER.map((type) => {
+    const existing = dayView?.meals.find((m) => m.mealType === type);
+    return (
+      existing ?? {
+        mealId: `empty-${type}`,
+        mealType: type,
+        foods: [],
+      }
+    );
+  });
 
   return (
     <PageContainer variant="default" className="pt-14 pb-32 min-h-screen">
