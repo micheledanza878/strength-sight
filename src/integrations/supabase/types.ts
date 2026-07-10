@@ -113,6 +113,51 @@ export type Database = {
         }
         Relationships: []
       }
+      diet_daily_logs: {
+        Row: {
+          created_at: string
+          foods_eaten: Json
+          id: string
+          log_date: string
+          meal_type: string
+          notes: string | null
+          total_carbs: number | null
+          total_fats: number | null
+          total_kcal: number | null
+          total_protein: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          foods_eaten?: Json
+          id?: string
+          log_date: string
+          meal_type: string
+          notes?: string | null
+          total_carbs?: number | null
+          total_fats?: number | null
+          total_kcal?: number | null
+          total_protein?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          foods_eaten?: Json
+          id?: string
+          log_date?: string
+          meal_type?: string
+          notes?: string | null
+          total_carbs?: number | null
+          total_fats?: number | null
+          total_kcal?: number | null
+          total_protein?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       diet_meal_foods: {
         Row: {
           created_at: string | null

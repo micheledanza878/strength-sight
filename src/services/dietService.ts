@@ -349,7 +349,12 @@ export async function createMeal(
     .single();
 
   if (error) throw error;
-  return data;
+  // La colonna DB `meal_type` è un VARCHAR generico (nessun CHECK), quindi
+  // Supabase la tipizza come `string`; l'app la vincola invece alla union
+  // letterale dei 5 tipi pasto validi. Il cast passa da `unknown` perché i
+  // due tipi non si sovrappongono a sufficienza per un cast diretto (stesso
+  // pattern usato per `foods_eaten` in dietAdherenceService.ts).
+  return data as unknown as DietMeal;
 }
 
 /**
@@ -371,7 +376,8 @@ export async function getOrCreateMeal(
     .maybeSingle();
 
   if (fetchError) throw fetchError;
-  if (existing) return existing;
+  // Vedi nota su `meal_type` (string vs union letterale) in createMeal.
+  if (existing) return existing as unknown as DietMeal;
 
   return createMeal(weeklyPlanId, dayOfWeek, mealType);
 }

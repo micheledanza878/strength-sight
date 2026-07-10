@@ -12,6 +12,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 import {
   DietDailyLog,
   LoggedFoodItem,
@@ -114,7 +115,11 @@ export async function saveDietLog(
         user_id: userId,
         log_date: payload.log_date,
         meal_type: payload.meal_type,
-        foods_eaten: payload.foods_eaten,
+        // foods_eaten è tipizzato come LoggedFoodItem[] lato applicativo ma la
+        // colonna DB è JSONB generico (Json in Supabase): il cast passa per
+        // `unknown` perché i due tipi non si sovrappongono a sufficienza per
+        // un cast diretto (stesso pattern usato nel cast di lettura sotto).
+        foods_eaten: payload.foods_eaten as unknown as Json,
         notes: payload.notes ?? null,
         ...totals,
         // updated_at viene gestito dal trigger DB; non lo forziamo qui
@@ -132,7 +137,10 @@ export async function saveDietLog(
     throw new Error(`Errore nel salvataggio del log pasto: ${error.message}`);
   }
 
-  return data as DietDailyLog;
+  // `foods_eaten` arriva dal DB tipizzato come `Json` generico (JSONB),
+  // mentre DietDailyLog lo tipizza come LoggedFoodItem[]: i due tipi non si
+  // sovrappongono abbastanza per un cast diretto, serve passare da `unknown`.
+  return data as unknown as DietDailyLog;
 }
 
 // ---------------------------------------------------------------------------
@@ -164,7 +172,8 @@ export async function getDayLogs(
     throw new Error(`Errore nel recupero dei log del giorno ${date}: ${error.message}`);
   }
 
-  return (data ?? []) as DietDailyLog[];
+  // Vedi nota su `foods_eaten` (Json vs LoggedFoodItem[]) in saveDietLog.
+  return (data ?? []) as unknown as DietDailyLog[];
 }
 
 /**
@@ -196,7 +205,8 @@ export async function getLogsInRange(
     );
   }
 
-  return (data ?? []) as DietDailyLog[];
+  // Vedi nota su `foods_eaten` (Json vs LoggedFoodItem[]) in saveDietLog.
+  return (data ?? []) as unknown as DietDailyLog[];
 }
 
 /**
