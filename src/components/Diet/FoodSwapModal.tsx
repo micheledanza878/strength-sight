@@ -22,7 +22,7 @@ interface FoodSwapModalProps {
     calories?: number;
     mealFoodId: string;
   };
-  mealType: 'colazione' | 'pranzo' | 'cena';
+  mealType: 'colazione' | 'spuntino_mattutino' | 'pranzo' | 'spuntino_pomeridiano' | 'cena';
   weeklyPlanId?: string;
   dayOfWeek?: number;
   onSwapComplete: () => void;

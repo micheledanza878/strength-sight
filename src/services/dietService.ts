@@ -129,11 +129,18 @@ export async function getDayView(
     sampleFood: (foods || [])[0]
   });
 
-  // Sort meals by type order: colazione, pranzo, cena
-  const mealTypeOrder = { 'colazione': 0, 'pranzo': 1, 'cena': 2 };
+  // Sort meals by type order:
+  // colazione → spuntino mattutino → pranzo → spuntino pomeridiano → cena
+  const mealTypeOrder = {
+    'colazione': 0,
+    'spuntino_mattutino': 1,
+    'pranzo': 2,
+    'spuntino_pomeridiano': 3,
+    'cena': 4,
+  };
   meals.sort((a, b) =>
-    (mealTypeOrder[a.meal_type as keyof typeof mealTypeOrder] || 999) -
-    (mealTypeOrder[b.meal_type as keyof typeof mealTypeOrder] || 999)
+    (mealTypeOrder[a.meal_type as keyof typeof mealTypeOrder] ?? 999) -
+    (mealTypeOrder[b.meal_type as keyof typeof mealTypeOrder] ?? 999)
   );
 
   // Construct day view

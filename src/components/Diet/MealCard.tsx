@@ -24,7 +24,9 @@ interface MealCardProps {
 
 const MEAL_ICONS: Record<string, string> = {
   colazione: '☀️',
+  spuntino_mattutino: '🍎',
   pranzo: '🍽',
+  spuntino_pomeridiano: '🥨',
   cena: '🌙',
 };
 
@@ -139,7 +141,7 @@ export function MealCard({
             mealFoodId: selectedFood.mealFoodId,
             standardPortionG: selectedFood.standardPortionG
           }}
-          mealType={mealType as 'colazione' | 'pranzo' | 'cena'}
+          mealType={mealType as 'colazione' | 'spuntino_mattutino' | 'pranzo' | 'spuntino_pomeridiano' | 'cena'}
           weeklyPlanId={weeklyPlanId}
           dayOfWeek={dayOfWeek}
           onSwapComplete={onFoodSwapped}

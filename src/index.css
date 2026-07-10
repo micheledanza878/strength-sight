@@ -166,12 +166,6 @@
     @apply border-border;
   }
 
-  html {
-    overflow-x: hidden;
-    width: 100%;
-    max-width: 100%;
-  }
-
   body {
     @apply bg-background text-foreground;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
@@ -180,58 +174,13 @@
     -webkit-tap-highlight-color: transparent;
     overscroll-behavior: none;
     user-select: none;
-    width: 100%;
-    max-width: 100%;
-    margin: 0 auto;
     overflow-x: hidden;
-    overflow-y: auto;
   }
 
   #root {
     width: 100%;
     min-height: 100vh;
     overflow-x: hidden;
-    overflow-y: auto;
-  }
-
-  @media (orientation: landscape) and (max-height: 500px) {
-    #root {
-      min-height: auto;
-      height: 100vh;
-      overflow-y: auto;
-    }
-
-    /* CRITICAL: Disable min-h-screen that forces 100vh */
-    .min-h-screen {
-      min-height: auto !important;
-    }
-
-    /* Reduce padding drastically in landscape */
-    .pt-14 {
-      padding-top: 0.25rem !important;
-    }
-
-    .pb-32,
-    .pb-24 {
-      padding-bottom: 0.25rem !important;
-    }
-
-    /* Allow tab scrolling in landscape */
-    #exercise-tabs {
-      overflow-x: auto !important;
-      flex-wrap: nowrap;
-    }
-
-    /* Shrink timer in landscape */
-    #timer-circle {
-      width: 10rem !important;
-      height: 10rem !important;
-    }
-
-    /* Reduce gap in timer */
-    .gap-6 {
-      gap: 0.5rem !important;
-    }
   }
 
   /* === Typography scale === */
