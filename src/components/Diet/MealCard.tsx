@@ -70,6 +70,14 @@ export function MealCard({
               )}
             </div>
           </div>
+
+          <button
+            onClick={() => setAddModalOpen(true)}
+            className="flex items-center justify-center h-8 w-8 rounded-full bg-secondary text-muted-foreground hover:text-foreground transition-colors active:scale-90 flex-shrink-0"
+            aria-label="Aggiungi alimento"
+          >
+            <Plus className="h-4 w-4 text-primary" />
+          </button>
         </div>
 
         {/* ── Food List ── */}
@@ -111,15 +119,6 @@ export function MealCard({
             ))
           )}
         </div>
-
-        {/* ── Add food CTA ── */}
-        <button
-          onClick={() => setAddModalOpen(true)}
-          className="w-full flex items-center justify-center gap-2 py-3 border-t border-border text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors active:bg-secondary/50"
-        >
-          <Plus className="h-3.5 w-3.5 text-primary" />
-          Aggiungi alimento
-        </button>
 
         {/* ── Recipe CTA (bottom of card, only if foods present) ── */}
         {foods.length > 0 && (
