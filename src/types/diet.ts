@@ -28,7 +28,7 @@ export interface DietMeal {
   id: string;
   weekly_plan_id: string;
   day_of_week: number; // 0 = Monday, 6 = Sunday
-  meal_type: 'colazione' | 'pranzo' | 'cena';
+  meal_type: 'colazione' | 'spuntino_mattutino' | 'pranzo' | 'spuntino_pomeridiano' | 'cena';
   created_at?: string;
   updated_at?: string;
 }
@@ -105,7 +105,7 @@ export interface DietDailyLog {
   user_id: string;
   /** Formato ISO 8601 senza ora: 'YYYY-MM-DD' */
   log_date: string;
-  meal_type: 'colazione' | 'pranzo' | 'cena';
+  meal_type: 'colazione' | 'spuntino_mattutino' | 'pranzo' | 'spuntino_pomeridiano' | 'cena';
   foods_eaten: LoggedFoodItem[];
   /** Totali calcolati dal servizio e persistiti per query veloci */
   total_kcal?: number | null;
@@ -123,7 +123,7 @@ export interface DietDailyLog {
  */
 export interface SaveDietLogPayload {
   log_date: string;
-  meal_type: 'colazione' | 'pranzo' | 'cena';
+  meal_type: 'colazione' | 'spuntino_mattutino' | 'pranzo' | 'spuntino_pomeridiano' | 'cena';
   foods_eaten: LoggedFoodItem[];
   notes?: string;
 }
@@ -168,6 +168,8 @@ export const DAYS_OF_WEEK = [
 
 export const MEAL_TYPES = {
   colazione: 'Colazione',
+  spuntino_mattutino: 'Spuntino mattutino',
   pranzo: 'Pranzo',
+  spuntino_pomeridiano: 'Spuntino pomeridiano',
   cena: 'Cena'
 };

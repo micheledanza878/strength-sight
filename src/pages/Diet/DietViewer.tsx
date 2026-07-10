@@ -94,7 +94,13 @@ export default function DietViewer() {
   ) ?? 0;
 
   const sortedMeals = dayView?.meals.slice().sort((a, b) => {
-    const order: Record<string, number> = { colazione: 0, pranzo: 1, cena: 2 };
+    const order: Record<string, number> = {
+      colazione: 0,
+      spuntino_mattutino: 1,
+      pranzo: 2,
+      spuntino_pomeridiano: 3,
+      cena: 4
+    };
     return (order[a.mealType] ?? 9) - (order[b.mealType] ?? 9);
   }) ?? [];
 
