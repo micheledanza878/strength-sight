@@ -19,7 +19,7 @@ import {
   setNotificationsEnabled,
 } from "@/lib/notifications";
 
-export interface UseNotificationsReturn {
+interface UseNotificationsReturn {
   permission: NotificationPermission | "unsupported";
   isEnabled: boolean;
   isSupported: boolean;

@@ -16,7 +16,7 @@
 
 // ─── Tipi ────────────────────────────────────────────────────────────────────
 
-export interface NotificationPayload {
+interface NotificationPayload {
   tag: string;
   title: string;
   body: string;
@@ -84,7 +84,7 @@ function showDirectNotification(payload: NotificationPayload): void {
  * Mostra (o schedula) una notifica.
  * Usa il SW se disponibile, altrimenti fallback diretto.
  */
-export async function scheduleNotification(payload: NotificationPayload): Promise<void> {
+async function scheduleNotification(payload: NotificationPayload): Promise<void> {
   if (!areNotificationsSupported()) return;
   if (Notification.permission !== "granted") return;
 

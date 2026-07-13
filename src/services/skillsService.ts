@@ -41,7 +41,7 @@ export interface SkillStep {
   notes?: string;
 }
 
-export type SkillRelationType = "prerequisite" | "propedeutico";
+type SkillRelationType = "prerequisite" | "propedeutico";
 
 export interface SkillRelation {
   /** slug dell'altra skill collegata */

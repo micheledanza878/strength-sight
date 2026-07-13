@@ -61,20 +61,6 @@ const BODYWEIGHT_PERCENTAGE_RULES: Array<{ keywords: string[]; percentage: numbe
 ];
 
 /**
- * Restituisce la percentuale di peso corporeo da applicare a un dato esercizio.
- * Se nessuna keyword corrisponde, restituisce il default (0.7 = 70%).
- */
-export function getBodyweightPercentage(exerciseName: string): number {
-  const lower = exerciseName.toLowerCase();
-  for (const rule of BODYWEIGHT_PERCENTAGE_RULES) {
-    if (rule.keywords.some((kw) => lower.includes(kw))) {
-      return rule.percentage;
-    }
-  }
-  return 0.7; // default per esercizi bodyweight non riconosciuti
-}
-
-/**
  * Calcola il peso effettivo da usare per il volume di un set.
  *
  * - Se `weight` è > 0: l'utente ha inserito un peso esplicito, lo usa direttamente.
@@ -89,7 +75,7 @@ export function getBodyweightPercentage(exerciseName: string): number {
  *                            Viene applicata solo se `weight` è 0/null.
  * @returns                   Peso effettivo in kg da usare nel calcolo del volume
  */
-export function getEffectiveWeight(
+function getEffectiveWeight(
   weight: number | null,
   exerciseName: string,
   userBodyweight: number,

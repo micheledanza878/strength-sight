@@ -11,7 +11,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { getExerciseInsights, type ExerciseInsights } from "@/services/exerciseInsightsService";
 
-export function parseBoldSegments(line: string): React.ReactNode[] {
+function parseBoldSegments(line: string): React.ReactNode[] {
   const parts = line.split(/(\*\*[^*]+\*\*)/g);
   return parts.map((part, idx) => {
     if (part.startsWith("**") && part.endsWith("**")) {

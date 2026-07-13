@@ -104,7 +104,7 @@ export const WORKOUT_DAYS: WorkoutDay[] = [
   },
 ];
 
-export const WORKOUT_ORDER = ["A", "B", "C", "D", "Gambe"];
+const WORKOUT_ORDER = ["A", "B", "C", "D", "Gambe"];
 
 export function getNextWorkoutDay(lastDay: string | null): WorkoutDay {
   if (!lastDay) return WORKOUT_DAYS[0];

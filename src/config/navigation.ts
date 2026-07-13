@@ -1,6 +1,6 @@
 import { Home, Dumbbell, Activity, History, Apple, type LucideIcon } from "lucide-react";
 
-export interface NavTab {
+interface NavTab {
   path: string;
   icon: LucideIcon;
   label: string;

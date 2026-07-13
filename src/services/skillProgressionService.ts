@@ -44,7 +44,7 @@ export async function loadSkillProgress(userId: string, skillSlug: string): Prom
  * Un set logga "reps" (drill dinamici) o "hold_seconds" (tenute statiche),
  * a seconda del targetType dello step corrente.
  */
-export interface LoggedSetValue {
+interface LoggedSetValue {
   value: number;
 }
 
@@ -53,12 +53,12 @@ export interface LoggedSetValue {
  * Nessun giudizio automatico sulla "tecnica pulita": come per la double progression
  * a peso, ci si fida di quello che l'utente ha effettivamente segnato.
  */
-export function evaluateSession(step: SkillStep, loggedSets: LoggedSetValue[], expectedSets: number): boolean {
+function evaluateSession(step: SkillStep, loggedSets: LoggedSetValue[], expectedSets: number): boolean {
   if (loggedSets.length < expectedSets) return false;
   return loggedSets.slice(0, expectedSets).every((s) => s.value >= step.targetMin);
 }
 
-export interface ProgressionResult {
+interface ProgressionResult {
   progress: SkillProgressRow;
   leveledUp: boolean;
   newStep?: SkillStep;
@@ -70,7 +70,7 @@ export interface ProgressionResult {
  *   se raggiunge il criterio dello step, avanza allo step successivo e resetta il contatore
  * - se il target NON è stato raggiunto, il contatore si azzera (serve consecutività)
  */
-export function applyProgressionResult(skill: Skill, progress: SkillProgressRow, passed: boolean): ProgressionResult {
+function applyProgressionResult(skill: Skill, progress: SkillProgressRow, passed: boolean): ProgressionResult {
   const currentStep = getSkillStep(skill, progress.current_step_order);
   if (!currentStep) return { progress, leveledUp: false };
 
