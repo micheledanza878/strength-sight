@@ -279,30 +279,50 @@ export default function History() {
                   byExercise[s.exercise_name].push(s);
                 });
 
+              const dayTitle = day?.label || log.workout_day;
+
               return (
                 <div key={log.id} className="bg-card rounded-2xl overflow-hidden">
                   <button
-                    className="w-full p-5 text-left flex items-center justify-between active:bg-secondary/50 transition-colors"
+                    className="w-full p-4 text-left flex items-center justify-between active:bg-secondary/50 transition-colors"
                     onClick={() => setExpanded(isExpanded ? null : log.id)}
                   >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                        style={{ backgroundColor: (day?.color || "#888") + "22" }}
-                      >
-                        <span className="text-lg">
-                          {day?.emoji || log.workout_day.slice(0, 1)}
-                        </span>
-                      </div>
-                      <div>
-                        <p className="font-semibold text-sm">{day?.label}</p>
+                    <div className="flex items-center gap-3 min-w-0">
+                      {day?.emoji ? (
+                        <div
+                          className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
+                          style={{ backgroundColor: (day?.color || "#888") + "22" }}
+                        >
+                          <span className="text-lg">{day.emoji}</span>
+                        </div>
+                      ) : (
+                        <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-primary/10">
+                          <span className="text-primary font-bold text-sm">
+                            {dayTitle.slice(0, 1).toUpperCase()}
+                          </span>
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="font-semibold text-sm truncate">{dayTitle}</p>
                         <p className="text-xs text-muted-foreground">
                           {format(parseISO(log.started_at), "d MMMM yyyy", { locale: it })}
                         </p>
-                        <div className="flex gap-3 mt-1">
-                          {totalSets > 0 && <span className="text-xs text-muted-foreground">{totalSets} serie</span>}
-                          {totalVolume > 0 && <span className="text-xs text-muted-foreground">{totalVolume.toLocaleString()} kg vol.</span>}
-                          {duration > 0 && <span className="text-xs text-muted-foreground">{duration} min</span>}
+                        <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
+                          {totalSets > 0 && (
+                            <span className="inline-flex items-center gap-1 rounded-lg bg-secondary px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                              {totalSets} serie
+                            </span>
+                          )}
+                          {totalVolume > 0 && (
+                            <span className="inline-flex items-center gap-1 rounded-lg bg-secondary px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                              <span className="text-foreground font-semibold">{totalVolume.toLocaleString()}</span> kg
+                            </span>
+                          )}
+                          {duration > 0 && (
+                            <span className="inline-flex items-center gap-1 rounded-lg bg-secondary px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                              {duration} min
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -313,7 +333,7 @@ export default function History() {
                   </button>
 
                   {isExpanded && (
-                    <div className="px-5 pb-5 space-y-4 border-t border-border pt-4">
+                    <div className="px-4 pb-4 space-y-4 border-t border-border pt-4">
                       {Object.entries(byExercise).map(([exName, exSets]) => (
                         <div key={exName}>
                           <button
@@ -329,8 +349,17 @@ export default function History() {
                           <div className="flex flex-wrap gap-2">
                             {exSets.map((s, i) => (
                               <span key={i} className="bg-secondary rounded-lg px-3 py-2 text-xs">
-                                <p className="font-bold">{s.weight}kg</p>
-                                <p className="text-muted-foreground">{s.reps} rep</p>
+                                {(s.weight ?? 0) > 0 ? (
+                                  <>
+                                    <p className="font-bold">{s.weight}kg</p>
+                                    <p className="text-muted-foreground">{s.reps} rep</p>
+                                  </>
+                                ) : (
+                                  <>
+                                    <p className="font-bold">{s.reps}</p>
+                                    <p className="text-muted-foreground">rep</p>
+                                  </>
+                                )}
                               </span>
                             ))}
                           </div>
@@ -376,27 +405,44 @@ export default function History() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 lg:gap-6">
-            {prs.map(([exercise, pr]) => (
-              <div key={exercise} className="bg-card rounded-2xl p-4 flex items-center justify-between">
-                <button
-                  onClick={() => navigate(`/exercise/${encodeURIComponent(exercise)}`)}
-                  className="flex-1 mr-4 text-left group"
-                  aria-label={`Analisi ${exercise}`}
+            {prs.map(([exercise, pr]) => {
+              const hasWeight = (pr.weight ?? 0) > 0;
+              return (
+                <div
+                  key={exercise}
+                  className="bg-card rounded-2xl p-4 flex items-center justify-between border border-amber-400/10"
                 >
-                  <p className="font-semibold text-sm group-hover:text-primary transition-colors">{exercise}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {format(parseISO(pr.date), "d MMM yyyy", { locale: it })}
-                  </p>
-                </button>
-                <div className="flex items-center gap-3 shrink-0">
-                  <Trophy className="w-4 h-4 text-amber-400" />
-                  <div className="text-right">
-                    <p className="font-bold text-sm">{pr.weight}kg</p>
-                    <p className="text-xs text-muted-foreground">{pr.reps} rep</p>
+                  <button
+                    onClick={() => navigate(`/exercise/${encodeURIComponent(exercise)}`)}
+                    className="flex-1 mr-4 text-left group min-w-0"
+                    aria-label={`Analisi ${exercise}`}
+                  >
+                    <p className="font-semibold text-sm truncate group-hover:text-primary transition-colors">{exercise}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {format(parseISO(pr.date), "d MMM yyyy", { locale: it })}
+                    </p>
+                  </button>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <Trophy className="w-4 h-4 text-amber-400 shrink-0" />
+                    <div className="text-right">
+                      {hasWeight ? (
+                        <>
+                          <p className="text-base font-bold text-foreground">{pr.weight} kg</p>
+                          <p className="text-xs text-muted-foreground">{pr.reps} rep</p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-base font-bold text-foreground">{pr.reps} rep</p>
+                          <span className="inline-block mt-0.5 rounded-md bg-success/15 px-1.5 py-0.5 text-[10px] font-medium text-success">
+                            corpo libero
+                          </span>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )
           }
