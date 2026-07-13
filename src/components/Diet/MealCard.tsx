@@ -1,7 +1,13 @@
 import { useState } from 'react';
-import { ArrowRightLeft, Sparkles, Plus, Trash2 } from 'lucide-react';
+import { ArrowRightLeft, Sparkles, Plus, Trash2, MoreVertical } from 'lucide-react';
 import { MEAL_TYPES } from '@/types/diet';
 import { removeFoodFromMeal } from '@/services/dietService';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu';
 import { FoodSwapModal } from './FoodSwapModal';
 import { AddFoodModal } from './AddFoodModal';
 import { RecipeDialog } from './RecipeDialog';
@@ -119,24 +125,31 @@ export function MealCard({
                   </div>
                 </div>
 
-                {/* Swap + Remove CTA */}
-                <div className="ml-3 flex items-center gap-1.5 flex-shrink-0">
-                  <button
-                    onClick={() => handleOpenSwapModal(food)}
-                    className="flex items-center gap-1 h-8 px-2.5 rounded-xl bg-card border border-border text-xs font-semibold text-muted-foreground active:scale-90 transition-transform"
-                  >
-                    <ArrowRightLeft className="h-3 w-3" />
-                    Cambia
-                  </button>
-                  <button
-                    onClick={() => handleRemoveFood(food.mealFoodId)}
-                    disabled={removingId === food.mealFoodId}
-                    aria-label={`Rimuovi ${food.name}`}
-                    className="flex items-center justify-center h-8 w-8 rounded-xl bg-card border border-border text-muted-foreground hover:text-destructive active:scale-90 transition-transform disabled:opacity-50"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
+                {/* Azioni alimento (menù) */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      disabled={removingId === food.mealFoodId}
+                      aria-label={`Azioni per ${food.name}`}
+                      className="ml-3 flex items-center justify-center h-8 w-8 rounded-xl bg-card border border-border text-muted-foreground active:scale-90 transition-transform disabled:opacity-50 flex-shrink-0"
+                    >
+                      <MoreVertical className="h-4 w-4" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleOpenSwapModal(food)}>
+                      <ArrowRightLeft className="h-3.5 w-3.5 mr-2" />
+                      Cambia
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => handleRemoveFood(food.mealFoodId)}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <Trash2 className="h-3.5 w-3.5 mr-2" />
+                      Rimuovi
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             ))
           )}
