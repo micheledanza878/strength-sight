@@ -509,57 +509,76 @@ export default function WorkoutSession() {
           </div>
           <button
             onClick={() => navigate(`/edit-day/${dayData.id}`)}
-            className="text-muted-foreground hover:text-foreground transition-colors"
+            className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground active:scale-90 transition-transform"
           >
-            <Edit2 className="w-5 h-5" />
+            <Edit2 className="w-4 h-4" />
           </button>
         </div>
 
         {/* Color accent banner */}
         <div className="card-hero p-4 mb-6 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold shrink-0 bg-primary/15 text-primary">
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold shrink-0 gradient-primary text-white">
             {dayData.day_number}
           </div>
           <div>
             <p className="font-bold text-primary">{exercises.length} esercizi</p>
-            <p className="text-xs text-muted-foreground">Scorri per vedere il programma</p>
+            <p className="text-xs text-muted-foreground">
+              ~{exercises.reduce((a, e) => a + e.sets, 0)} serie totali
+            </p>
           </div>
         </div>
 
         {/* Exercise list */}
-        <div className="space-y-2 mb-8">
+        <div className="space-y-2 mb-28">
           {exercises.map((ex) => {
             const suggestion = progressionSuggestions[ex.exercise_name];
             const isHold = ex.tracking_unit === "seconds";
             const skillInfo = getSkillStepInfo(ex);
             return (
-              <div key={ex.id} className="bg-card rounded-2xl px-4 py-3 flex items-center gap-3">
-                <span className="text-xl">{isHold ? "🧘" : getExerciseIcon(ex.exercise_name)}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm">{ex.exercise_name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {skillInfo
-                      ? `Step ${skillInfo.stepIndex}/${skillInfo.totalSteps} · ${skillInfo.step.name} · target ${skillInfo.step.targetMin}${skillInfo.step.targetMax ? `-${skillInfo.step.targetMax}` : ""}${isHold ? "s" : " reps"}`
-                      : `${ex.sets} serie × ${ex.reps_min}${ex.reps_max && ex.reps_max !== ex.reps_min ? `-${ex.reps_max}` : ""} ${isHold ? "sec" : "reps"}`}
-                    {!isHold && prevSets[ex.exercise_name]?.[0]?.weight > 0
-                      ? ` · ${suggestion?.shouldIncrease ? suggestion.suggestedWeight : prevSets[ex.exercise_name][0].weight}kg`
-                      : ""}
-                  </p>
-                </div>
-                {/* Badge progressione peso: visibile solo se l'algoritmo suggerisce un incremento */}
-                {!isHold && suggestion?.shouldIncrease && (
-                  <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-500 whitespace-nowrap">
-                    +{suggestion.increment}kg
+              <button
+                key={ex.id}
+                onClick={() => navigate(`/exercise/${encodeURIComponent(ex.exercise_name)}`)}
+                className="bg-card rounded-2xl px-4 py-3 w-full text-left"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center text-xl shrink-0">
+                    {isHold ? "🧘" : getExerciseIcon(ex.exercise_name)}
                   </span>
-                )}
-                <button
-                  onClick={() => navigate(`/exercise/${encodeURIComponent(ex.exercise_name)}`)}
-                  className="shrink-0 w-8 h-8 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground active:scale-90 transition-transform"
-                  aria-label={`Info su ${ex.exercise_name}`}
-                >
-                  <Info className="w-4 h-4" />
-                </button>
-              </div>
+                  <p className="font-bold text-sm truncate flex-1">{ex.exercise_name}</p>
+                </div>
+                <div className="flex items-center gap-1.5 flex-wrap mt-2 pl-[52px]">
+                  {skillInfo ? (
+                    <>
+                      <span className="inline-flex items-center rounded-lg bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                        Step {skillInfo.stepIndex}/{skillInfo.totalSteps}
+                      </span>
+                      <span className="inline-flex items-center rounded-lg bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                        {skillInfo.step.name}
+                      </span>
+                      <span className="inline-flex items-center rounded-lg bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                        {skillInfo.step.targetMin}
+                        {skillInfo.step.targetMax ? `-${skillInfo.step.targetMax}` : ""}
+                        {isHold ? "s" : " reps"}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="inline-flex items-center rounded-lg bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                      {ex.sets}×{ex.reps_min}
+                      {ex.reps_max && ex.reps_max !== ex.reps_min ? `-${ex.reps_max}` : ""} {isHold ? "sec" : "reps"}
+                    </span>
+                  )}
+                  {!isHold && prevSets[ex.exercise_name]?.[0]?.weight > 0 && (
+                    <span className="inline-flex items-center rounded-lg bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                      {suggestion?.shouldIncrease ? suggestion.suggestedWeight : prevSets[ex.exercise_name][0].weight}kg
+                    </span>
+                  )}
+                  {!isHold && suggestion?.shouldIncrease && (
+                    <span className="inline-flex items-center rounded-lg bg-success/15 text-success px-2 py-0.5 text-[10px] font-medium">
+                      ↑ +{suggestion.increment}kg
+                    </span>
+                  )}
+                </div>
+              </button>
             );
           })}
         </div>
