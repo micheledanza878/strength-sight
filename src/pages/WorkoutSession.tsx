@@ -749,15 +749,15 @@ export default function WorkoutSession() {
           <h2 className="text-3xl font-bold mb-1">Ottimo lavoro!</h2>
           <p className="text-muted-foreground mb-8">Giorno {dayData.day_number} — {dayData.day_name}</p>
           <div className="grid grid-cols-3 gap-3 mb-10">
-            <div className="bg-card border border-border rounded-2xl p-4 text-center">
+            <div className="bg-primary/5 border border-primary/10 rounded-2xl p-4 text-center">
               <p className="text-2xl font-bold">{completion.duration}</p>
               <p className="text-xs text-muted-foreground mt-1">min</p>
             </div>
-            <div className="bg-card border border-border rounded-2xl p-4 text-center">
+            <div className="bg-primary/5 border border-primary/10 rounded-2xl p-4 text-center">
               <p className="text-2xl font-bold">{completion.sets}</p>
               <p className="text-xs text-muted-foreground mt-1">serie</p>
             </div>
-            <div className="bg-card border border-border rounded-2xl p-4 text-center">
+            <div className="bg-primary/5 border border-primary/10 rounded-2xl p-4 text-center">
               <p className="text-2xl font-bold">
                 {completion.volume >= 1000 ? `${(completion.volume / 1000).toFixed(1)}t` : `${completion.volume}`}
               </p>

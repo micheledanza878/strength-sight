@@ -113,7 +113,7 @@ export default function RestTimer({ seconds, color = "hsl(var(--primary))", onCo
           </button>
           <button
             onClick={onDismiss}
-            className="flex-1 h-14 rounded-2xl bg-secondary text-foreground font-semibold text-base px-8 transition-transform active:scale-95"
+            className="flex-1 h-14 rounded-2xl bg-transparent border border-primary/40 text-primary font-semibold text-base px-8 transition-transform active:scale-95"
           >
             Salta
           </button>
