@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { ArrowRightLeft, Sparkles, Plus } from 'lucide-react';
+import { ArrowRightLeft, Sparkles, Plus, Trash2 } from 'lucide-react';
 import { MEAL_TYPES } from '@/types/diet';
+import { removeFoodFromMeal } from '@/services/dietService';
 import { FoodSwapModal } from './FoodSwapModal';
 import { AddFoodModal } from './AddFoodModal';
 import { RecipeDialog } from './RecipeDialog';
@@ -43,6 +44,7 @@ export function MealCard({
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [selectedFood, setSelectedFood] = useState<MealCardProps['foods'][0] | null>(null);
   const [recipeOpen, setRecipeOpen] = useState(false);
+  const [removingId, setRemovingId] = useState<string | null>(null);
 
   const totalCalories = foods.reduce((sum, f) => sum + (f.calories || 0), 0);
   const mealTypeLabel = MEAL_TYPES[mealType as keyof typeof MEAL_TYPES] || mealType;
@@ -51,6 +53,16 @@ export function MealCard({
   function handleOpenSwapModal(food: MealCardProps['foods'][0]) {
     setSelectedFood(food);
     setSwapModalOpen(true);
+  }
+
+  async function handleRemoveFood(mealFoodId: string) {
+    setRemovingId(mealFoodId);
+    try {
+      await removeFoodFromMeal(mealFoodId);
+      onFoodSwapped();
+    } finally {
+      setRemovingId(null);
+    }
   }
 
   return (
@@ -107,14 +119,24 @@ export function MealCard({
                   </div>
                 </div>
 
-                {/* Swap CTA */}
-                <button
-                  onClick={() => handleOpenSwapModal(food)}
-                  className="ml-3 flex items-center gap-1 h-8 px-2.5 rounded-xl bg-card border border-border text-xs font-semibold text-muted-foreground active:scale-90 transition-transform flex-shrink-0"
-                >
-                  <ArrowRightLeft className="h-3 w-3" />
-                  Cambia
-                </button>
+                {/* Swap + Remove CTA */}
+                <div className="ml-3 flex items-center gap-1.5 flex-shrink-0">
+                  <button
+                    onClick={() => handleOpenSwapModal(food)}
+                    className="flex items-center gap-1 h-8 px-2.5 rounded-xl bg-card border border-border text-xs font-semibold text-muted-foreground active:scale-90 transition-transform"
+                  >
+                    <ArrowRightLeft className="h-3 w-3" />
+                    Cambia
+                  </button>
+                  <button
+                    onClick={() => handleRemoveFood(food.mealFoodId)}
+                    disabled={removingId === food.mealFoodId}
+                    aria-label={`Rimuovi ${food.name}`}
+                    className="flex items-center justify-center h-8 w-8 rounded-xl bg-card border border-border text-muted-foreground hover:text-destructive active:scale-90 transition-transform disabled:opacity-50"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
             ))
           )}
