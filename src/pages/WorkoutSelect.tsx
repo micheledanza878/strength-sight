@@ -4,8 +4,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { getUserId } from "@/lib/user";
 import { useActivePlan } from "@/contexts/ActivePlanContext";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronRight, ArrowLeft, Loader, Plus, Edit2, Trash2, Play, Sparkles } from "lucide-react";
+import { ChevronRight, ArrowLeft, Loader, Plus, Edit2, Trash2, Play, Sparkles, MoreVertical } from "lucide-react";
 import PageContainer from "@/components/PageContainer";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 
 interface WorkoutPlan {
   id: string;
@@ -170,7 +177,7 @@ export default function WorkoutSelect() {
               <div className="flex items-center gap-2">
                 <h1 className="text-xl font-bold tracking-tight truncate">{plan?.name}</h1>
                 {isActive && (
-                  <span className="flex-shrink-0 text-[10px] font-bold text-primary bg-primary/10 border border-primary/20 rounded-full px-2 py-0.5 uppercase tracking-wider">
+                  <span className="flex-shrink-0 text-[10px] font-bold text-success bg-success/10 border border-success/20 rounded-full px-2 py-0.5 uppercase tracking-wider">
                     Attiva
                   </span>
                 )}
@@ -181,27 +188,36 @@ export default function WorkoutSelect() {
             </div>
           </div>
 
-          <div className="flex gap-2 flex-shrink-0 ml-2">
-            <button
-              onClick={() => navigate("/skills")}
-              className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary active:scale-90 transition-transform"
-              aria-label="Skill calisthenics"
-            >
-              <Sparkles className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => navigate(`/edit-plan/${selectedPlan}`)}
-              className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground active:scale-90 transition-transform"
-            >
-              <Edit2 className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => selectedPlan && deletePlan(selectedPlan)}
-              disabled={deleting}
-              className="w-9 h-9 rounded-xl bg-destructive/10 flex items-center justify-center text-destructive active:scale-90 transition-transform disabled:opacity-50"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+          <div className="flex-shrink-0 ml-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground active:scale-90 transition-transform"
+                  aria-label="Altre azioni"
+                >
+                  <MoreVertical className="w-4 h-4" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => navigate("/skills")}>
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Skill calisthenics
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate(`/edit-plan/${selectedPlan}`)}>
+                  <Edit2 className="w-4 h-4 mr-2" />
+                  Modifica scheda
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => selectedPlan && deletePlan(selectedPlan)}
+                  disabled={deleting}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Elimina scheda
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
@@ -216,41 +232,44 @@ export default function WorkoutSelect() {
             <p className="text-sm font-medium text-muted-foreground">Nessun giorno configurato</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 lg:gap-6 items-start">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 items-start">
             {days.map((day) => (
               <div
                 key={day.id}
-                className="col-span-1 bg-card border border-border rounded-2xl overflow-hidden"
+                className="relative col-span-1 bg-card border border-border rounded-2xl overflow-hidden"
               >
-                <div className="flex items-stretch gap-0">
+                {/* Edit — bottone assoluto, fuori dal bottone principale per evitare nesting */}
+                <button
+                  onClick={() => navigate(`/edit-day/${day.id}`)}
+                  className="absolute top-2 right-2 w-7 h-7 rounded-lg bg-secondary/80 backdrop-blur flex items-center justify-center text-muted-foreground z-10 active:scale-90 transition-transform"
+                  aria-label="Modifica giorno"
+                >
+                  <Edit2 className="w-3.5 h-3.5" />
+                </button>
 
-                  {/* Day number badge — tappable → start session */}
-                  <button
-                    onClick={() => {
-                      localStorage.setItem('activePlanId', selectedPlan);
-                      navigate(`/session/${day.id}`);
-                    }}
-                    className="flex flex-col items-center justify-center px-4 gradient-primary active:opacity-80 transition-opacity flex-shrink-0"
-                  >
-                    <span className="text-white font-black text-xl leading-none">{day.day_number}</span>
-                    <span className="text-white/70 text-[9px] font-semibold uppercase tracking-wider mt-0.5">Giorno</span>
-                  </button>
+                {/* Area principale — tappable → avvia sessione */}
+                <button
+                  onClick={() => {
+                    localStorage.setItem('activePlanId', selectedPlan);
+                    navigate(`/session/${day.id}`);
+                  }}
+                  className="flex items-center gap-3 w-full text-left p-3 pr-10 active:bg-secondary/30 transition-colors"
+                >
+                  {/* Badge numero giorno */}
+                  <div className="w-[46px] h-[46px] rounded-xl gradient-primary flex flex-col items-center justify-center flex-shrink-0">
+                    <span className="text-white font-black text-lg leading-none">{day.day_number}</span>
+                    <span className="text-white/70 text-[8px] font-semibold uppercase tracking-wider mt-0.5">Giorno</span>
+                  </div>
 
-                  {/* Day info — tappable → start session */}
-                  <button
-                    onClick={() => {
-                      localStorage.setItem('activePlanId', selectedPlan);
-                      navigate(`/session/${day.id}`);
-                    }}
-                    className="flex-1 p-4 text-left active:bg-secondary/30 transition-colors min-w-0"
-                  >
-                    <p className="font-bold text-sm leading-tight">{day.day_name}</p>
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-sm leading-tight truncate">{day.day_name}</p>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       {day.exercise_count > 0 ? `${day.exercise_count} esercizi` : "Nessun esercizio"}
                     </p>
                     {day.muscles.length > 0 && (
                       <div className="flex items-center gap-1 mt-2 flex-wrap">
-                        {day.muscles.map((m, i) => (
+                        {day.muscles.slice(0, 3).map((m, i) => (
                           <span
                             key={i}
                             className="inline-flex items-center gap-0.5 text-[10px] bg-secondary rounded-lg px-2 py-0.5 text-muted-foreground font-medium"
@@ -260,27 +279,13 @@ export default function WorkoutSelect() {
                         ))}
                       </div>
                     )}
-                  </button>
-
-                  {/* Actions */}
-                  <div className="flex flex-col items-center justify-center gap-2 pr-3 pl-2 flex-shrink-0">
-                    <button
-                      onClick={() => navigate(`/edit-day/${day.id}`)}
-                      className="w-8 h-8 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground active:scale-90 transition-transform"
-                    >
-                      <Edit2 className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => {
-                        localStorage.setItem('activePlanId', selectedPlan);
-                        navigate(`/session/${day.id}`);
-                      }}
-                      className="w-8 h-8 rounded-xl gradient-primary flex items-center justify-center active:scale-90 transition-transform"
-                    >
-                      <Play className="w-3.5 h-3.5 text-white fill-white" />
-                    </button>
                   </div>
-                </div>
+
+                  {/* Play — decorativo */}
+                  <div className="w-[34px] h-[34px] rounded-full bg-primary/15 text-primary flex items-center justify-center flex-shrink-0">
+                    <Play className="w-3.5 h-3.5 fill-current" />
+                  </div>
+                </button>
               </div>
             ))}
           </div>
@@ -294,27 +299,33 @@ export default function WorkoutSelect() {
     <PageContainer variant="default" className="px-4 pt-14 pb-32 min-h-screen">
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Schede</h1>
           <p className="text-muted-foreground text-xs mt-0.5">I tuoi programmi</p>
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => navigate("/skills")}
-            className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary active:scale-90 transition-transform"
-            aria-label="Skill calisthenics"
-          >
-            <Sparkles className="w-5 h-5" />
-          </button>
-          <button
-            onClick={() => navigate("/create-plan")}
-            className="w-10 h-10 rounded-2xl gradient-primary flex items-center justify-center glow-primary-sm active:scale-90 transition-transform"
-          >
-            <Plus className="w-5 h-5 text-white" />
-          </button>
-        </div>
+        <button
+          onClick={() => navigate("/create-plan")}
+          className="h-[38px] rounded-full gradient-primary glow-primary-sm flex items-center gap-1.5 px-4 active:scale-95 transition-transform flex-shrink-0"
+        >
+          <Plus className="w-4 h-4 text-white" />
+          <span className="text-white font-bold text-sm">Nuova</span>
+        </button>
       </div>
+
+      {/* Riga skill calisthenics */}
+      <button
+        onClick={() => navigate("/skills")}
+        className="w-full bg-card border border-border rounded-2xl p-3 flex items-center justify-between mb-4 active:scale-[0.98] transition-transform"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+            <Sparkles className="w-4 h-4" />
+          </div>
+          <span className="font-semibold text-sm">Skill calisthenics</span>
+        </div>
+        <ChevronRight className="w-4 h-4 text-muted-foreground" />
+      </button>
 
       {loading ? (
         <div className="flex items-center justify-center h-64">
@@ -324,12 +335,56 @@ export default function WorkoutSelect() {
         <div className="bg-card border border-border rounded-2xl p-10 text-center">
           <p className="text-2xl mb-2">💪</p>
           <p className="text-sm font-medium mb-1">Nessuna scheda</p>
-          <p className="text-xs text-muted-foreground">Crea la tua prima scheda di allenamento</p>
+          <p className="text-xs text-muted-foreground mb-5">Crea la tua prima scheda di allenamento</p>
+          <button
+            onClick={() => navigate("/create-plan")}
+            className="w-full h-12 rounded-2xl gradient-primary glow-primary-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+          >
+            <Plus className="w-4 h-4 text-white" />
+            <span className="text-white font-bold text-sm">Crea la tua prima scheda</span>
+          </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 lg:gap-6 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 items-start">
           {plans.map((plan) => {
             const isActive = activePlanId === plan.id;
+            const metaParts: string[] = [];
+            if ((plan.day_count ?? 0) > 0) metaParts.push(`${plan.day_count} giorni`);
+            if (plan.duration_weeks) metaParts.push(`${plan.duration_weeks} sett.`);
+            const meta = metaParts.join(" · ");
+
+            if (isActive) {
+              return (
+                <button
+                  key={plan.id}
+                  onClick={() => {
+                    setActivePlanId(plan.id);
+                    setSelectedPlan(plan.id);
+                    loadDays(plan.id);
+                  }}
+                  className="col-span-1 w-full card-hero rounded-2xl p-4 text-left active:scale-[0.98] transition-all"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center text-lg flex-shrink-0">
+                      🏋️
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-[10px] font-bold text-success uppercase tracking-wide block mb-1">
+                        ● In corso
+                      </span>
+                      <p className="font-bold text-base leading-tight truncate">{plan.name}</p>
+                      {meta && <p className="text-xs text-muted-foreground mt-1">{meta}</p>}
+                    </div>
+                  </div>
+                  <div className="flex justify-end mt-3">
+                    <span className="border border-primary/50 text-primary rounded-full px-3 py-1 text-xs font-semibold">
+                      Continua →
+                    </span>
+                  </div>
+                </button>
+              );
+            }
+
             return (
               <button
                 key={plan.id}
@@ -338,32 +393,16 @@ export default function WorkoutSelect() {
                   setSelectedPlan(plan.id);
                   loadDays(plan.id);
                 }}
-                className={[
-                  "col-span-1 w-full rounded-2xl p-4 text-left active:scale-[0.98] transition-all",
-                  isActive ? "card-hero" : "bg-card border border-border"
-                ].join(" ")}
+                className="col-span-1 w-full bg-card border border-border rounded-2xl p-3 flex items-center gap-3 text-left active:scale-[0.98] transition-all"
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    {isActive && (
-                      <span className="text-[10px] font-bold text-primary uppercase tracking-wider mb-1.5 block">
-                        ● In corso
-                      </span>
-                    )}
-                    <p className={`font-bold text-base leading-tight ${isActive ? "text-foreground" : "text-foreground"}`}>
-                      {plan.name}
-                    </p>
-                    <div className="flex items-center gap-3 mt-1.5">
-                      {(plan.day_count ?? 0) > 0 && (
-                        <span className="text-xs text-muted-foreground">{plan.day_count} giorni</span>
-                      )}
-                      {plan.duration_weeks && (
-                        <span className="text-xs text-muted-foreground">{plan.duration_weeks} sett.</span>
-                      )}
-                    </div>
-                  </div>
-                  <ChevronRight className={`w-4 h-4 mt-0.5 flex-shrink-0 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
+                <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center text-base flex-shrink-0">
+                  💪
                 </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-sm leading-tight truncate">{plan.name}</p>
+                  {meta && <p className="text-xs text-muted-foreground mt-0.5">{meta}</p>}
+                </div>
+                <ChevronRight className="w-4 h-4 flex-shrink-0 text-muted-foreground" />
               </button>
             );
           })}
