@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import PageContainer from "@/components/PageContainer";
-import { ArrowLeft, Check, Trophy, RotateCcw, Clock, Play, Loader, Edit2, CloudOff, Info } from "lucide-react";
+import { ArrowLeft, Check, Trophy, Clock, Play, Loader, Edit2, CloudOff, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import RestTimer from "@/components/RestTimer";
 import { useToast } from "@/hooks/use-toast";
@@ -509,57 +509,76 @@ export default function WorkoutSession() {
           </div>
           <button
             onClick={() => navigate(`/edit-day/${dayData.id}`)}
-            className="text-muted-foreground hover:text-foreground transition-colors"
+            className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground active:scale-90 transition-transform"
           >
-            <Edit2 className="w-5 h-5" />
+            <Edit2 className="w-4 h-4" />
           </button>
         </div>
 
         {/* Color accent banner */}
         <div className="card-hero p-4 mb-6 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold shrink-0 bg-primary/15 text-primary">
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold shrink-0 gradient-primary text-white">
             {dayData.day_number}
           </div>
           <div>
             <p className="font-bold text-primary">{exercises.length} esercizi</p>
-            <p className="text-xs text-muted-foreground">Scorri per vedere il programma</p>
+            <p className="text-xs text-muted-foreground">
+              ~{exercises.reduce((a, e) => a + e.sets, 0)} serie totali
+            </p>
           </div>
         </div>
 
         {/* Exercise list */}
-        <div className="space-y-2 mb-8">
+        <div className="space-y-2 mb-28">
           {exercises.map((ex) => {
             const suggestion = progressionSuggestions[ex.exercise_name];
             const isHold = ex.tracking_unit === "seconds";
             const skillInfo = getSkillStepInfo(ex);
             return (
-              <div key={ex.id} className="bg-card rounded-2xl px-4 py-3 flex items-center gap-3">
-                <span className="text-xl">{isHold ? "🧘" : getExerciseIcon(ex.exercise_name)}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm">{ex.exercise_name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {skillInfo
-                      ? `Step ${skillInfo.stepIndex}/${skillInfo.totalSteps} · ${skillInfo.step.name} · target ${skillInfo.step.targetMin}${skillInfo.step.targetMax ? `-${skillInfo.step.targetMax}` : ""}${isHold ? "s" : " reps"}`
-                      : `${ex.sets} serie × ${ex.reps_min}${ex.reps_max && ex.reps_max !== ex.reps_min ? `-${ex.reps_max}` : ""} ${isHold ? "sec" : "reps"}`}
-                    {!isHold && prevSets[ex.exercise_name]?.[0]?.weight > 0
-                      ? ` · ${suggestion?.shouldIncrease ? suggestion.suggestedWeight : prevSets[ex.exercise_name][0].weight}kg`
-                      : ""}
-                  </p>
-                </div>
-                {/* Badge progressione peso: visibile solo se l'algoritmo suggerisce un incremento */}
-                {!isHold && suggestion?.shouldIncrease && (
-                  <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-500 whitespace-nowrap">
-                    +{suggestion.increment}kg
+              <button
+                key={ex.id}
+                onClick={() => navigate(`/exercise/${encodeURIComponent(ex.exercise_name)}`)}
+                className="bg-card rounded-2xl px-4 py-3 w-full text-left"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center text-xl shrink-0">
+                    {isHold ? "🧘" : getExerciseIcon(ex.exercise_name)}
                   </span>
-                )}
-                <button
-                  onClick={() => navigate(`/exercise/${encodeURIComponent(ex.exercise_name)}`)}
-                  className="shrink-0 w-8 h-8 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground active:scale-90 transition-transform"
-                  aria-label={`Info su ${ex.exercise_name}`}
-                >
-                  <Info className="w-4 h-4" />
-                </button>
-              </div>
+                  <p className="font-bold text-sm truncate flex-1">{ex.exercise_name}</p>
+                </div>
+                <div className="flex items-center gap-1.5 flex-wrap mt-2 pl-[52px]">
+                  {skillInfo ? (
+                    <>
+                      <span className="inline-flex items-center rounded-lg bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                        Step {skillInfo.stepIndex}/{skillInfo.totalSteps}
+                      </span>
+                      <span className="inline-flex items-center rounded-lg bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                        {skillInfo.step.name}
+                      </span>
+                      <span className="inline-flex items-center rounded-lg bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                        {skillInfo.step.targetMin}
+                        {skillInfo.step.targetMax ? `-${skillInfo.step.targetMax}` : ""}
+                        {isHold ? "s" : " reps"}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="inline-flex items-center rounded-lg bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                      {ex.sets}×{ex.reps_min}
+                      {ex.reps_max && ex.reps_max !== ex.reps_min ? `-${ex.reps_max}` : ""} {isHold ? "sec" : "reps"}
+                    </span>
+                  )}
+                  {!isHold && prevSets[ex.exercise_name]?.[0]?.weight > 0 && (
+                    <span className="inline-flex items-center rounded-lg bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                      {suggestion?.shouldIncrease ? suggestion.suggestedWeight : prevSets[ex.exercise_name][0].weight}kg
+                    </span>
+                  )}
+                  {!isHold && suggestion?.shouldIncrease && (
+                    <span className="inline-flex items-center rounded-lg bg-success/15 text-success px-2 py-0.5 text-[10px] font-medium">
+                      ↑ +{suggestion.increment}kg
+                    </span>
+                  )}
+                </div>
+              </button>
             );
           })}
         </div>
@@ -730,15 +749,15 @@ export default function WorkoutSession() {
           <h2 className="text-3xl font-bold mb-1">Ottimo lavoro!</h2>
           <p className="text-muted-foreground mb-8">Giorno {dayData.day_number} — {dayData.day_name}</p>
           <div className="grid grid-cols-3 gap-3 mb-10">
-            <div className="bg-card border border-border rounded-2xl p-4 text-center">
+            <div className="bg-primary/5 border border-primary/10 rounded-2xl p-4 text-center">
               <p className="text-2xl font-bold">{completion.duration}</p>
               <p className="text-xs text-muted-foreground mt-1">min</p>
             </div>
-            <div className="bg-card border border-border rounded-2xl p-4 text-center">
+            <div className="bg-primary/5 border border-primary/10 rounded-2xl p-4 text-center">
               <p className="text-2xl font-bold">{completion.sets}</p>
               <p className="text-xs text-muted-foreground mt-1">serie</p>
             </div>
-            <div className="bg-card border border-border rounded-2xl p-4 text-center">
+            <div className="bg-primary/5 border border-primary/10 rounded-2xl p-4 text-center">
               <p className="text-2xl font-bold">
                 {completion.volume >= 1000 ? `${(completion.volume / 1000).toFixed(1)}t` : `${completion.volume}`}
               </p>
@@ -800,34 +819,34 @@ export default function WorkoutSession() {
             <Edit2 className="w-5 h-5" />
           </button>
         )}
-        {phase === "active" && (
-          <div className="flex items-center gap-2">
-            {/* Indicatore autosave: non bloccante, scompare dopo il salvataggio */}
-            {autosaveStatus === "saving" && (
-              <div
-                aria-label="Salvataggio in corso"
-                title="Salvataggio in corso..."
-                className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"
-              />
-            )}
-            {autosaveStatus === "error" && (
-              <div
-                aria-label="Errore di salvataggio"
-                title="Salvataggio fallito. I dati potrebbero non essere stati salvati."
-                className="flex items-center gap-1 text-destructive"
-              >
-                <CloudOff className="w-3.5 h-3.5" />
-              </div>
-            )}
-            <div className="flex items-center gap-1.5 bg-secondary rounded-xl px-3 py-1.5">
-              <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-              <span className="text-sm font-bold tabular-nums">{formatElapsed(elapsed)}</span>
-            </div>
+        <div className="flex items-center gap-2">
+          {/* Indicatore autosave testuale: non bloccante, riflette lo stato dell'ultimo salvataggio */}
+          {autosaveStatus === "saving" && (
+            <span className="text-[10px] font-semibold text-amber-500">Salvataggio…</span>
+          )}
+          {autosaveStatus === "error" && (
+            <span className="text-[10px] font-semibold text-destructive flex items-center gap-1">
+              <CloudOff className="w-3 h-3" />
+              Non salvato
+            </span>
+          )}
+          {autosaveStatus === "idle" && (
+            <span className="text-[10px] font-semibold text-success flex items-center gap-1">
+              <Check className="w-3 h-3" />
+              Salvato
+            </span>
+          )}
+          <div className="flex items-center gap-1.5 bg-secondary rounded-xl px-3 py-1.5">
+            <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+            <span className="text-sm font-bold tabular-nums">{formatElapsed(elapsed)}</span>
           </div>
-        )}
+        </div>
       </div>
 
       {/* Progress bar */}
+      <p className="text-[11px] text-muted-foreground mb-1.5">
+        {completedExercises}/{totalExercises} esercizi completati
+      </p>
       <div className="h-1.5 w-full bg-secondary rounded-full mb-5 overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-500 bg-primary"
@@ -838,18 +857,25 @@ export default function WorkoutSession() {
       {/* Exercise selector */}
       <div className="exercise-tabs">
         {exercises.map((ex, i) => {
-          const done = (sets[ex.exercise_name] || []).every((s) => s.done);
+          const done =
+            (sets[ex.exercise_name] || []).length > 0 &&
+            (sets[ex.exercise_name] || []).every((s) => s.done);
           const active = i === currentExIdx;
           return (
             <button
               key={ex.id}
               onClick={() => setCurrentExIdx(i)}
+              aria-label={`${ex.exercise_name}${active ? " (corrente)" : done ? " (completato)" : ""}`}
               className={[
-                "px-2 py-1 rounded-full text-[10px] font-semibold transition-colors flex-shrink-0 whitespace-nowrap",
-                active ? "bg-primary text-white" : done ? "bg-primary/20 text-primary" : "bg-secondary text-secondary-foreground"
+                "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 transition-all",
+                active
+                  ? "bg-primary text-white ring-2 ring-primary/30"
+                  : done
+                  ? "bg-success text-white"
+                  : "bg-secondary text-muted-foreground",
               ].join(" ")}
             >
-              {ex.exercise_name.length > 10 ? ex.exercise_name.slice(0, 10) + "…" : ex.exercise_name}
+              {active ? i + 1 : done ? <Check className="w-4 h-4" /> : i + 1}
             </button>
           );
         })}
@@ -857,15 +883,9 @@ export default function WorkoutSession() {
 
       {/* Current exercise */}
       <div className="bg-card rounded-2xl p-5 mb-4 border-t-2 border-primary">
-        <div className="flex items-center gap-3 mb-1">
+        <div className="flex items-center gap-3 mb-2">
           <span className="text-2xl">{isHoldExercise ? "🧘" : getExerciseIcon(exercise.exercise_name)}</span>
-          <p className="text-lg font-bold flex-1">{exercise.exercise_name}</p>
-          {/* Badge progressione inline nell'header dell'esercizio */}
-          {!isHoldExercise && progressionSuggestions[exercise.exercise_name]?.shouldIncrease && (
-            <span className="shrink-0 text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-500">
-              ↑ +{progressionSuggestions[exercise.exercise_name].increment}kg
-            </span>
-          )}
+          <p className="text-lg font-bold flex-1 truncate">{exercise.exercise_name}</p>
           <button
             onClick={() => setInsightsExercise(exercise.exercise_name)}
             className="shrink-0 w-8 h-8 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground active:scale-90 transition-transform"
@@ -874,34 +894,65 @@ export default function WorkoutSession() {
             <Info className="w-4 h-4" />
           </button>
         </div>
-        {skillInfo ? (
-          <p className="text-sm text-muted-foreground mb-4">
-            Step {skillInfo.stepIndex}/{skillInfo.totalSteps} · {skillInfo.step.name} · target {skillInfo.step.targetMin}
-            {skillInfo.step.targetMax ? `-${skillInfo.step.targetMax}` : ""}
-            {isHoldExercise ? "s" : " reps"} · {skillInfo.cleanSessions}/{skillInfo.step.criteriaSessions} sedute pulite
-          </p>
-        ) : (
-          <p className="text-sm text-muted-foreground mb-4">
-            {exercise.sets} × {exercise.reps_min}{exercise.reps_max && exercise.reps_max !== exercise.reps_min ? `-${exercise.reps_max}` : ""} {isHoldExercise ? "sec" : "reps"}
-            {exercise.notes ? ` · ${exercise.notes}` : ""}
-          </p>
-        )}
 
-        <div className="space-y-2">
+        {/* Chip di dettaglio (step/target skill oppure serie×reps) + eventuale suggerimento di progressione */}
+        <div className="flex items-center gap-1.5 flex-wrap mb-4">
+          {skillInfo ? (
+            <>
+              <span className="inline-flex items-center rounded-lg bg-secondary px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                Step {skillInfo.stepIndex}/{skillInfo.totalSteps}
+              </span>
+              <span className="inline-flex items-center rounded-lg bg-secondary px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                {skillInfo.step.name}
+              </span>
+              <span className="inline-flex items-center rounded-lg bg-secondary px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                {skillInfo.step.targetMin}
+                {skillInfo.step.targetMax ? `-${skillInfo.step.targetMax}` : ""}
+                {isHoldExercise ? "s" : " reps"}
+              </span>
+              <span className="inline-flex items-center rounded-lg bg-secondary px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                {skillInfo.cleanSessions}/{skillInfo.step.criteriaSessions} sedute pulite
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="inline-flex items-center rounded-lg bg-secondary px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                {exercise.sets}×{exercise.reps_min}
+                {exercise.reps_max && exercise.reps_max !== exercise.reps_min ? `-${exercise.reps_max}` : ""} {isHoldExercise ? "sec" : "reps"}
+              </span>
+              {exercise.notes && (
+                <span className="inline-flex items-center rounded-lg bg-secondary px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                  {exercise.notes}
+                </span>
+              )}
+            </>
+          )}
+          {!isHoldExercise && progressionSuggestions[exercise.exercise_name]?.shouldIncrease && (
+            <span className="inline-flex items-center rounded-lg bg-success/15 text-success px-2 py-0.5 text-[11px] font-medium">
+              ↑ +{progressionSuggestions[exercise.exercise_name].increment}kg
+            </span>
+          )}
+        </div>
+
+        <div className="space-y-2.5">
           {exSets.map((s, i) => {
-            const key = `${exercise.name}-${i}`;
+            const key = `${exercise.exercise_name}-${i}`;
+            const isPR = s.done && (
+              isHoldExercise
+                ? isNewHoldPR(exercise?.exercise_name || "", parseInt(s.reps) || 0)
+                : isNewPR(exercise?.exercise_name || "", parseFloat(s.weight) || 0, parseInt(s.reps) || 0)
+            );
             return (
               <div key={i}>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => s.done && toggleSet(i)}
-                    className="w-7 shrink-0 flex items-center justify-center"
-                  >
-                    {s.done
-                      ? <RotateCcw className="w-3.5 h-3.5 text-muted-foreground" />
-                      : <span className="text-xs text-muted-foreground font-medium">S{i + 1}</span>
-                    }
-                  </button>
+                {isPR && (
+                  <div className="flex justify-end mb-1">
+                    <span className="text-[10px] font-bold text-amber-400">🏆 Nuovo record</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-3">
+                  <span className="w-7 justify-center inline-flex items-center rounded-lg bg-secondary py-1 text-[11px] font-medium text-muted-foreground shrink-0">
+                    S{i + 1}
+                  </span>
 
                   <input
                     type="number"
@@ -909,13 +960,13 @@ export default function WorkoutSession() {
                     placeholder={isHoldExercise ? "Sec" : "Rep"}
                     value={s.reps}
                     onChange={(e) => updateSet(i, "reps", e.target.value)}
-                    className={`w-16 h-12 bg-secondary rounded-xl px-2 text-foreground text-base text-center placeholder:text-muted-foreground outline-none transition-opacity ${s.done ? "opacity-50" : ""}`}
+                    className={`w-16 h-[52px] bg-secondary rounded-xl px-2 text-foreground text-base text-center placeholder:text-muted-foreground outline-none transition-opacity ${s.done ? "opacity-50" : ""}`}
                   />
 
                   {isHoldExercise ? (
                     <div className="flex-1" />
                   ) : (
-                    <div className={`flex items-center flex-1 bg-secondary rounded-xl overflow-hidden h-12 transition-opacity ${s.done ? "opacity-50" : ""}`}>
+                    <div className={`flex items-center flex-1 bg-secondary rounded-xl overflow-hidden h-[52px] transition-opacity ${s.done ? "opacity-50" : ""}`}>
                       <button
                         onClick={() => adjustWeight(i, -2.5)}
                         className="h-full px-3 text-base font-bold text-muted-foreground active:bg-muted transition-colors"
@@ -937,20 +988,13 @@ export default function WorkoutSession() {
 
                   <button
                     onClick={() => toggleSet(i)}
-                    className={`w-11 h-12 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200
+                    className={`w-12 h-[52px] rounded-xl flex items-center justify-center shrink-0 transition-all duration-200
                       ${justDone === key ? "scale-110" : "scale-100"}
-                      ${s.done ? "bg-primary text-white" : "bg-secondary text-muted-foreground"}
+                      ${s.done ? "bg-success text-white" : "bg-secondary text-muted-foreground"}
                     `}
                   >
                     <Check className="w-5 h-5" />
                   </button>
-
-                  {s.done && !isHoldExercise && isNewPR(exercise?.exercise_name || "", parseFloat(s.weight) || 0, parseInt(s.reps) || 0) && (
-                    <div className="text-amber-400 text-xs font-bold">🏆 PR</div>
-                  )}
-                  {s.done && isHoldExercise && isNewHoldPR(exercise?.exercise_name || "", parseInt(s.reps) || 0) && (
-                    <div className="text-amber-400 text-xs font-bold">🏆 PR</div>
-                  )}
                 </div>
               </div>
             );
@@ -965,19 +1009,19 @@ export default function WorkoutSession() {
             setTimerKey((k) => k + 1);
             setShowTimer(true);
           }}
-          className="w-full h-12 rounded-xl font-semibold text-white flex items-center justify-center gap-2 bg-primary active:scale-95 transition-transform"
+          className="w-full h-12 rounded-xl font-semibold text-foreground flex items-center justify-center gap-2 bg-secondary active:scale-95 transition-transform"
         >
-          <Play className="w-4 h-4 fill-white" />
+          <Play className="w-4 h-4" />
           Avvia riposo ({exercise?.rest_seconds || 90}s)
         </button>
       </div>
 
       {/* Navigation */}
-      <div className="flex gap-3 fixed bottom-24 left-3 right-3 sm:left-4 sm:right-4 max-w-[412px] mx-auto md:sticky md:bottom-24 md:left-auto md:right-auto md:max-w-none md:w-full">
+      <div className="flex gap-3 fixed bottom-4 left-3 right-3 sm:left-4 sm:right-4 max-w-[412px] mx-auto md:sticky md:bottom-4 md:left-auto md:right-auto md:max-w-none md:w-full">
         {currentExIdx > 0 && (
           <button
             onClick={() => setCurrentExIdx((i) => i - 1)}
-            className="flex-1 h-14 rounded-2xl bg-secondary text-foreground font-semibold transition-transform active:scale-95"
+            className="flex-[0.4] h-14 rounded-2xl bg-secondary text-foreground font-semibold transition-transform active:scale-95"
           >
             Precedente
           </button>
@@ -985,7 +1029,7 @@ export default function WorkoutSession() {
         {currentExIdx < totalExercises - 1 ? (
           <button
             onClick={() => setCurrentExIdx((i) => i + 1)}
-            className="flex-1 h-14 rounded-2xl font-semibold transition-transform active:scale-95 text-white gradient-primary"
+            className="flex-1 h-14 rounded-2xl font-semibold transition-transform active:scale-95 text-white gradient-primary glow-primary"
           >
             Prossimo
           </button>
@@ -993,7 +1037,7 @@ export default function WorkoutSession() {
           <button
             onClick={finishWorkout}
             disabled={saving}
-            className="flex-1 h-14 rounded-2xl font-bold transition-all active:scale-95 disabled:opacity-60 text-white gradient-primary"
+            className="flex-1 h-14 rounded-2xl font-bold transition-all active:scale-95 disabled:opacity-60 text-white gradient-primary glow-primary"
           >
             {saving ? "Salvataggio..." : "✓ Completa"}
           </button>
