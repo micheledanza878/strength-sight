@@ -110,7 +110,19 @@ function toWeeklyVolume(sessions: SessionGroup[]): WeeklyVolume[] {
 
 // ── Tooltip personalizzati ─────────────────────────────────────────────────────
 
-function CustomTooltip1RM({ active, payload, label }: any) {
+/**
+ * Props minime iniettate da Recharts a runtime (via cloneElement) quando il
+ * componente viene passato come `content` di un `<Tooltip />`. Vengono dichiarate
+ * come opzionali perché nel JSX i componenti sono renderizzati senza props
+ * (es. `<CustomTooltip1RM />`) e Recharts le inietta solo al momento del render.
+ */
+interface ChartTooltipProps {
+  active?: boolean;
+  payload?: { value: number | string }[];
+  label?: string | number;
+}
+
+function CustomTooltip1RM({ active, payload, label }: ChartTooltipProps) {
   if (!active || !payload?.length) return null;
   return (
     <div className="bg-card border border-border rounded-xl px-3 py-2 shadow-lg text-xs">
@@ -123,7 +135,7 @@ function CustomTooltip1RM({ active, payload, label }: any) {
   );
 }
 
-function CustomTooltipVolume({ active, payload, label }: any) {
+function CustomTooltipVolume({ active, payload, label }: ChartTooltipProps) {
   if (!active || !payload?.length) return null;
   return (
     <div className="bg-card border border-border rounded-xl px-3 py-2 shadow-lg text-xs">

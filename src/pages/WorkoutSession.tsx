@@ -220,7 +220,12 @@ export default function WorkoutSession() {
         .order("order_number", { ascending: true });
 
       if (exError) throw exError;
-      setExercises(exs || []);
+      setExercises(
+        (exs || []).map((ex) => ({
+          ...ex,
+          tracking_unit: ex.tracking_unit as "reps" | "seconds" | null,
+        }))
+      );
 
       if (day) {
         loadPrevSession(day.day_name);
@@ -811,14 +816,6 @@ export default function WorkoutSession() {
           <p className="text-lg font-bold">{dayData.day_name}</p>
           <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Giorno {dayData.day_number}</p>
         </div>
-        {phase === "preview" && dayData && (
-          <button
-            onClick={() => navigate(`/edit-day/${dayData.id}`)}
-            className="text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <Edit2 className="w-5 h-5" />
-          </button>
-        )}
         <div className="flex items-center gap-2">
           {/* Indicatore autosave testuale: non bloccante, riflette lo stato dell'ultimo salvataggio */}
           {autosaveStatus === "saving" && (

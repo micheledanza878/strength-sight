@@ -153,7 +153,7 @@ export default function EditWorkoutPlan() {
     setDays(updated);
   }
 
-  function updateExercise(exIdx: number, field: keyof Exercise, value: any) {
+  function updateExercise<K extends keyof Exercise>(exIdx: number, field: K, value: Exercise[K]) {
     const updated = [...days];
     updated[currentDayIdx].exercises[exIdx] = {
       ...updated[currentDayIdx].exercises[exIdx],

@@ -112,7 +112,7 @@ export async function getSubstitutes(
     const substitutes: SubstituteOption[] = alternatives
       .filter(alt => alt.food_id !== currentFoodId && !ANCHOR_IDS.has(alt.food_id))
       .map((alt) => {
-        const food = alt.foods as any;
+        const food = alt.foods;
         const baseAmount = alt.base_quantity_g;
         const foodName = food?.name || 'Unknown';
         const targetCategory = inferCategory(foodName);

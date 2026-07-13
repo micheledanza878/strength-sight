@@ -112,7 +112,7 @@ function RecipeSection({ section }: { section: RecipeSection }) {
         {isPreparation ? (
           <ol className="space-y-2">
             {nonEmptyLines.map((line, i) => {
-              const text = line.replace(/^\d+[\.\)]\s*/, '').trim();
+              const text = line.replace(/^\d+[.)]\s*/, '').trim();
               return (
                 <li key={i} className="flex items-start gap-3 text-sm text-foreground">
                   <span className={`${config.color} font-bold text-xs mt-0.5 shrink-0 w-4`}>

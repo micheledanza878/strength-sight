@@ -108,7 +108,7 @@ export default function EditWorkoutDay() {
           notes: ex.notes || "",
           order_number: ex.order_number,
           primary_body_part_id: ex.primary_body_part_id,
-          tracking_unit: ex.tracking_unit || "reps",
+          tracking_unit: (ex.tracking_unit || "reps") as "reps" | "seconds",
           skill_slug: ex.skill_slug,
         })),
       });
@@ -189,7 +189,7 @@ export default function EditWorkoutDay() {
     setDay({ ...day, exercises: updated });
   }
 
-  function updateExercise(exIdx: number, field: keyof Exercise, value: any) {
+  function updateExercise<K extends keyof Exercise>(exIdx: number, field: K, value: Exercise[K]) {
     if (day) {
       const updated = [...day.exercises];
       updated[exIdx] = { ...updated[exIdx], [field]: value };

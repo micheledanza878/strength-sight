@@ -193,8 +193,7 @@ export function MealCard({
             name: selectedFood.name,
             portion: selectedFood.portion,
             calories: selectedFood.calories,
-            mealFoodId: selectedFood.mealFoodId,
-            standardPortionG: selectedFood.standardPortionG
+            mealFoodId: selectedFood.mealFoodId
           }}
           mealType={mealType as 'colazione' | 'spuntino_mattutino' | 'pranzo' | 'spuntino_pomeridiano' | 'cena'}
           weeklyPlanId={weeklyPlanId}

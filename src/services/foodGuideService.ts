@@ -34,8 +34,8 @@ export async function getFoodGuide(): Promise<FoodGuideGroup[]> {
   const groupMap = new Map<string, FoodGuideGroup>();
 
   for (const row of data) {
-    const group = row.substitution_groups as any;
-    const food = row.foods as any;
+    const group = row.substitution_groups;
+    const food = row.foods;
     if (!group || !food) continue;
     if (ANCHOR_IDS.has(food.id)) continue;
 

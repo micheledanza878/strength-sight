@@ -127,7 +127,7 @@ Regole:
 - Rispondi con il solo oggetto JSON, senza markdown, senza backtick, senza commenti.`;
 
   let insight: ExerciseInsight | null = null;
-  let modelUsed = "claude-haiku-4-5-20251001";
+  const modelUsed = "claude-haiku-4-5-20251001";
 
   try {
     const response = await fetch("https://api.anthropic.com/v1/messages", {
