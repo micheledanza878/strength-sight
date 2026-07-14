@@ -38,7 +38,7 @@ interface SkillDashboardProps {
  * grafici in griglia. Line chart e heatmap occupano l'intera larghezza su
  * desktop (md:col-span-2) perché entrambi hanno bisogno di spazio orizzontale
  * per restare leggibili (rispettivamente: molte date sull'asse X, e fino a
- * 8 colonne settimanali nella heatmap).
+ * 6 colonne settimanali nella heatmap).
  */
 export function SkillDashboard({ skillLogs, sessions, repsThresholds, data, loading }: SkillDashboardProps) {
   // "Modalità reale": il chiamante ha passato esplicitamente `data` e/o `loading`.

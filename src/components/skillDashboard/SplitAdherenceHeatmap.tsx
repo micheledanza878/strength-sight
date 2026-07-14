@@ -12,7 +12,7 @@ interface SplitAdherenceHeatmapProps {
   matrix?: AdherenceMatrix;
 }
 
-const DEFAULT_WEEKS = 8;
+const DEFAULT_WEEKS = 6;
 
 export function SplitAdherenceHeatmap({ sessions = [], weeks = DEFAULT_WEEKS, matrix: matrixProp }: SplitAdherenceHeatmapProps) {
   // Path mock invariato: nessuna matrice passata e nessuna sessione → empty state immediato.
@@ -53,12 +53,13 @@ export function SplitAdherenceHeatmap({ sessions = [], weeks = DEFAULT_WEEKS, ma
   const summary = `${completionPct}% delle sessioni pianificate completate nelle ultime ${weeks} settimane (${completedCells} su ${totalCells}).`;
 
   // Griglia CSS: 1 colonna etichette riga + 1 colonna per settimana.
-  const gridTemplateColumns = `minmax(64px, auto) repeat(${matrix.weeks.length}, minmax(28px, 1fr))`;
+  // Niente min-width fisso: le colonne si adattano sempre al contenitore,
+  // così non compare mai lo scroll orizzontale anche con molte settimane.
+  const gridTemplateColumns = `minmax(0, auto) repeat(${matrix.weeks.length}, 1fr)`;
 
   return (
     <ChartCard title="Aderenza allo split" subtitle={`ultime ${weeks} settimane`} summary={summary}>
-      <div className="overflow-x-auto">
-        <div className="min-w-[420px]" style={{ display: "grid", gridTemplateColumns, gap: "4px" }}>
+      <div style={{ display: "grid", gridTemplateColumns, gap: "4px" }}>
           {/* Header: cella vuota per la colonna etichette + una per settimana */}
           <div />
           {matrix.weeks.map((week) => (
@@ -81,7 +82,6 @@ export function SplitAdherenceHeatmap({ sessions = [], weeks = DEFAULT_WEEKS, ma
               ))}
             </div>
           ))}
-        </div>
       </div>
     </ChartCard>
   );
