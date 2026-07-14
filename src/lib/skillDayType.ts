@@ -7,7 +7,7 @@ import { Skill, SkillCategory } from "@/services/skillsService";
  * 'core' è compatibile con qualsiasi giorno (per progressioni_skill.md è
  * un finisher universale).
  */
-type DayType = "pull" | "push" | "legs" | "core";
+export type DayType = "pull" | "push" | "legs" | "core";
 
 const CATEGORY_TO_DAY_TYPE: Record<SkillCategory, DayType> = {
   "statiche-trazione": "pull",
@@ -18,7 +18,7 @@ const CATEGORY_TO_DAY_TYPE: Record<SkillCategory, DayType> = {
   core: "core",
 };
 
-function getSkillDayType(skill: Skill): DayType {
+export function getSkillDayType(skill: Skill): DayType {
   return CATEGORY_TO_DAY_TYPE[skill.category];
 }
 

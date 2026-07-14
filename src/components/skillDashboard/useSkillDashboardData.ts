@@ -4,7 +4,7 @@ import { it } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { getUserId } from "@/lib/user";
 import { fetchSkills, type Skill } from "@/services/skillsService";
-import { getDayTypeFromName } from "@/lib/skillDayType";
+import { getDayTypeFromName, getSkillDayType } from "@/lib/skillDayType";
 import type { SkillLog, SkillRepsThreshold } from "./types";
 import { buildAdherenceMatrix, type AdherenceMatrix, type WeeklyCategoryVolumePoint } from "./utils";
 
@@ -185,6 +185,7 @@ export function useSkillDashboardData(activePlanId: string | null) {
                 date: log.started_at,
                 holdSeconds: maxOrZero(setsForSkill.map((s) => s.hold_seconds)),
                 thresholdSeconds: step.targetMin,
+                category: getSkillDayType(skill),
               });
             } else {
               skillLogs.push({
@@ -193,6 +194,7 @@ export function useSkillDashboardData(activePlanId: string | null) {
                 date: log.started_at,
                 holdSeconds: 0,
                 reps: maxOrZero(setsForSkill.map((s) => s.reps)),
+                category: getSkillDayType(skill),
               });
             }
           });

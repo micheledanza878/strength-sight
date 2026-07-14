@@ -8,6 +8,9 @@
  * accettano i dati via props e ricadono su MOCK_DATA solo a scopo dimostrativo.
  */
 
+/** Categoria coarse di una skill (spinta/trazione/gambe/core), usata per il filtro del radar. */
+export type SkillGroup = "push" | "pull" | "legs" | "core";
+
 /** Log di una singola sessione/tentativo su una skill (isometrica o dinamica). */
 export interface SkillLog {
   id: string;
@@ -20,6 +23,8 @@ export interface SkillLog {
   reps?: number;
   /** Soglia/target in secondi per le skill isometriche, se applicabile. */
   thresholdSeconds?: number;
+  /** Categoria coarse della skill (push/pull/legs/core), valorizzata dall'adapter dati. */
+  category?: SkillGroup;
   notes?: string;
 }
 
@@ -54,6 +59,8 @@ export interface SkillThresholdItem {
   current: number;
   threshold: number;
   unit: SkillUnit;
+  /** Categoria coarse della skill (push/pull/legs/core), propagata dall'ultimo log. */
+  category?: SkillGroup;
 }
 
 /** Soglia dinamica (reps) associata a una skill, usata dal radar per le skill non isometriche. */

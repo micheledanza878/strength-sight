@@ -2,6 +2,7 @@ import { startOfWeek, format, isSameWeek, subWeeks } from "date-fns";
 import { it } from "date-fns/locale";
 import type {
   Category,
+  SkillGroup,
   SkillLog,
   SkillRepsThreshold,
   SkillThresholdItem,
@@ -59,6 +60,7 @@ export function buildThresholdItems(
         current: log.holdSeconds,
         threshold: log.thresholdSeconds,
         unit: "sec",
+        category: log.category,
       });
     } else if (repsThresholdMap.has(skillName)) {
       items.push({
@@ -67,6 +69,7 @@ export function buildThresholdItems(
         current: log.reps ?? 0,
         threshold: repsThresholdMap.get(skillName) as number,
         unit: "reps",
+        category: log.category,
       });
     }
   });
@@ -83,11 +86,12 @@ export function buildThresholdItems(
 export function buildRadarData(
   logs: SkillLog[],
   repsThresholds: SkillRepsThreshold[] = []
-): { skill: string; label: string; value: number }[] {
+): { skill: string; label: string; value: number; category?: SkillGroup }[] {
   return buildThresholdItems(logs, repsThresholds).map((item) => ({
     skill: item.skillName,
     label: item.label ?? humanizeSkillName(item.skillName),
     value: item.threshold > 0 ? clamp(round((item.current / item.threshold) * 100), 0, 100) : 0,
+    category: item.category,
   }));
 }
 

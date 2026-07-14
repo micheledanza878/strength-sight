@@ -1,5 +1,5 @@
 import { subWeeks, format, startOfWeek, addDays } from "date-fns";
-import type { SkillLog, SkillRepsThreshold, WorkoutSession, Category } from "./types";
+import type { SkillGroup, SkillLog, SkillRepsThreshold, WorkoutSession, Category } from "./types";
 
 /**
  * MOCK DATA per la Skill Dashboard.
@@ -43,7 +43,8 @@ const MUSCLE_UP_THRESHOLD_REPS = 8;
 function buildIsometricLogs(
   skillName: string,
   holds: number[],
-  thresholdSeconds: number
+  thresholdSeconds: number,
+  category: SkillGroup
 ): SkillLog[] {
   return holds.map((holdSeconds, idx) => ({
     id: `${skillName}-${idx}`,
@@ -51,10 +52,11 @@ function buildIsometricLogs(
     date: weeksAgoIso(holds.length - 1 - idx),
     holdSeconds,
     thresholdSeconds,
+    category,
   }));
 }
 
-function buildDynamicLogs(skillName: string, repsList: number[]): SkillLog[] {
+function buildDynamicLogs(skillName: string, repsList: number[], category: SkillGroup): SkillLog[] {
   // holdSeconds è un campo obbligatorio dello schema anche per skill dinamiche:
   // qui viene stimato come tempo sotto tensione (~2s per rep, concentrica+eccentrica)
   // e non è usato da alcun grafico (il line chart tratta solo skill isometriche).
@@ -64,14 +66,18 @@ function buildDynamicLogs(skillName: string, repsList: number[]): SkillLog[] {
     date: weeksAgoIso(repsList.length - 1 - idx),
     holdSeconds: reps * 2,
     reps,
+    category,
   }));
 }
 
 export const mockSkillLogs: SkillLog[] = [
-  ...buildIsometricLogs("front_lever", FRONT_LEVER_HOLDS, FRONT_LEVER_THRESHOLD),
-  ...buildIsometricLogs("straddle_planche", STRADDLE_PLANCHE_HOLDS, STRADDLE_PLANCHE_THRESHOLD),
-  ...buildIsometricLogs("handstand", HANDSTAND_HOLDS, HANDSTAND_THRESHOLD),
-  ...buildDynamicLogs("muscle_up", MUSCLE_UP_REPS),
+  // Front lever: skill di trazione (statiche-trazione).
+  ...buildIsometricLogs("front_lever", FRONT_LEVER_HOLDS, FRONT_LEVER_THRESHOLD, "pull"),
+  // Straddle planche e handstand: skill di spinta (statiche-spinta).
+  ...buildIsometricLogs("straddle_planche", STRADDLE_PLANCHE_HOLDS, STRADDLE_PLANCHE_THRESHOLD, "push"),
+  ...buildIsometricLogs("handstand", HANDSTAND_HOLDS, HANDSTAND_THRESHOLD, "push"),
+  // Muscle-up: skill dinamica di trazione (dinamiche-trazione).
+  ...buildDynamicLogs("muscle_up", MUSCLE_UP_REPS, "pull"),
 ];
 
 /** Soglie reps per le skill dinamiche (non presenti in SkillLog.thresholdSeconds). */
