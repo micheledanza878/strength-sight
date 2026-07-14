@@ -436,6 +436,49 @@ export default function WorkoutSession() {
     }
   }
 
+  // Riprende un allenamento interrotto: carica i set_logs già salvati su DB
+  // e li ripristina nello stato locale marcandoli come "done", così l'utente
+  // ritrova esattamente il punto in cui si era fermato.
+  async function resumeWorkout(logId: string) {
+    setWorkoutLogId(logId);
+    workoutLogIdRef.current = logId;
+    startedAt.current = new Date();
+
+    try {
+      const { data: savedSets } = await supabase
+        .from("set_logs")
+        .select("exercise_name, set_number, reps, weight, hold_seconds")
+        .eq("workout_log_id", logId)
+        .order("set_number", { ascending: true });
+
+      if (savedSets && savedSets.length > 0) {
+        setSets((prev) => {
+          const restored = { ...prev };
+          savedSets.forEach((s) => {
+            if (!restored[s.exercise_name]) return;
+            const idx = s.set_number - 1;
+            if (!restored[s.exercise_name][idx]) return;
+            const isHold =
+              exercises.find((e) => e.exercise_name === s.exercise_name)?.tracking_unit === "seconds";
+            restored[s.exercise_name][idx] = {
+              reps: isHold
+                ? String(s.hold_seconds ?? 0)
+                : String(s.reps ?? 0),
+              weight: s.weight && s.weight > 0 ? String(s.weight) : "",
+              done: true,
+            };
+          });
+          return restored;
+        });
+      }
+    } catch (err) {
+      console.error("Errore ripristino set:", err);
+      // Non blocchiamo la ripresa anche se il caricamento fallisce
+    }
+
+    setPhase("active");
+  }
+
   // Info sullo step corrente di una skill (nome step, target, sedute pulite verso l'avanzamento)
   function getSkillStepInfo(ex: PlanExercise) {
     if (!ex.skill_slug) return null;
@@ -477,13 +520,11 @@ export default function WorkoutSession() {
               <p className="text-muted-foreground text-sm mb-6">Vuoi riprendere l'allenamento precedente?</p>
               <div className="flex gap-3">
                 <button
-                  onClick={() => {
+                  onClick={async () => {
+                    const logId = resumeDialog!;
                     setShowResumePrompt(false);
                     setResumeDialog(null);
-                    setWorkoutLogId(resumeDialog);
-                    workoutLogIdRef.current = resumeDialog;
-                    setPhase("active");
-                    startedAt.current = new Date();
+                    await resumeWorkout(logId);
                   }}
                   className="flex-1 h-12 rounded-xl gradient-primary text-white font-semibold transition-transform active:scale-95"
                 >
