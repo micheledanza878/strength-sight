@@ -174,12 +174,15 @@ export default function Dashboard() {
         setNextPlanDay(planDays[nextIdx]);
       }
 
-      // Calendar: this month
+      // Calendario: tutte le date di allenamento (il calendario è navigabile
+      // tra i mesi, quindi servono anche i mesi precedenti, non solo quello corrente).
+      setWorkoutDates(logs.map((l) => parseISO(l.started_at)));
+
+      // Conteggio "questo mese": solo le sessioni del mese corrente.
       const monthLogs = logs.filter((l) => {
         const d = parseISO(l.started_at);
         return d >= monthStart && d <= monthEnd;
       });
-      setWorkoutDates(monthLogs.map((l) => parseISO(l.started_at)));
       setMonthCount(monthLogs.length);
 
       // Week count
