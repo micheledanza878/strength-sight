@@ -5,7 +5,6 @@ import type {
   SkillLog,
   SkillRepsThreshold,
   SkillThresholdItem,
-  SplitDay,
   WorkoutSession,
 } from "./types";
 import { SPLIT_DAYS, round } from "./chartTheme";
@@ -140,7 +139,7 @@ export function aggregateWeeklyCategoryVolume(
 }
 
 export interface AdherenceCell {
-  splitDay: SplitDay;
+  splitDay: string;
   splitLabel: string;
   weekStart: Date;
   weekLabel: string;
@@ -151,18 +150,33 @@ export interface AdherenceMatrix {
   /** Colonne, ordinate cronologicamente dalla più vecchia alla più recente. */
   weeks: { weekStart: Date; weekLabel: string }[];
   /** Righe = giorni split; ogni riga ha una cella per settimana. */
-  rows: { splitDay: SplitDay; splitLabel: string; cells: AdherenceCell[] }[];
+  rows: { splitDay: string; splitLabel: string; cells: AdherenceCell[] }[];
+}
+
+/** Forma minima richiesta da `buildAdherenceMatrix`: sia le WorkoutSession mock
+ * sia le sessioni sintetiche costruite dall'adapter dati reali (una per
+ * workout_log completato) rispettano questa forma. */
+export interface AdherenceSessionLike {
+  splitDay: string;
+  completed: boolean;
+  date: string;
 }
 
 /**
- * Costruisce la matrice righe (5 split day) × colonne (ultime `weeks`
+ * Costruisce la matrice righe (giorni split) × colonne (ultime `weeks`
  * settimane) usata dalla heatmap di aderenza. Una cella è "completata" se
- * esiste almeno una WorkoutSession con quello splitDay, in quella settimana,
+ * esiste almeno una sessione con quello splitDay, in quella settimana,
  * con `completed: true`.
+ *
+ * `splitDays` è opzionale: di default usa i 5 giorni della scheda mock
+ * (`SPLIT_DAYS`), ma il chiamante può passare i giorni reali di una scheda
+ * (es. da `workout_plan_days`) per generalizzare la heatmap a schede con un
+ * numero/nomi di giorni diversi dallo split push/pull/legs a doppia frequenza.
  */
 export function buildAdherenceMatrix(
-  sessions: WorkoutSession[],
-  weeks: number
+  sessions: AdherenceSessionLike[],
+  weeks: number,
+  splitDays: { key: string; label: string }[] = SPLIT_DAYS
 ): AdherenceMatrix {
   const now = new Date();
   const weekStarts: Date[] = [];
@@ -175,7 +189,7 @@ export function buildAdherenceMatrix(
     weekLabel: format(weekStart, "d MMM", { locale: it }),
   }));
 
-  const rows = SPLIT_DAYS.map(({ key, label }) => ({
+  const rows = splitDays.map(({ key, label }) => ({
     splitDay: key,
     splitLabel: label,
     cells: weekCols.map(({ weekStart, weekLabel }) => {

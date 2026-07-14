@@ -2,13 +2,12 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval,
-  isSameDay, parseISO, startOfWeek, subDays, getWeek, differenceInDays, addMonths, subMonths,
+  isSameDay, parseISO, startOfWeek, subDays, differenceInDays, addMonths, subMonths,
 } from "date-fns";
 import { it } from "date-fns/locale";
-import { ChevronRight, Flame, Trophy, ChevronLeft, LogOut, Zap, TrendingUp, Bell, BellOff } from "lucide-react";
+import { ChevronRight, Flame, Trophy, ChevronLeft, LogOut, Zap, Bell, BellOff } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useActivePlan } from "@/contexts/ActivePlanContext";
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, LineChart, Line, CartesianGrid } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
@@ -23,15 +22,10 @@ import { WORKOUT_DAYS, getNextWorkoutDay } from "@/data/workouts";
 import type { WorkoutDay } from "@/data/workouts";
 import { useNotifications } from "@/hooks/use-notifications";
 import { maybeNotifyStreakAtRisk, maybeNotifyMeasurementOverdue } from "@/lib/notifications";
-import { calculateSetVolume, DEFAULT_BODYWEIGHT_KG } from "@/services/bodweightVolumeService";
 import PageContainer from "@/components/PageContainer";
 import { StatCard } from "@/components/StatCard";
-
-interface VolumePoint {
-  date: string;
-  volume: number;
-  day: string;
-}
+import { SkillDashboard } from "@/components/skillDashboard/SkillDashboard";
+import { useSkillDashboardData } from "@/components/skillDashboard/useSkillDashboardData";
 
 interface PlanDay {
   id: string;
@@ -43,18 +37,6 @@ interface WorkoutPlan {
   id: string;
   name: string;
   duration_weeks: number | null;
-}
-
-/**
- * Forma raw di un set_log con la join a workout_logs restituita dalla query
- * `set_logs.select("weight, reps, workout_logs(started_at)")`.
- * Supabase restituisce la relazione come oggetto singolo (not-null quando presente).
- */
-interface SetLogWithWorkoutLog {
-  exercise_name: string;
-  weight: number | null;
-  reps: number;
-  workout_logs: { started_at: string } | null;
 }
 
 export default function Dashboard() {
@@ -71,20 +53,17 @@ export default function Dashboard() {
   const [hasWorkedOutToday, setHasWorkedOutToday] = useState(false);
   const [weekCount, setWeekCount] = useState(0);
   const [monthCount, setMonthCount] = useState(0);
-  const [monthVolume, setMonthVolume] = useState(0);
-  const [volumeChart, setVolumeChart] = useState<VolumePoint[]>([]);
-  const [weeklyVolumeChart, setWeeklyVolumeChart] = useState<{ week: string; volume: number }[]>([]);
   const [topPRs, setTopPRs] = useState<{ exercise: string; weight: number; reps: number }[]>([]);
   const [lastMeasurementDaysAgo, setLastMeasurementDaysAgo] = useState<number | null>(null);
 
   const [plans, setPlans] = useState<WorkoutPlan[]>([]);
   const [selectedMonth, setSelectedMonth] = useState(new Date());
-  // Peso corporeo dell'utente: letto dalla misurazione più recente.
-  // Usato per stimare il volume degli esercizi bodyweight (peso = 0 o null).
-  const [userBodyweight, setUserBodyweight] = useState<number>(DEFAULT_BODYWEIGHT_KG);
 
   // ── Notifiche ──────────────────────────────────────────────────────────────
   const { isEnabled, isSupported, isLoading: notifLoading, toggle: toggleNotifications } = useNotifications();
+
+  // ── Skill Dashboard (dati reali, sostituisce i vecchi grafici volume) ─────
+  const { data: skillData, loading: skillLoading } = useSkillDashboardData(activePlanId);
 
   useEffect(() => {
     const initializeData = async () => {
@@ -238,97 +217,6 @@ export default function Dashboard() {
       if (planDays && planDays.length > 0) {
         setNextPlanDay(planDays[0]);
       }
-    }
-
-    // ── Peso corporeo utente ─────────────────────────────────────────────────
-    // Recupera la misurazione più recente con il campo `weight` valorizzato.
-    // Viene usato per stimare il volume degli esercizi bodyweight nei grafici.
-    const { data: latestMeasurement } = await supabase
-      .from("body_measurements")
-      .select("weight")
-      .eq("user_id", uid)
-      .not("weight", "is", null)
-      .order("measured_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    // Se non c'è nessuna misurazione con peso, manteniamo il fallback DEFAULT_BODYWEIGHT_KG
-    const bw: number = latestMeasurement?.weight ?? DEFAULT_BODYWEIGHT_KG;
-    setUserBodyweight(bw);
-
-    // Monthly volume from set_logs (con stima bodyweight)
-    const { data: monthSets } = await supabase
-      .from("set_logs")
-      .select("exercise_name, weight, reps")
-      .eq("user_id", uid)
-      .gte("created_at", monthStart.toISOString())
-      .lte("created_at", monthEnd.toISOString());
-
-    if (monthSets) {
-      setMonthVolume(
-        monthSets.reduce(
-          (acc, s) => acc + calculateSetVolume(s.weight, s.reps, s.exercise_name, bw),
-          0
-        )
-      );
-    }
-
-    // Volume per session (last 8 completed) — con stima bodyweight
-    const { data: recentLogs } = await supabase
-      .from("workout_logs")
-      .select("id, workout_day, started_at, set_logs(exercise_name, weight, reps)")
-      .eq("user_id", uid)
-      .not("completed_at", "is", null)
-      .order("started_at", { ascending: false })
-      .limit(8);
-
-    if (recentLogs) {
-      const points: VolumePoint[] = recentLogs
-        .map((log) => {
-          const sets =
-            (log.set_logs as { exercise_name: string; weight: number | null; reps: number }[]) ||
-            [];
-          const vol = sets.reduce(
-            (acc, s) => acc + calculateSetVolume(s.weight, s.reps, s.exercise_name, bw),
-            0
-          );
-          return {
-            date: format(parseISO(log.started_at), "d/M"),
-            volume: vol,
-            day: log.workout_day,
-          };
-        })
-        // Filtro rimosso: anche sessioni solo bodyweight ora contribuiscono al grafico.
-        // Un volume 0 residuo indica sessioni con esercizi non classificati, che
-        // escludiamo per non inquinare il grafico con barre vuote.
-        .filter((p) => p.volume > 0)
-        .reverse();
-      setVolumeChart(points);
-    }
-
-    // Weekly volume (last 8 weeks) — con stima bodyweight
-    const { data: allSets } = await supabase
-      .from("set_logs")
-      .select("exercise_name, weight, reps, workout_logs(started_at)")
-      .eq("user_id", uid)
-      .gte("created_at", subDays(now, 56).toISOString());
-
-    if (allSets) {
-      const weeklyMap: Record<string, number> = {};
-      (allSets as SetLogWithWorkoutLog[]).forEach((s) => {
-        const logDate = s.workout_logs?.started_at;
-        if (logDate) {
-          const week = `W${getWeek(parseISO(logDate))}`;
-          weeklyMap[week] =
-            (weeklyMap[week] || 0) +
-            calculateSetVolume(s.weight, s.reps, s.exercise_name, bw);
-        }
-      });
-      const weeklyData = Object.entries(weeklyMap)
-        .sort()
-        .slice(-8)
-        .map(([week, volume]) => ({ week, volume }));
-      setWeeklyVolumeChart(weeklyData);
     }
 
     // Top 3 PRs
@@ -551,71 +439,10 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* ── Weekly Volume Chart ── */}
-      {weeklyVolumeChart.length > 1 && (
-        <div className="bg-card border border-border rounded-2xl p-4 md:col-span-2 lg:col-span-3">
-          <div className="flex items-center gap-2 mb-4">
-            <TrendingUp className="w-4 h-4 text-primary" />
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Volume settimanale</p>
-          </div>
-          <div className="h-40">
-            <ResponsiveContainer width="95%" height="100%" style={{ margin: "0 auto" }}>
-              <LineChart data={weeklyVolumeChart} margin={{ top: 5, right: 10, left: -10, bottom: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis
-                  dataKey="week"
-                  tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                  axisLine={false}
-                  tickLine={false}
-                  angle={-45}
-                  textAnchor="end"
-                  height={60}
-                />
-                <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} width={40} />
-                <Tooltip
-                  contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 12, fontSize: 11 }}
-                  labelStyle={{ color: "hsl(var(--foreground))" }}
-                  formatter={(v: number) => [`${v.toLocaleString()} kg`, "Volume"]}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="volume"
-                  stroke="hsl(var(--primary))"
-                  strokeWidth={2.5}
-                  dot={{ fill: "hsl(var(--primary))", r: 3.5 }}
-                  activeDot={{ r: 5.5 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      )}
-
-      {/* ── Session Volume Chart ── */}
-      {volumeChart.length > 1 && (
-        <div className="bg-card border border-border rounded-2xl p-4 md:col-span-2 lg:col-span-2">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">Volume per sessione</p>
-          <div className="h-32">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={volumeChart} barSize={18}>
-                <XAxis dataKey="date" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
-                <YAxis hide />
-                <Tooltip
-                  contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 12, fontSize: 11 }}
-                  labelStyle={{ color: "hsl(var(--foreground))" }}
-                  formatter={(v: number) => [`${v.toLocaleString()} kg`, "Volume"]}
-                />
-                <Bar dataKey="volume" fill="hsl(var(--primary))" radius={[5, 5, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-          {monthVolume > 0 && (
-            <p className="text-xs text-muted-foreground text-center mt-2">
-              <span className="text-foreground font-semibold">{monthVolume.toLocaleString()} kg</span> sollevati questo mese
-            </p>
-          )}
-        </div>
-      )}
+      {/* ── Skill Dashboard: progressione skill, volume settimanale, aderenza allo split ── */}
+      <div className="md:col-span-2 lg:col-span-3">
+        <SkillDashboard data={skillData ?? undefined} loading={skillLoading} />
+      </div>
 
       {/* ── Calendar ── */}
       <div className="bg-card border border-border rounded-2xl p-4 md:col-span-2 lg:col-span-1">

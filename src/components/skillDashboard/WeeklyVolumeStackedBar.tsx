@@ -1,18 +1,21 @@
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { WorkoutSession } from "./types";
-import { aggregateWeeklyCategoryVolume, categorySummary } from "./utils";
+import { aggregateWeeklyCategoryVolume, categorySummary, type WeeklyCategoryVolumePoint } from "./utils";
 import { CATEGORY_COLORS, CATEGORY_LABELS, axisTickStyle, gridProps, tooltipContentStyle, tooltipLabelStyle } from "./chartTheme";
 import { ChartCard } from "./ChartCard";
 import { EmptyState } from "./EmptyState";
 
 interface WeeklyVolumeStackedBarProps {
-  sessions: WorkoutSession[];
+  /** Path mock: sessioni grezze da aggregare lato client. Ignorato se `data` è passato. */
+  sessions?: WorkoutSession[];
+  /** Path dati reali: punti già pre-aggregati dall'adapter (`useSkillDashboardData`). */
+  data?: WeeklyCategoryVolumePoint[];
 }
 
 const CATEGORY_KEYS = ["push", "pull", "legs"] as const;
 
-export function WeeklyVolumeStackedBar({ sessions }: WeeklyVolumeStackedBarProps) {
-  const data = aggregateWeeklyCategoryVolume(sessions);
+export function WeeklyVolumeStackedBar({ sessions = [], data: dataProp }: WeeklyVolumeStackedBarProps) {
+  const data = dataProp ?? aggregateWeeklyCategoryVolume(sessions);
 
   if (data.length < 2) {
     return (

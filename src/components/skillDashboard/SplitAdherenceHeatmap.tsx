@@ -1,18 +1,22 @@
 import type { WorkoutSession } from "./types";
-import { buildAdherenceMatrix } from "./utils";
+import { buildAdherenceMatrix, type AdherenceMatrix } from "./utils";
 import { round } from "./chartTheme";
 import { ChartCard } from "./ChartCard";
 import { EmptyState } from "./EmptyState";
 
 interface SplitAdherenceHeatmapProps {
-  sessions: WorkoutSession[];
+  /** Path mock: sessioni grezze da cui costruire la matrice. Ignorato se `matrix` è passata. */
+  sessions?: WorkoutSession[];
   weeks?: number;
+  /** Path dati reali: matrice già pre-costruita dall'adapter (`useSkillDashboardData`). */
+  matrix?: AdherenceMatrix;
 }
 
 const DEFAULT_WEEKS = 8;
 
-export function SplitAdherenceHeatmap({ sessions, weeks = DEFAULT_WEEKS }: SplitAdherenceHeatmapProps) {
-  if (sessions.length === 0) {
+export function SplitAdherenceHeatmap({ sessions = [], weeks = DEFAULT_WEEKS, matrix: matrixProp }: SplitAdherenceHeatmapProps) {
+  // Path mock invariato: nessuna matrice passata e nessuna sessione → empty state immediato.
+  if (!matrixProp && sessions.length === 0) {
     return (
       <ChartCard
         title="Aderenza allo split"
@@ -24,7 +28,21 @@ export function SplitAdherenceHeatmap({ sessions, weeks = DEFAULT_WEEKS }: Split
     );
   }
 
-  const matrix = buildAdherenceMatrix(sessions, weeks);
+  const matrix = matrixProp ?? buildAdherenceMatrix(sessions, weeks);
+
+  // Path dati reali: matrice "vuota" (nessun giorno scheda, es. nessuna scheda attiva)
+  // → stesso empty state del path mock, per coerenza visiva.
+  if (matrix.rows.length === 0 || matrix.weeks.length === 0) {
+    return (
+      <ChartCard
+        title="Aderenza allo split"
+        subtitle={`ultime ${weeks} settimane`}
+        summary="Nessuna sessione registrata."
+      >
+        <EmptyState title="Nessuna sessione registrata" subtitle="Le sessioni completate popoleranno questa heatmap." />
+      </ChartCard>
+    );
+  }
 
   const totalCells = matrix.rows.length * matrix.weeks.length;
   const completedCells = matrix.rows.reduce(
