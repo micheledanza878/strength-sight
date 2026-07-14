@@ -440,7 +440,7 @@ export default function Dashboard() {
       )}
 
       {/* ── Skill Dashboard: progressione skill, volume settimanale, aderenza allo split ── */}
-      <div className="md:col-span-2 lg:col-span-3">
+      <div className="md:col-span-2 lg:col-span-3 min-w-0">
         <SkillDashboard data={skillData ?? undefined} loading={skillLoading} />
       </div>
 

@@ -19,13 +19,13 @@ interface ChartCardProps {
  */
 export function ChartCard({ title, subtitle, summary, children }: ChartCardProps) {
   return (
-    <section className="bg-card border border-border rounded-2xl p-4">
+    <section className="bg-card border border-border rounded-2xl p-4 min-w-0 overflow-hidden">
       <header className="mb-3">
         <p className="font-bold text-sm">{title}</p>
         {subtitle && <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>}
       </header>
 
-      <div role="img" aria-label={summary}>
+      <div role="img" aria-label={summary} className="min-w-0">
         {children}
       </div>
 

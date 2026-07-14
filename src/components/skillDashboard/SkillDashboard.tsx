@@ -49,7 +49,7 @@ export function SkillDashboard({ skillLogs, sessions, repsThresholds, data, load
     return (
       <div className="space-y-4">
         <Skeleton className="w-full h-24 rounded-2xl" />
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2 min-w-0">
           <Skeleton className="w-full h-56 rounded-2xl md:col-span-2" />
           <Skeleton className="w-full h-56 rounded-2xl" />
           <Skeleton className="w-full h-56 rounded-2xl" />
@@ -71,16 +71,20 @@ export function SkillDashboard({ skillLogs, sessions, repsThresholds, data, load
     <div className="space-y-4">
       <SkillThresholdTiles items={items} />
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="md:col-span-2">
+      <div className="grid gap-4 md:grid-cols-2 min-w-0">
+        <div className="md:col-span-2 min-w-0">
           <SkillProgressLineChart logs={resolvedSkillLogs} />
         </div>
 
-        <SkillRadarChart logs={resolvedSkillLogs} repsThresholds={resolvedRepsThresholds} />
+        <div className="min-w-0">
+          <SkillRadarChart logs={resolvedSkillLogs} repsThresholds={resolvedRepsThresholds} />
+        </div>
 
-        <WeeklyVolumeStackedBar sessions={resolvedSessions} data={data?.weeklyVolume} />
+        <div className="min-w-0">
+          <WeeklyVolumeStackedBar sessions={resolvedSessions} data={data?.weeklyVolume} />
+        </div>
 
-        <div className="md:col-span-2">
+        <div className="md:col-span-2 min-w-0">
           <SplitAdherenceHeatmap sessions={resolvedSessions} matrix={data?.adherenceMatrix} />
         </div>
       </div>

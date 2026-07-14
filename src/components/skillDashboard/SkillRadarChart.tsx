@@ -43,7 +43,7 @@ export function SkillRadarChart({ logs, repsThresholds = [] }: SkillRadarChartPr
   return (
     <ChartCard title="Vista d'insieme skill" subtitle="% rispetto alla soglia" summary={summary}>
       <ResponsiveContainer width="100%" height={260}>
-        <RadarChart data={data}>
+        <RadarChart data={data} outerRadius="68%" margin={{ top: 12, right: 56, bottom: 12, left: 56 }}>
           <PolarGrid stroke={gridProps.stroke} />
           <PolarAngleAxis dataKey="label" tick={axisTickStyle} />
           <PolarRadiusAxis domain={[0, 100]} tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} axisLine={false} />
