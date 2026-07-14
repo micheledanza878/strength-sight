@@ -1,28 +1,28 @@
 {
-  "name": "Strength Sight",
-  "short_name": "Strength",
-  "description": "Il tuo diario di allenamento personale",
+  "name": "IronOS",
+  "short_name": "IronOS",
+  "description": "IronOS — Il tuo sistema operativo per l'allenamento",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#000000",
-  "theme_color": "#000000",
+  "background_color": "#111111",
+  "theme_color": "#111111",
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/favicon.ico",
-      "sizes": "64x64",
-      "type": "image/x-icon"
+      "src": "/favicon.png",
+      "sizes": "32x32",
+      "type": "image/png"
     },
     {
-      "src": "/icons/icon-192.svg",
+      "src": "/icon-192.png",
       "sizes": "192x192",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/icons/icon-512.svg",
+      "src": "/icon-512.png",
       "sizes": "512x512",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ]
