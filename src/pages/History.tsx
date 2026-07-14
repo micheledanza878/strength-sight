@@ -198,7 +198,7 @@ export default function History() {
     log.set_logs.forEach((s) => {
       const cur = prMap[s.exercise_name];
       if (!cur || s.weight > cur.weight || (s.weight === cur.weight && s.reps > cur.reps)) {
-        prMap[s.exercise_name] = { weight: s.weight, reps: s.reps, date: log.started_at };
+        prMap[s.exercise_name] = { weight: s.weight, reps: s.reps, date: log.completed_at };
       }
     });
   });
@@ -305,7 +305,7 @@ export default function History() {
                       <div className="min-w-0">
                         <p className="font-semibold text-sm truncate">{dayTitle}</p>
                         <p className="text-xs text-muted-foreground">
-                          {format(parseISO(log.started_at), "d MMMM yyyy", { locale: it })}
+                          {format(parseISO(log.completed_at), "d MMMM yyyy", { locale: it })}
                         </p>
                         <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
                           {totalSets > 0 && (
