@@ -32,8 +32,9 @@ interface ExerciseBodyPartMapping {
 interface SetLog {
   exercise_name: string;
   set_number: number;
-  reps: number;
+  reps: number | null;
   weight: number | null;
+  hold_seconds: number | null;
 }
 
 interface WorkoutLog {
@@ -74,9 +75,9 @@ export default function History() {
     const initializeData = async () => {
       try {
         await loadBodyParts();
-        await loadPlans();
+        const resolvedPlanId = await loadPlans();
         const userId = await getUserId();
-        await loadData(userId);
+        await loadData(userId, resolvedPlanId);
       } catch (error) {
         console.error("Errore inizializzazione:", error);
       }
@@ -122,7 +123,7 @@ export default function History() {
     }
   }
 
-  async function loadPlans() {
+  async function loadPlans(): Promise<string | null> {
     try {
       const userId = await getUserId();
       const { data } = await supabase
@@ -135,34 +136,38 @@ export default function History() {
         setPlans(data);
         if (data.length > 0) {
           setCurrentPlanId(data[0].id);
+          return data[0].id;
         }
       }
+      return currentPlanId;
     } catch (error) {
       console.error("Errore caricamento schede:", error);
+      return currentPlanId;
     }
   }
 
   async function changePlan(planId: string) {
     setCurrentPlanId(planId);
     const userId = await getUserId();
-    loadData(userId);
+    loadData(userId, planId);
   }
 
-  async function loadData(uid: string) {
+  async function loadData(uid: string, planId: string | null) {
     const { data } = await supabase
       .from("workout_logs")
-      .select("id, workout_day, started_at, completed_at, set_logs (exercise_name, set_number, reps, weight)")
+      .select("id, workout_day, started_at, completed_at, set_logs (exercise_name, set_number, reps, weight, hold_seconds)")
       .eq("user_id", uid)
       .not("completed_at", "is", null)
       .order("started_at", { ascending: false });
 
-    // Load plan days for filtering
-    const activePlanId = localStorage.getItem('activePlanId');
-    if (activePlanId) {
+    // Load plan days for filtering (usa il piano selezionato in questa pagina,
+    // non una localStorage['activePlanId'] indipendente che poteva puntare a
+    // un piano diverso e rendere inutile il selettore qui sopra)
+    if (planId) {
       const { data: days } = await supabase
         .from("workout_plan_days")
         .select("*")
-        .eq("workout_plan_id", activePlanId);
+        .eq("workout_plan_id", planId);
       if (days) setPlanDays(days);
     }
 
@@ -192,13 +197,23 @@ export default function History() {
   );
   const uniqueBodyParts = bodyParts.filter((bp) => usedBodyParts.has(bp.id));
 
-  // Compute PRs from filtered set_logs
-  const prMap: Record<string, { weight: number; reps: number; date: string }> = {};
+  // Compute PRs from filtered set_logs. Le tenute (hold_seconds valorizzato,
+  // reps sempre null per quei set) hanno un proprio record indipendente dal
+  // peso/reps: il PR è la tenuta più lunga.
+  const prMap: Record<string, { weight: number; reps: number; holdSeconds: number; date: string }> = {};
   filteredLogs.forEach((log) => {
     log.set_logs.forEach((s) => {
       const cur = prMap[s.exercise_name];
-      if (!cur || s.weight > cur.weight || (s.weight === cur.weight && s.reps > cur.reps)) {
-        prMap[s.exercise_name] = { weight: s.weight, reps: s.reps, date: log.completed_at };
+      if (s.hold_seconds !== null) {
+        if (!cur || s.hold_seconds > cur.holdSeconds) {
+          prMap[s.exercise_name] = { weight: 0, reps: 0, holdSeconds: s.hold_seconds, date: log.completed_at };
+        }
+        return;
+      }
+      const reps = s.reps ?? 0;
+      const weight = s.weight ?? 0;
+      if (!cur || weight > cur.weight || (weight === cur.weight && reps > cur.reps)) {
+        prMap[s.exercise_name] = { weight, reps, holdSeconds: 0, date: log.completed_at };
       }
     });
   });
@@ -267,7 +282,11 @@ export default function History() {
               const day = WORKOUT_DAYS.find((d) => d.id === log.workout_day);
               const duration = differenceInMinutes(parseISO(log.completed_at), parseISO(log.started_at));
               const totalSets = log.set_logs.length;
-              const totalVolume = log.set_logs.reduce((acc, s) => acc + s.weight * s.reps, 0);
+              // Le tenute (hold_seconds) non hanno peso: non contano nel volume kg×rep.
+              const totalVolume = log.set_logs.reduce(
+                (acc, s) => (s.hold_seconds !== null ? acc : acc + (s.weight ?? 0) * (s.reps ?? 0)),
+                0
+              );
               const isExpanded = expanded === log.id;
 
               const byExercise: Record<string, SetLog[]> = {};
@@ -349,7 +368,12 @@ export default function History() {
                           <div className="flex flex-wrap gap-2">
                             {exSets.map((s, i) => (
                               <span key={i} className="bg-secondary rounded-lg px-3 py-2 text-xs">
-                                {(s.weight ?? 0) > 0 ? (
+                                {s.hold_seconds !== null ? (
+                                  <>
+                                    <p className="font-bold">{s.hold_seconds}s</p>
+                                    <p className="text-muted-foreground">tenuta</p>
+                                  </>
+                                ) : (s.weight ?? 0) > 0 ? (
                                   <>
                                     <p className="font-bold">{s.weight}kg</p>
                                     <p className="text-muted-foreground">{s.reps} rep</p>
@@ -406,7 +430,8 @@ export default function History() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 lg:gap-6">
             {prs.map(([exercise, pr]) => {
-              const hasWeight = (pr.weight ?? 0) > 0;
+              const hasHold = pr.holdSeconds > 0;
+              const hasWeight = !hasHold && (pr.weight ?? 0) > 0;
               return (
                 <div
                   key={exercise}
@@ -425,7 +450,14 @@ export default function History() {
                   <div className="flex items-center gap-3 shrink-0">
                     <Trophy className="w-4 h-4 text-amber-400 shrink-0" />
                     <div className="text-right">
-                      {hasWeight ? (
+                      {hasHold ? (
+                        <>
+                          <p className="text-base font-bold text-foreground">{pr.holdSeconds}s</p>
+                          <span className="inline-block mt-0.5 rounded-md bg-success/15 px-1.5 py-0.5 text-[10px] font-medium text-success">
+                            tenuta
+                          </span>
+                        </>
+                      ) : hasWeight ? (
                         <>
                           <p className="text-base font-bold text-foreground">{pr.weight} kg</p>
                           <p className="text-xs text-muted-foreground">{pr.reps} rep</p>
