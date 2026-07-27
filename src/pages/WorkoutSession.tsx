@@ -228,12 +228,13 @@ export default function WorkoutSession() {
       );
 
       if (day) {
-        loadPrevSession(day.id);
+        loadPrevSession(day.id, day.day_name);
 
-        // Check for in-progress workout
+        // Check for in-progress workout (con lo stesso fallback per nome delle
+        // sessioni salvate prima di workout_plan_day_id, vedi loadPrevSession)
         try {
           const userId = await getUserId();
-          const { data: inProgressLog } = await supabase
+          let { data: inProgressLog } = await supabase
             .from("workout_logs")
             .select("id")
             .eq("user_id", userId)
@@ -242,6 +243,20 @@ export default function WorkoutSession() {
             .order("started_at", { ascending: false })
             .limit(1)
             .maybeSingle();
+
+          if (!inProgressLog) {
+            const fallback = await supabase
+              .from("workout_logs")
+              .select("id")
+              .eq("user_id", userId)
+              .is("workout_plan_day_id", null)
+              .eq("workout_day", day.day_name)
+              .is("completed_at", null)
+              .order("started_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            inProgressLog = fallback.data;
+          }
 
           if (inProgressLog) {
             setResumeDialog(inProgressLog.id);
@@ -439,10 +454,10 @@ export default function WorkoutSession() {
     };
   }, [phase, completion, sets, workoutLogId]);
 
-  async function loadPrevSession(planDayId: string) {
+  async function loadPrevSession(planDayId: string, dayName: string) {
     try {
       const userId = await getUserId();
-      const { data: lastLog } = await supabase
+      let { data: lastLog } = await supabase
         .from("workout_logs")
         .select("id")
         .eq("user_id", userId)
@@ -451,6 +466,23 @@ export default function WorkoutSession() {
         .order("started_at", { ascending: false })
         .limit(1)
         .maybeSingle();
+
+      // Le sessioni salvate prima dell'introduzione di workout_plan_day_id non
+      // hanno quel campo valorizzato: fallback sul vecchio confronto per nome,
+      // altrimenti si perde la storia (e la progressione) di chi ha già usato l'app.
+      if (!lastLog) {
+        const fallback = await supabase
+          .from("workout_logs")
+          .select("id")
+          .eq("user_id", userId)
+          .is("workout_plan_day_id", null)
+          .eq("workout_day", dayName)
+          .not("completed_at", "is", null)
+          .order("started_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        lastLog = fallback.data;
+      }
 
       if (!lastLog) return;
 
