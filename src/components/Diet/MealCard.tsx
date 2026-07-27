@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowRightLeft, Sparkles, Plus, Trash2, MoreVertical } from 'lucide-react';
+import { ArrowRightLeft, Sparkles, Plus, Trash2, MoreVertical, Scale } from 'lucide-react';
 import { MEAL_TYPES } from '@/types/diet';
 import { removeFoodFromMeal } from '@/services/dietService';
 import {
@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { FoodSwapModal } from './FoodSwapModal';
 import { AddFoodModal } from './AddFoodModal';
+import { EditPortionModal } from './EditPortionModal';
 import { RecipeDialog } from './RecipeDialog';
 
 interface MealCardProps {
@@ -48,6 +49,7 @@ export function MealCard({
 }: MealCardProps) {
   const [swapModalOpen, setSwapModalOpen] = useState(false);
   const [addModalOpen, setAddModalOpen] = useState(false);
+  const [editPortionOpen, setEditPortionOpen] = useState(false);
   const [selectedFood, setSelectedFood] = useState<MealCardProps['foods'][0] | null>(null);
   const [recipeOpen, setRecipeOpen] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
@@ -59,6 +61,11 @@ export function MealCard({
   function handleOpenSwapModal(food: MealCardProps['foods'][0]) {
     setSelectedFood(food);
     setSwapModalOpen(true);
+  }
+
+  function handleOpenEditPortion(food: MealCardProps['foods'][0]) {
+    setSelectedFood(food);
+    setEditPortionOpen(true);
   }
 
   async function handleRemoveFood(mealFoodId: string) {
@@ -137,6 +144,10 @@ export function MealCard({
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleOpenEditPortion(food)}>
+                      <Scale className="h-3.5 w-3.5 mr-2" />
+                      Modifica grammatura
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => handleOpenSwapModal(food)}>
                       <ArrowRightLeft className="h-3.5 w-3.5 mr-2" />
                       Cambia
@@ -199,6 +210,19 @@ export function MealCard({
           weeklyPlanId={weeklyPlanId}
           dayOfWeek={dayOfWeek}
           onSwapComplete={onFoodSwapped}
+        />
+      )}
+
+      {selectedFood && (
+        <EditPortionModal
+          isOpen={editPortionOpen}
+          onClose={() => setEditPortionOpen(false)}
+          food={{
+            mealFoodId: selectedFood.mealFoodId,
+            name: selectedFood.name,
+            portion: selectedFood.portion,
+          }}
+          onPortionUpdated={onFoodSwapped}
         />
       )}
     </>

@@ -189,6 +189,30 @@ export async function swapFoodInMeal(
 }
 
 /**
+ * Update the gram portion of a food already in a meal, without changing
+ * which food it is. Le alternative mostrate per quel pasto si ricalcolano
+ * automaticamente al prossimo render (getSubstitutes legge portion_size_g
+ * live), non serve toccare nient'altro.
+ */
+export async function updateFoodPortion(
+  mealFoodId: string,
+  newPortionSize: number
+): Promise<DietMealFood> {
+  const { data, error } = await supabase
+    .from('diet_meal_foods')
+    .update({
+      portion_size_g: newPortionSize,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', mealFoodId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+/**
  * Add food to meal
  */
 export async function addFoodToMeal(
