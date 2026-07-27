@@ -161,20 +161,22 @@ export function calculateProgression(
   }
 
   // Il peso di riferimento è quello usato nel primo set della sessione precedente
-  // (assumiamo peso costante per tutti i set, come è comune nella pratica)
+  // (assumiamo peso costante per tutti i set, come è comune nella pratica).
+  // Peso 0 = esercizio a corpo libero (calisthenics): niente asse peso da far
+  // salire, ma le reps devono comunque progredire — non è un dato "corrotto"
+  // da scartare, è la normalità per un piano a corpo libero.
   const prevWeight = prevSets[0]?.weight ?? 0;
-  if (prevWeight <= 0) {
-    return { shouldIncrease: false, increment: 0, suggestedWeight: 0, suggestedReps: [] };
-  }
+  const hasWeightAxis = prevWeight > 0;
 
   const repsProgression = calculateUnitProgression(
     repsMin,
     repsMax,
     expectedSets,
-    prevSets.map((s) => s.reps)
+    prevSets.map((s) => s.reps),
+    hasWeightAxis // resetta le reps solo se sale davvero un peso reale
   );
 
-  if (repsProgression.reachedCeiling) {
+  if (repsProgression.reachedCeiling && hasWeightAxis) {
     const increment = getSuggestedIncrement(exerciseName);
     return {
       shouldIncrease: true,

@@ -150,13 +150,39 @@ describe("calculateProgression", () => {
     expect(result.suggestedWeight).toBe(100);
   });
 
-  // --- Caso: peso zero (dati corrotti) ---
+  // --- Caso: peso zero (esercizio a corpo libero, es. piano calisthenics) ---
 
-  it("non suggerisce incremento se il peso precedente è 0 (dati non validi)", () => {
+  it("non suggerisce mai incremento di peso se il peso precedente è 0 (corpo libero)", () => {
     const result = calculateProgression("Deadlift", 5, 3, buildSets(3, 5, 0));
 
     expect(result.shouldIncrease).toBe(false);
     expect(result.increment).toBe(0);
+  });
+
+  it("progredisce comunque sulle reps per un esercizio a corpo libero (peso 0)", () => {
+    // Piano calisthenics: peso sempre 0, non deve azzerare anche il suggerimento reps
+    const sets = [
+      { reps: 8, weight: 0 },
+      { reps: 8, weight: 0 },
+      { reps: 8, weight: 0 },
+      { reps: 8, weight: 0 },
+    ];
+    const result = calculateProgression("Hanging leg raise", 10, 4, sets, 6);
+
+    expect(result.shouldIncrease).toBe(false);
+    expect(result.suggestedReps).toEqual([9, 9, 9, 9]);
+  });
+
+  it("un corpo libero al tetto reps_max resta lì, non regredisce a reps_min", () => {
+    const sets = [
+      { reps: 30, weight: 0 },
+      { reps: 30, weight: 0 },
+      { reps: 30, weight: 0 },
+    ];
+    const result = calculateProgression("Hollow Body Hold", 45, 3, sets, 30);
+
+    expect(result.shouldIncrease).toBe(false);
+    expect(result.suggestedReps).toEqual([31, 31, 31]);
   });
 
   // --- Caso: set extra ignorati (solo i primi expectedSets contano) ---
