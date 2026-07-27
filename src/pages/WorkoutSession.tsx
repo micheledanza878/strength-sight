@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import PageContainer from "@/components/PageContainer";
-import { ArrowLeft, Check, Trophy, Clock, Play, Loader, Edit2, CloudOff, Info } from "lucide-react";
+import { ArrowLeft, Check, Trophy, Clock, Play, Edit2, CloudOff, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import RestTimer from "@/components/RestTimer";
 import { useToast } from "@/hooks/use-toast";
@@ -100,9 +100,7 @@ export default function WorkoutSession() {
   const [skills, setSkills] = useState<Skill[]>([]);
   const [justDone, setJustDone] = useState<string | null>(null);
   const [completion, setCompletion] = useState<CompletionStats | null>(null);
-  const [resumeDialog, setResumeDialog] = useState<string | null>(null);
   const [insightsExercise, setInsightsExercise] = useState<string | null>(null);
-  const [showResumePrompt, setShowResumePrompt] = useState(false);
   // Mappa esercizio → suggerimento di progressione calcolato dalla sessione precedente
   const [progressionSuggestions, setProgressionSuggestions] = useState<Record<string, ProgressionSuggestion>>({});
 
@@ -230,41 +228,6 @@ export default function WorkoutSession() {
 
       if (day) {
         loadPrevSession(day.id, day.day_name);
-
-        // Check for in-progress workout (con lo stesso fallback per nome delle
-        // sessioni salvate prima di workout_plan_day_id, vedi loadPrevSession)
-        try {
-          const userId = await getUserId();
-          let { data: inProgressLog } = await supabase
-            .from("workout_logs")
-            .select("id")
-            .eq("user_id", userId)
-            .eq("workout_plan_day_id", day.id)
-            .is("completed_at", null)
-            .order("started_at", { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-          if (!inProgressLog) {
-            const fallback = await supabase
-              .from("workout_logs")
-              .select("id")
-              .eq("user_id", userId)
-              .is("workout_plan_day_id", null)
-              .eq("workout_day", day.day_name)
-              .is("completed_at", null)
-              .order("started_at", { ascending: false })
-              .limit(1)
-              .maybeSingle();
-            inProgressLog = fallback.data;
-          }
-
-          if (inProgressLog) {
-            setResumeDialog(inProgressLog.id);
-          }
-        } catch (error) {
-          console.error("Errore check allenamento in corso:", error);
-        }
       }
     } catch (error) {
       console.error("Errore caricamento giorno:", error);
@@ -537,49 +500,6 @@ export default function WorkoutSession() {
     }
   }
 
-  // Riprende un allenamento interrotto: carica i set_logs già salvati su DB
-  // e li ripristina nello stato locale marcandoli come "done", così l'utente
-  // ritrova esattamente il punto in cui si era fermato.
-  async function resumeWorkout(logId: string) {
-    setWorkoutLogId(logId);
-    workoutLogIdRef.current = logId;
-    startedAt.current = new Date();
-
-    try {
-      const { data: savedSets } = await supabase
-        .from("set_logs")
-        .select("exercise_name, set_number, reps, weight, hold_seconds")
-        .eq("workout_log_id", logId)
-        .order("set_number", { ascending: true });
-
-      if (savedSets && savedSets.length > 0) {
-        setSets((prev) => {
-          const restored = { ...prev };
-          savedSets.forEach((s) => {
-            if (!restored[s.exercise_name]) return;
-            const idx = s.set_number - 1;
-            if (!restored[s.exercise_name][idx]) return;
-            const isHold =
-              exercises.find((e) => e.exercise_name === s.exercise_name)?.tracking_unit === "seconds";
-            restored[s.exercise_name][idx] = {
-              reps: isHold
-                ? String(s.hold_seconds ?? 0)
-                : String(s.reps ?? 0),
-              weight: s.weight && s.weight > 0 ? String(s.weight) : "",
-              done: true,
-            };
-          });
-          return restored;
-        });
-      }
-    } catch (err) {
-      console.error("Errore ripristino set:", err);
-      // Non blocchiamo la ripresa anche se il caricamento fallisce
-    }
-
-    setPhase("active");
-  }
-
   // Set della sessione precedente per un esercizio: prova prima l'id stabile
   // (workout_plan_exercise_id, salvato da autosaveSet), poi ricade sul nome
   // per i log salvati prima che quella colonna esistesse — così un esercizio
@@ -608,52 +528,10 @@ export default function WorkoutSession() {
   if (dayLoading) return <div className="p-5 pt-14 text-foreground">Caricamento...</div>;
   if (!dayData) return <div className="p-5 pt-14 text-foreground">Giorno non trovato</div>;
 
-  function handleStartWorkout() {
-    if (resumeDialog) {
-      setShowResumePrompt(true);
-    } else {
-      startWorkout();
-    }
-  }
-
-
   // ── PREVIEW SCREEN ──────────────────────────────────────────────
   if (phase === "preview") {
     return (
       <div className="workout-container-preview">
-        {showResumePrompt && (
-          <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm px-5">
-            <div className="w-full max-w-sm bg-card rounded-2xl p-6 text-center shadow-xl">
-              <p className="text-2xl mb-4">⏸️</p>
-              <h2 className="text-xl font-bold mb-2">Allenamento in corso</h2>
-              <p className="text-muted-foreground text-sm mb-6">Vuoi riprendere l'allenamento precedente?</p>
-              <div className="flex gap-3">
-                <button
-                  onClick={async () => {
-                    const logId = resumeDialog!;
-                    setShowResumePrompt(false);
-                    setResumeDialog(null);
-                    await resumeWorkout(logId);
-                  }}
-                  className="flex-1 h-12 rounded-xl gradient-primary text-white font-semibold transition-transform active:scale-95"
-                >
-                  Riprendi
-                </button>
-                <button
-                  onClick={() => {
-                    setShowResumePrompt(false);
-                    setResumeDialog(null);
-                    startWorkout();
-                  }}
-                  className="flex-1 h-12 rounded-xl bg-secondary text-secondary-foreground font-semibold transition-transform active:scale-95"
-                >
-                  Nuovo
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
         <div className="flex items-center gap-3 mb-6">
           <button onClick={() => navigate("/workout")} className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground active:scale-90 transition-transform">
             <ArrowLeft className="w-4 h-4" />
@@ -754,7 +632,7 @@ export default function WorkoutSession() {
         {/* Start button */}
         <div className="fixed bottom-8 left-3 right-3 sm:left-4 sm:right-4 max-w-[412px] mx-auto md:sticky md:bottom-8 md:left-auto md:right-auto md:max-w-none md:w-full">
           <button
-            onClick={handleStartWorkout}
+            onClick={startWorkout}
             className="w-full h-16 rounded-2xl font-bold text-white text-lg flex items-center justify-center gap-3 transition-transform active:scale-95 gradient-primary glow-primary"
           >
             <Play className="w-5 h-5 fill-white" />
