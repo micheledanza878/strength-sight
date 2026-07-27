@@ -62,6 +62,8 @@ export default function History() {
   const navigate = useNavigate();
   const [logs, setLogs] = useState<WorkoutLog[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
+  // Sezioni per giorno (Push/Pull/...) collassate/espanse: partono tutte aperte
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState<"history" | "records">("history");
   const [loading, setLoading] = useState(true);
   const [planDays, setPlanDays] = useState<PlanDay[]>([]);
@@ -187,6 +189,42 @@ export default function History() {
     })).filter((log) => log.set_logs.length > 0);
   }
 
+  // Raggruppa per giorno (Push/Pull/...) invece di un'unica lista mischiata.
+  // Ordine: quello dei giorni nel piano selezionato (day_number), poi eventuali
+  // nomi fuori piano (es. storico di un piano diverso da quello selezionato).
+  const groupOrder: string[] = [];
+  const seenGroupNames = new Set<string>();
+  planDays
+    .slice()
+    .sort((a, b) => a.day_number - b.day_number)
+    .forEach((d) => {
+      if (!seenGroupNames.has(d.day_name)) {
+        seenGroupNames.add(d.day_name);
+        groupOrder.push(d.day_name);
+      }
+    });
+  filteredLogs.forEach((log) => {
+    if (!seenGroupNames.has(log.workout_day)) {
+      seenGroupNames.add(log.workout_day);
+      groupOrder.push(log.workout_day);
+    }
+  });
+
+  const groupedLogs: Record<string, WorkoutLog[]> = {};
+  filteredLogs.forEach((log) => {
+    if (!groupedLogs[log.workout_day]) groupedLogs[log.workout_day] = [];
+    groupedLogs[log.workout_day].push(log);
+  });
+
+  function toggleGroup(name: string) {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  }
+
   // Get unique body parts from all exercises
   const usedBodyParts = new Set(
     logs.flatMap((log) =>
@@ -277,9 +315,36 @@ export default function History() {
               <p className="text-muted-foreground text-xs mt-2">Inizia il tuo primo allenamento per vedere i dati qui</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 lg:gap-6 items-start">
-              {filteredLogs.map((log) => {
-              const day = WORKOUT_DAYS.find((d) => d.id === log.workout_day);
+            <div className="space-y-5">
+              {groupOrder
+                .filter((dayName) => groupedLogs[dayName]?.length > 0)
+                .map((dayName) => {
+                  const groupLogs = groupedLogs[dayName];
+                  const groupDay = WORKOUT_DAYS.find((d) => d.id === dayName);
+                  const groupTitle = groupDay?.label || dayName;
+                  const isCollapsed = collapsedGroups.has(dayName);
+                  return (
+                    <div key={dayName}>
+                      <button
+                        onClick={() => toggleGroup(dayName)}
+                        className="w-full flex items-center justify-between mb-3 px-1"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          {groupDay?.emoji && <span className="text-lg shrink-0">{groupDay.emoji}</span>}
+                          <h2 className="font-bold text-base truncate">{groupTitle}</h2>
+                          <span className="text-xs text-muted-foreground font-medium shrink-0">
+                            {groupLogs.length} {groupLogs.length === 1 ? "sessione" : "sessioni"}
+                          </span>
+                        </div>
+                        {isCollapsed
+                          ? <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
+                          : <ChevronUp className="w-4 h-4 text-muted-foreground shrink-0" />
+                        }
+                      </button>
+                      {!isCollapsed && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 lg:gap-6 items-start">
+                          {groupLogs.map((log) => {
+              const day = groupDay;
               const duration = differenceInMinutes(parseISO(log.completed_at), parseISO(log.started_at));
               const totalSets = log.set_logs.length;
               // Le tenute (hold_seconds) non hanno peso: non contano nel volume kg×rep.
@@ -393,8 +458,13 @@ export default function History() {
                   )}
                 </div>
               );
-            })}
-          </div>
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+            </div>
           );
         })()
       )}
