@@ -40,6 +40,7 @@ interface SetLog {
 interface WorkoutLog {
   id: string;
   workout_day: string;
+  workout_plan_day_id: string | null;
   started_at: string;
   completed_at: string;
   set_logs: SetLog[];
@@ -64,6 +65,10 @@ export default function History() {
   const [expanded, setExpanded] = useState<string | null>(null);
   // Sezioni per giorno (Push/Pull/...) collassate/espanse: partono tutte aperte
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  // Ogni sezione mostra di default solo le ultime 5 sessioni; qui si tiene
+  // traccia di quali sezioni l'utente ha espanso per vederle tutte.
+  const [expandedHistory, setExpandedHistory] = useState<Set<string>>(new Set());
+  const HISTORY_PAGE_SIZE = 5;
   const [activeTab, setActiveTab] = useState<"history" | "records">("history");
   const [loading, setLoading] = useState(true);
   const [planDays, setPlanDays] = useState<PlanDay[]>([]);
@@ -157,7 +162,7 @@ export default function History() {
   async function loadData(uid: string, planId: string | null) {
     const { data } = await supabase
       .from("workout_logs")
-      .select("id, workout_day, started_at, completed_at, set_logs (exercise_name, set_number, reps, weight, hold_seconds)")
+      .select("id, workout_day, workout_plan_day_id, started_at, completed_at, set_logs (exercise_name, set_number, reps, weight, hold_seconds)")
       .eq("user_id", uid)
       .not("completed_at", "is", null)
       .order("started_at", { ascending: false });
@@ -189,31 +194,58 @@ export default function History() {
     })).filter((log) => log.set_logs.length > 0);
   }
 
-  // Raggruppa per giorno (Push/Pull/...) invece di un'unica lista mischiata.
-  // Ordine: quello dei giorni nel piano selezionato (day_number), poi eventuali
-  // nomi fuori piano (es. storico di un piano diverso da quello selezionato).
+  // Raggruppa per singolo giorno del piano (id), non per nome: "Push" può
+  // comparire più volte nella scheda (es. giorno 1 e giorno 4) e sono due
+  // allenamenti diversi con esercizi diversi, non lo stesso gruppo.
+  // Chiave: l'id del giorno quando il log lo ha (collegato al giorno
+  // specifico); altrimenti il nome, prefissato per distinguerlo dagli id —
+  // storico precedente al collegamento, non distinguibile tra occorrenze
+  // con lo stesso nome, resta in un unico bucket per quel nome.
+  function groupKeyFor(log: WorkoutLog): string {
+    return log.workout_plan_day_id ?? `name:${log.workout_day}`;
+  }
+
+  const nameCounts: Record<string, number> = {};
+  planDays.forEach((d) => {
+    nameCounts[d.day_name] = (nameCounts[d.day_name] ?? 0) + 1;
+  });
+
+  function groupInfoFor(key: string): { title: string; displayName: string } {
+    const planDay = planDays.find((d) => d.id === key);
+    if (planDay) {
+      const title =
+        nameCounts[planDay.day_name] > 1 ? `${planDay.day_name} · Giorno ${planDay.day_number}` : planDay.day_name;
+      return { title, displayName: planDay.day_name };
+    }
+    const name = key.startsWith("name:") ? key.slice(5) : key;
+    const title = nameCounts[name] > 1 ? `${name} (storico non distinto)` : name;
+    return { title, displayName: name };
+  }
+
   const groupOrder: string[] = [];
-  const seenGroupNames = new Set<string>();
+  const seenGroupKeys = new Set<string>();
   planDays
     .slice()
     .sort((a, b) => a.day_number - b.day_number)
     .forEach((d) => {
-      if (!seenGroupNames.has(d.day_name)) {
-        seenGroupNames.add(d.day_name);
-        groupOrder.push(d.day_name);
+      if (!seenGroupKeys.has(d.id)) {
+        seenGroupKeys.add(d.id);
+        groupOrder.push(d.id);
       }
     });
   filteredLogs.forEach((log) => {
-    if (!seenGroupNames.has(log.workout_day)) {
-      seenGroupNames.add(log.workout_day);
-      groupOrder.push(log.workout_day);
+    const key = groupKeyFor(log);
+    if (!seenGroupKeys.has(key)) {
+      seenGroupKeys.add(key);
+      groupOrder.push(key);
     }
   });
 
   const groupedLogs: Record<string, WorkoutLog[]> = {};
   filteredLogs.forEach((log) => {
-    if (!groupedLogs[log.workout_day]) groupedLogs[log.workout_day] = [];
-    groupedLogs[log.workout_day].push(log);
+    const key = groupKeyFor(log);
+    if (!groupedLogs[key]) groupedLogs[key] = [];
+    groupedLogs[key].push(log);
   });
 
   function toggleGroup(name: string) {
@@ -223,6 +255,10 @@ export default function History() {
       else next.add(name);
       return next;
     });
+  }
+
+  function showFullHistory(groupKey: string) {
+    setExpandedHistory((prev) => new Set(prev).add(groupKey));
   }
 
   // Get unique body parts from all exercises
@@ -315,35 +351,46 @@ export default function History() {
               <p className="text-muted-foreground text-xs mt-2">Inizia il tuo primo allenamento per vedere i dati qui</p>
             </div>
           ) : (
-            <div className="space-y-5">
+            <div className="space-y-6">
               {groupOrder
-                .filter((dayName) => groupedLogs[dayName]?.length > 0)
-                .map((dayName) => {
-                  const groupLogs = groupedLogs[dayName];
-                  const groupDay = WORKOUT_DAYS.find((d) => d.id === dayName);
-                  const groupTitle = groupDay?.label || dayName;
-                  const isCollapsed = collapsedGroups.has(dayName);
+                .filter((groupKey) => groupedLogs[groupKey]?.length > 0)
+                .map((groupKey) => {
+                  const groupLogs = groupedLogs[groupKey];
+                  const { title: groupTitle, displayName } = groupInfoFor(groupKey);
+                  const groupDay = WORKOUT_DAYS.find((d) => d.id === displayName);
+                  const isCollapsed = collapsedGroups.has(groupKey);
+                  const isHistoryExpanded = expandedHistory.has(groupKey);
+                  const visibleLogs = isHistoryExpanded ? groupLogs : groupLogs.slice(0, HISTORY_PAGE_SIZE);
+                  const hiddenCount = groupLogs.length - visibleLogs.length;
                   return (
-                    <div key={dayName}>
+                    <div key={groupKey} className="space-y-3">
                       <button
-                        onClick={() => toggleGroup(dayName)}
-                        className="w-full flex items-center justify-between mb-3 px-1"
+                        onClick={() => toggleGroup(groupKey)}
+                        aria-expanded={!isCollapsed}
+                        className="w-full flex items-center gap-3 rounded-xl bg-secondary/60 px-3 py-2.5 text-left active:bg-secondary transition-colors"
                       >
-                        <div className="flex items-center gap-2 min-w-0">
-                          {groupDay?.emoji && <span className="text-lg shrink-0">{groupDay.emoji}</span>}
-                          <h2 className="font-bold text-base truncate">{groupTitle}</h2>
-                          <span className="text-xs text-muted-foreground font-medium shrink-0">
-                            {groupLogs.length} {groupLogs.length === 1 ? "sessione" : "sessioni"}
-                          </span>
-                        </div>
-                        {isCollapsed
-                          ? <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
-                          : <ChevronUp className="w-4 h-4 text-muted-foreground shrink-0" />
-                        }
+                        {groupDay?.emoji ? (
+                          <div className="w-9 h-9 rounded-lg bg-card flex items-center justify-center text-base shrink-0">
+                            <span>{groupDay.emoji}</span>
+                          </div>
+                        ) : (
+                          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                            <span className="text-primary font-bold text-xs">
+                              {displayName.slice(0, 1).toUpperCase()}
+                            </span>
+                          </div>
+                        )}
+                        <h2 className="font-bold text-sm truncate flex-1 min-w-0">{groupTitle}</h2>
+                        <span className="inline-flex items-center rounded-lg bg-card px-2 py-0.5 text-[11px] font-medium text-muted-foreground shrink-0">
+                          {groupLogs.length} {groupLogs.length === 1 ? "sessione" : "sessioni"}
+                        </span>
+                        <ChevronDown
+                          className={`w-4 h-4 text-muted-foreground shrink-0 transition-transform duration-200 ${isCollapsed ? "" : "rotate-180"}`}
+                        />
                       </button>
                       {!isCollapsed && (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 lg:gap-6 items-start">
-                          {groupLogs.map((log) => {
+                          {visibleLogs.map((log) => {
               const day = groupDay;
               const duration = differenceInMinutes(parseISO(log.completed_at), parseISO(log.started_at));
               const totalSets = log.set_logs.length;
@@ -460,6 +507,14 @@ export default function History() {
               );
                           })}
                         </div>
+                      )}
+                      {!isCollapsed && hiddenCount > 0 && (
+                        <button
+                          onClick={() => showFullHistory(groupKey)}
+                          className="w-full h-10 rounded-xl bg-secondary/60 text-xs font-medium text-muted-foreground active:bg-secondary transition-colors"
+                        >
+                          Mostra altri {hiddenCount}
+                        </button>
                       )}
                     </div>
                   );
