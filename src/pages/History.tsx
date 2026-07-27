@@ -63,12 +63,13 @@ export default function History() {
   const navigate = useNavigate();
   const [logs, setLogs] = useState<WorkoutLog[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
-  // Sezioni per giorno (Push/Pull/...) collassate/espanse: partono tutte aperte
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
-  // Ogni sezione mostra di default solo le ultime 5 sessioni; qui si tiene
+  // Sezioni per giorno (Push/Pull/...) collassate/espanse: partono tutte
+  // chiuse, le apre l'utente cliccandoci sopra.
+  const [openedGroups, setOpenedGroups] = useState<Set<string>>(new Set());
+  // Ogni sezione mostra di default solo le ultime 4 sessioni; qui si tiene
   // traccia di quali sezioni l'utente ha espanso per vederle tutte.
   const [expandedHistory, setExpandedHistory] = useState<Set<string>>(new Set());
-  const HISTORY_PAGE_SIZE = 5;
+  const HISTORY_PAGE_SIZE = 4;
   const [activeTab, setActiveTab] = useState<"history" | "records">("history");
   const [loading, setLoading] = useState(true);
   const [planDays, setPlanDays] = useState<PlanDay[]>([]);
@@ -249,7 +250,7 @@ export default function History() {
   });
 
   function toggleGroup(name: string) {
-    setCollapsedGroups((prev) => {
+    setOpenedGroups((prev) => {
       const next = new Set(prev);
       if (next.has(name)) next.delete(name);
       else next.add(name);
@@ -358,7 +359,7 @@ export default function History() {
                   const groupLogs = groupedLogs[groupKey];
                   const { title: groupTitle, displayName } = groupInfoFor(groupKey);
                   const groupDay = WORKOUT_DAYS.find((d) => d.id === displayName);
-                  const isCollapsed = collapsedGroups.has(groupKey);
+                  const isCollapsed = !openedGroups.has(groupKey);
                   const isHistoryExpanded = expandedHistory.has(groupKey);
                   const visibleLogs = isHistoryExpanded ? groupLogs : groupLogs.slice(0, HISTORY_PAGE_SIZE);
                   const hiddenCount = groupLogs.length - visibleLogs.length;
@@ -367,25 +368,25 @@ export default function History() {
                       <button
                         onClick={() => toggleGroup(groupKey)}
                         aria-expanded={!isCollapsed}
-                        className="w-full flex items-center gap-3 rounded-xl bg-secondary/60 px-3 py-2.5 text-left active:bg-secondary transition-colors"
+                        className="w-full flex items-center gap-3 rounded-xl bg-secondary/60 px-4 py-3.5 text-left active:bg-secondary transition-colors"
                       >
                         {groupDay?.emoji ? (
-                          <div className="w-9 h-9 rounded-lg bg-card flex items-center justify-center text-base shrink-0">
+                          <div className="w-11 h-11 rounded-lg bg-card flex items-center justify-center text-lg shrink-0">
                             <span>{groupDay.emoji}</span>
                           </div>
                         ) : (
-                          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                            <span className="text-primary font-bold text-xs">
+                          <div className="w-11 h-11 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                            <span className="text-primary font-bold text-sm">
                               {displayName.slice(0, 1).toUpperCase()}
                             </span>
                           </div>
                         )}
-                        <h2 className="font-bold text-sm truncate flex-1 min-w-0">{groupTitle}</h2>
+                        <h2 className="font-bold text-base truncate flex-1 min-w-0">{groupTitle}</h2>
                         <span className="inline-flex items-center rounded-lg bg-card px-2 py-0.5 text-[11px] font-medium text-muted-foreground shrink-0">
                           {groupLogs.length} {groupLogs.length === 1 ? "sessione" : "sessioni"}
                         </span>
                         <ChevronDown
-                          className={`w-4 h-4 text-muted-foreground shrink-0 transition-transform duration-200 ${isCollapsed ? "" : "rotate-180"}`}
+                          className={`w-5 h-5 text-muted-foreground shrink-0 transition-transform duration-200 ${isCollapsed ? "" : "rotate-180"}`}
                         />
                       </button>
                       {!isCollapsed && (
