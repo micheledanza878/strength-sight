@@ -227,7 +227,7 @@ export default function WorkoutSession() {
       );
 
       if (day) {
-        loadPrevSession(day.id, day.day_name);
+        loadPrevSession(day.id, day.day_name, day.workout_plan_id);
       }
     } catch (error) {
       console.error("Errore caricamento giorno:", error);
@@ -422,7 +422,7 @@ export default function WorkoutSession() {
     };
   }, [phase, completion, sets, workoutLogId]);
 
-  async function loadPrevSession(planDayId: string, dayName: string) {
+  async function loadPrevSession(planDayId: string, dayName: string, planId: string) {
     try {
       const userId = await getUserId();
       let { data: lastLog } = await supabase
@@ -438,7 +438,18 @@ export default function WorkoutSession() {
       // Le sessioni salvate prima dell'introduzione di workout_plan_day_id non
       // hanno quel campo valorizzato: fallback sul vecchio confronto per nome,
       // altrimenti si perde la storia (e la progressione) di chi ha già usato l'app.
+      // MA se lo stesso day_name è usato da più giorni nella scheda (es. "Push"
+      // ripetuto), il fallback per nome non può sapere a quale occorrenza
+      // appartenga un log vecchio: meglio nessuno storico che uno sbagliato.
       if (!lastLog) {
+        const { count: sameNameDays } = await supabase
+          .from("workout_plan_days")
+          .select("id", { count: "exact", head: true })
+          .eq("workout_plan_id", planId)
+          .eq("day_name", dayName);
+
+        if (sameNameDays !== null && sameNameDays > 1) return;
+
         const fallback = await supabase
           .from("workout_logs")
           .select("id")
@@ -972,11 +983,31 @@ export default function WorkoutSession() {
               ↑ +{progressionSuggestions[exercise.exercise_name].increment}kg
             </span>
           )}
+          {!isHoldExercise &&
+            !progressionSuggestions[exercise.exercise_name]?.shouldIncrease &&
+            progressionSuggestions[exercise.exercise_name]?.suggestedReps?.[0] >
+              (getPrevExerciseSets(exercise)?.[0]?.reps ?? 0) && (
+              <span className="inline-flex items-center rounded-lg bg-success/15 text-success px-2 py-0.5 text-[11px] font-medium">
+                ↑ +1 rep
+              </span>
+            )}
+          {isHoldExercise &&
+            progressionSuggestions[exercise.exercise_name]?.suggestedReps?.[0] >
+              (getPrevExerciseSets(exercise)?.[0]?.hold_seconds ?? 0) && (
+              <span className="inline-flex items-center rounded-lg bg-success/15 text-success px-2 py-0.5 text-[11px] font-medium">
+                ↑ +1 sec
+              </span>
+            )}
         </div>
 
         <div className="space-y-2.5">
-          {exSets.map((s, i) => {
+          {(() => {
+            const prevExSetsActive = getPrevExerciseSets(exercise);
+            return exSets.map((s, i) => {
             const key = `${exercise.exercise_name}-${i}`;
+            const prevValue = isHoldExercise
+              ? prevExSetsActive?.[i]?.hold_seconds
+              : prevExSetsActive?.[i]?.reps;
             const isPR = s.done && (
               isHoldExercise
                 ? isNewHoldPR(exercise?.id || "", exercise?.exercise_name || "", parseInt(s.reps) || 0)
@@ -990,9 +1021,16 @@ export default function WorkoutSession() {
                   </div>
                 )}
                 <div className="flex items-center gap-3">
-                  <span className="w-7 justify-center inline-flex items-center rounded-lg bg-secondary py-1 text-[11px] font-medium text-muted-foreground shrink-0">
-                    S{i + 1}
-                  </span>
+                  <div className="w-9 shrink-0 flex flex-col items-center gap-0.5">
+                    <span className="w-7 justify-center inline-flex items-center rounded-lg bg-secondary py-1 text-[11px] font-medium text-muted-foreground">
+                      S{i + 1}
+                    </span>
+                    {prevValue !== undefined && prevValue !== null && prevValue > 0 && (
+                      <span className="text-[9px] leading-none text-muted-foreground/70 whitespace-nowrap">
+                        prima {prevValue}
+                      </span>
+                    )}
+                  </div>
 
                   <input
                     type="number"
@@ -1038,7 +1076,8 @@ export default function WorkoutSession() {
                 </div>
               </div>
             );
-          })}
+            });
+          })()}
         </div>
       </div>
 
