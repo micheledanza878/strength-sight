@@ -367,9 +367,12 @@ export default function WorkoutSession() {
           updated[exName] = updated[exName].map((s, i) => {
             const suggestedHold = holdSuggestion?.suggestedReps?.[i];
             const holdToFill = suggestedHold ?? (prevExSets[i]?.hold_seconds > 0 ? prevExSets[i].hold_seconds : null);
+            // Sovrascrive sempre il default di reps_min impostato dall'effetto
+            // di init: qui gira una volta sola all'arrivo dei dati della
+            // sessione precedente, non durante la digitazione dell'utente.
             return {
               ...s,
-              reps: s.reps === "" && holdToFill !== null ? String(holdToFill) : s.reps,
+              reps: holdToFill !== null ? String(holdToFill) : s.reps,
             };
           });
           return;
@@ -389,12 +392,12 @@ export default function WorkoutSession() {
           // reps della sessione precedente se il suggerimento non è disponibile.
           const suggestedRep = suggestion?.suggestedReps?.[i];
           const repsToFill = suggestedRep ?? (prevExSets[i]?.reps > 0 ? prevExSets[i].reps : null);
+          // Come sopra: sovrascrive sempre il default di reps_min/"" dell'init,
+          // altrimenti quel valore vince a prescindere da cosa calcoliamo qui.
           return {
             ...s,
-            // Per il peso usiamo il valore calcolato sopra (uguale per tutti i set,
-            // come avviene tipicamente in un allenamento con peso fisso per serie)
-            weight: s.weight === "" && weightToFill !== "" ? weightToFill : s.weight,
-            reps: s.reps === "" && repsToFill !== null ? String(repsToFill) : s.reps,
+            weight: weightToFill !== "" ? weightToFill : s.weight,
+            reps: repsToFill !== null ? String(repsToFill) : s.reps,
           };
         });
       });
