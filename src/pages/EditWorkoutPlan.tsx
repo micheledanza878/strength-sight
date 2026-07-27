@@ -256,29 +256,50 @@ export default function EditWorkoutPlan() {
           dayId = newDayData.id;
         }
 
-        // Delete and re-insert exercises
-        const exercisesToDelete = await supabase
+        // Aggiorna in place gli esercizi esistenti (mantiene l'id, quindi il
+        // collegamento con i set_logs storici già loggati via
+        // workout_plan_exercise_id); cancella solo quelli effettivamente
+        // rimossi dall'utente; inserisce solo quelli nuovi. Mai un
+        // delete-all/insert-all: azzererebbe l'id di ogni esercizio di ogni
+        // giorno ad ogni salvataggio, anche per i giorni non toccati.
+        const { data: existingExercises } = await supabase
           .from("workout_plan_exercises")
           .select("id")
           .eq("workout_plan_day_id", dayId);
 
-        for (const ex of exercisesToDelete.data || []) {
-          await supabase.from("workout_plan_exercises").delete().eq("id", ex.id);
+        const currentIds = new Set(day.exercises.filter((ex) => ex.id).map((ex) => ex.id!));
+        const idsToDelete = (existingExercises || []).map((ex) => ex.id).filter((id) => !currentIds.has(id));
+
+        if (idsToDelete.length > 0) {
+          await supabase.from("workout_plan_exercises").delete().in("id", idsToDelete);
         }
 
-        const exercisesToInsert = day.exercises.map((ex, exIdx) => ({
-          workout_plan_day_id: dayId,
-          exercise_name: ex.exercise_name,
-          order_number: exIdx + 1,
-          sets: ex.sets,
-          reps_min: ex.reps_min,
-          reps_max: ex.reps_max,
-          rest_seconds: ex.rest_seconds,
-          notes: ex.notes || null,
-        }));
+        const toUpdate: (Record<string, unknown> & { id: string })[] = [];
+        const toInsert: Record<string, unknown>[] = [];
 
-        if (exercisesToInsert.length > 0) {
-          await supabase.from("workout_plan_exercises").insert(exercisesToInsert);
+        day.exercises.forEach((ex, exIdx) => {
+          const payload = {
+            workout_plan_day_id: dayId,
+            exercise_name: ex.exercise_name,
+            order_number: exIdx + 1,
+            sets: ex.sets,
+            reps_min: ex.reps_min,
+            reps_max: ex.reps_max,
+            rest_seconds: ex.rest_seconds,
+            notes: ex.notes || null,
+          };
+          if (ex.id) {
+            toUpdate.push({ id: ex.id, ...payload });
+          } else {
+            toInsert.push(payload);
+          }
+        });
+
+        if (toUpdate.length > 0) {
+          await supabase.from("workout_plan_exercises").upsert(toUpdate, { onConflict: "id" });
+        }
+        if (toInsert.length > 0) {
+          await supabase.from("workout_plan_exercises").insert(toInsert);
         }
       }
 
