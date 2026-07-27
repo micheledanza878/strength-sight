@@ -668,6 +668,7 @@ export type Database = {
           updated_at: string
           user_id: string | null
           workout_day: string
+          workout_plan_day_id: string | null
         }
         Insert: {
           completed_at?: string | null
@@ -677,6 +678,7 @@ export type Database = {
           updated_at?: string
           user_id?: string | null
           workout_day: string
+          workout_plan_day_id?: string | null
         }
         Update: {
           completed_at?: string | null
@@ -686,8 +688,17 @@ export type Database = {
           updated_at?: string
           user_id?: string | null
           workout_day?: string
+          workout_plan_day_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "workout_logs_workout_plan_day_id_fkey"
+            columns: ["workout_plan_day_id"]
+            isOneToOne: false
+            referencedRelation: "workout_plan_days"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       workout_plan_days: {
         Row: {

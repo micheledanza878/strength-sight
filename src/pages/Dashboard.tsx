@@ -68,9 +68,9 @@ export default function Dashboard() {
   useEffect(() => {
     const initializeData = async () => {
       try {
-        await loadPlans();
+        const resolvedPlanId = await loadPlans();
         const userId = await getUserId();
-        await loadData(userId);
+        await loadData(userId, resolvedPlanId);
       } catch (error) {
         console.error("Errore inizializzazione:", error);
       }
@@ -80,17 +80,16 @@ export default function Dashboard() {
 
   // Ricarica i dati quando cambia il piano attivo
   useEffect(() => {
-    if (activePlanId) {
-      const reloadData = async () => {
-        try {
-          const userId = await getUserId();
-          await loadData(userId);
-        } catch (error) {
-          console.error("Errore ricaricamento dati:", error);
-        }
-      };
-      reloadData();
-    }
+    if (!activePlanId) return;
+    const reloadData = async () => {
+      try {
+        const userId = await getUserId();
+        await loadData(userId, activePlanId);
+      } catch (error) {
+        console.error("Errore ricaricamento dati:", error);
+      }
+    };
+    reloadData();
   }, [activePlanId]);
 
   // ── Trigger notifiche locali dopo il caricamento dei dati ─────────────────
@@ -111,7 +110,7 @@ export default function Dashboard() {
     triggerNotifications();
   }, [loading, isEnabled, streak, hasWorkedOutToday, lastMeasurementDaysAgo]);
 
-  async function loadPlans() {
+  async function loadPlans(): Promise<string | null> {
     try {
       const userId = await getUserId();
       const { data } = await supabase
@@ -124,20 +123,23 @@ export default function Dashboard() {
         setPlans(data);
         if (data.length > 0 && !activePlanId) {
           setActivePlanId(data[0].id);
+          return data[0].id;
         }
       }
+      return activePlanId;
     } catch (error) {
       console.error("Errore caricamento schede:", error);
+      return activePlanId;
     }
   }
 
   async function changePlan(planId: string) {
     setActivePlanId(planId);
     const userId = await getUserId();
-    loadData(userId);
+    loadData(userId, planId);
   }
 
-  async function loadData(uid: string) {
+  async function loadData(uid: string, planId: string | null) {
     const now = new Date();
     const monthStart = startOfMonth(now);
     const monthEnd = endOfMonth(now);
@@ -146,7 +148,7 @@ export default function Dashboard() {
     // All completed logs
     const { data: logs } = await supabase
       .from("workout_logs")
-      .select("id, workout_day, started_at, completed_at")
+      .select("id, workout_day, workout_plan_day_id, started_at, completed_at")
       .eq("user_id", uid)
       .not("completed_at", "is", null)
       .order("started_at", { ascending: false });
@@ -161,15 +163,19 @@ export default function Dashboard() {
         .select("*")
         .order("day_number", { ascending: true });
 
-      if (activePlanId) {
-        planDaysQuery = planDaysQuery.eq("workout_plan_id", activePlanId);
+      if (planId) {
+        planDaysQuery = planDaysQuery.eq("workout_plan_id", planId);
       }
 
       const { data: planDays } = await planDaysQuery;
 
       if (planDays && planDays.length > 0) {
-        const lastDayName = logs[0].workout_day;
-        const lastPlanIdx = planDays.findIndex((d) => d.day_name === lastDayName);
+        // Il match per id è affidabile anche quando lo split riusa gli stessi
+        // day_name (es. Push/Pull/Legs ripetuti); i log pre-migrazione senza
+        // workout_plan_day_id ricadono sul confronto per nome.
+        const lastPlanIdx = logs[0].workout_plan_day_id
+          ? planDays.findIndex((d) => d.id === logs[0].workout_plan_day_id)
+          : planDays.findIndex((d) => d.day_name === logs[0].workout_day);
         const nextIdx = (lastPlanIdx + 1) % planDays.length;
         setNextPlanDay(planDays[nextIdx]);
       }

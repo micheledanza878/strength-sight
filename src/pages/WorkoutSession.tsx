@@ -228,7 +228,7 @@ export default function WorkoutSession() {
       );
 
       if (day) {
-        loadPrevSession(day.day_name);
+        loadPrevSession(day.id);
 
         // Check for in-progress workout
         try {
@@ -237,7 +237,7 @@ export default function WorkoutSession() {
             .from("workout_logs")
             .select("id")
             .eq("user_id", userId)
-            .eq("workout_day", day.day_name)
+            .eq("workout_plan_day_id", day.id)
             .is("completed_at", null)
             .order("started_at", { ascending: false })
             .limit(1)
@@ -380,14 +380,14 @@ export default function WorkoutSession() {
     };
   }, [phase, completion, sets, workoutLogId]);
 
-  async function loadPrevSession(workoutId: string) {
+  async function loadPrevSession(planDayId: string) {
     try {
       const userId = await getUserId();
       const { data: lastLog } = await supabase
         .from("workout_logs")
         .select("id")
         .eq("user_id", userId)
-        .eq("workout_day", workoutId)
+        .eq("workout_plan_day_id", planDayId)
         .not("completed_at", "is", null)
         .order("started_at", { ascending: false })
         .limit(1)
@@ -422,7 +422,7 @@ export default function WorkoutSession() {
     const userId = await getUserId();
     const { data, error } = await supabase
       .from("workout_logs")
-      .insert({ user_id: userId, workout_day: dayData.day_name })
+      .insert({ user_id: userId, workout_day: dayData.day_name, workout_plan_day_id: dayData.id })
       .select("id")
       .single();
 
