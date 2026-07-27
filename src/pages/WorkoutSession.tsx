@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import RestTimer from "@/components/RestTimer";
 import { useToast } from "@/hooks/use-toast";
 import { getUserId } from "@/lib/user";
-import { calculateProgression, ProgressionSuggestion } from "@/services/progressionService";
+import { calculateProgression, calculateUnitProgression, ProgressionSuggestion } from "@/services/progressionService";
 import {
   loadSkillProgress,
   evaluateAndSaveSkillSession,
@@ -276,19 +276,63 @@ export default function WorkoutSession() {
   useEffect(() => {
     if (Object.keys(prevSets).length === 0 || exercises.length === 0) return;
 
-    // Calcola i suggerimenti di double progression solo per gli esercizi a peso/reps
+    // Calcola i suggerimenti di progressione per ogni esercizio:
+    // - skill: target dallo step corrente (skill_steps), non dalla scheda —
+    //   +1 unità per set rispetto alla sessione precedente, senza "ripartire"
+    //   quando si tocca il tetto (lo step cambia altrove, a fine seduta,
+    //   dopo N sessioni consecutive pulite)
+    // - tenute semplici (no skill): stessa logica sui secondi, range dalla scheda
+    // - esercizi a peso: double progression classica (peso + reps)
     const suggestions: Record<string, ProgressionSuggestion> = {};
     exercises.forEach((ex) => {
-      if (ex.tracking_unit === "seconds") return;
       const prev = prevSets[ex.exercise_name];
-      if (prev) {
-        suggestions[ex.exercise_name] = calculateProgression(
-          ex.exercise_name,
+      if (!prev) return;
+
+      if (ex.skill_slug) {
+        const stepInfo = getSkillStepInfo(ex);
+        if (!stepInfo) return;
+        const { step } = stepInfo;
+        const prevValues =
+          step.targetType === "seconds" ? prev.map((s) => s.hold_seconds) : prev.map((s) => s.reps);
+        const skillProgression = calculateUnitProgression(
+          step.targetMin,
+          step.targetMax ?? step.targetMin,
+          ex.sets,
+          prevValues,
+          false
+        );
+        suggestions[ex.exercise_name] = {
+          shouldIncrease: false,
+          increment: 0,
+          suggestedWeight: 0,
+          suggestedReps: skillProgression.suggestedValues,
+        };
+        return;
+      }
+
+      if (ex.tracking_unit === "seconds") {
+        const holdProgression = calculateUnitProgression(
+          ex.reps_min,
           ex.reps_max,
           ex.sets,
-          prev
+          prev.map((s) => s.hold_seconds)
         );
+        suggestions[ex.exercise_name] = {
+          shouldIncrease: false,
+          increment: 0,
+          suggestedWeight: 0,
+          suggestedReps: holdProgression.suggestedValues,
+        };
+        return;
       }
+
+      suggestions[ex.exercise_name] = calculateProgression(
+        ex.exercise_name,
+        ex.reps_max,
+        ex.sets,
+        prev,
+        ex.reps_min
+      );
     });
     setProgressionSuggestions(suggestions);
 
@@ -299,11 +343,20 @@ export default function WorkoutSession() {
         const ex = exercises.find((e) => e.exercise_name === exName);
 
         if (ex?.tracking_unit === "seconds") {
-          // Skill a tempo: niente peso, precompila i secondi con la tenuta della sessione precedente
-          updated[exName] = updated[exName].map((s, i) => ({
-            ...s,
-            reps: s.reps === "" && prevExSets[i]?.hold_seconds > 0 ? String(prevExSets[i].hold_seconds) : s.reps,
-          }));
+          // Niente peso. Il target di progressione (+1 secondo per set rispetto
+          // alla sessione precedente) viene dal range della scheda per le tenute
+          // semplici, o dallo step corrente per le skill — calcolato sopra in
+          // entrambi i casi; se manca (skill senza step valido) si ricade sul
+          // carry-over della tenuta precedente.
+          const holdSuggestion = suggestions[exName];
+          updated[exName] = updated[exName].map((s, i) => {
+            const suggestedHold = holdSuggestion?.suggestedReps?.[i];
+            const holdToFill = suggestedHold ?? (prevExSets[i]?.hold_seconds > 0 ? prevExSets[i].hold_seconds : null);
+            return {
+              ...s,
+              reps: s.reps === "" && holdToFill !== null ? String(holdToFill) : s.reps,
+            };
+          });
           return;
         }
 
@@ -315,18 +368,24 @@ export default function WorkoutSession() {
           ? String(prevExSets[0].weight)
           : "";
 
-        updated[exName] = updated[exName].map((s, i) => ({
-          ...s,
-          // Per il peso usiamo il valore calcolato sopra (uguale per tutti i set,
-          // come avviene tipicamente in un allenamento con peso fisso per serie)
-          weight: s.weight === "" && weightToFill !== "" ? weightToFill : s.weight,
-          // Per le reps manteniamo quelle del set specifico della sessione precedente
-          reps: s.reps === "" && prevExSets[i]?.reps > 0 ? String(prevExSets[i].reps) : s.reps,
-        }));
+        updated[exName] = updated[exName].map((s, i) => {
+          // Target reps: quello calcolato dalla progressione (+1 rep sul set
+          // corrispondente, o reset a reps_min se il peso sale); fallback alle
+          // reps della sessione precedente se il suggerimento non è disponibile.
+          const suggestedRep = suggestion?.suggestedReps?.[i];
+          const repsToFill = suggestedRep ?? (prevExSets[i]?.reps > 0 ? prevExSets[i].reps : null);
+          return {
+            ...s,
+            // Per il peso usiamo il valore calcolato sopra (uguale per tutti i set,
+            // come avviene tipicamente in un allenamento con peso fisso per serie)
+            weight: s.weight === "" && weightToFill !== "" ? weightToFill : s.weight,
+            reps: s.reps === "" && repsToFill !== null ? String(repsToFill) : s.reps,
+          };
+        });
       });
       return updated;
     });
-  }, [prevSets, exercises]);
+  }, [prevSets, exercises, skills, skillProgress]);
 
   // Carica lo stato di avanzamento (step corrente + sedute pulite) per ogni skill del giorno
   useEffect(() => {
@@ -623,6 +682,19 @@ export default function WorkoutSession() {
                       ↑ +{suggestion.increment}kg
                     </span>
                   )}
+                  {!isHold &&
+                    !suggestion?.shouldIncrease &&
+                    suggestion?.suggestedReps?.[0] > (prevSets[ex.exercise_name]?.[0]?.reps ?? 0) && (
+                      <span className="inline-flex items-center rounded-lg bg-success/15 text-success px-2 py-0.5 text-[10px] font-medium">
+                        ↑ +1 rep
+                      </span>
+                    )}
+                  {isHold &&
+                    suggestion?.suggestedReps?.[0] > (prevSets[ex.exercise_name]?.[0]?.hold_seconds ?? 0) && (
+                      <span className="inline-flex items-center rounded-lg bg-success/15 text-success px-2 py-0.5 text-[10px] font-medium">
+                        ↑ +1 sec
+                      </span>
+                    )}
                 </div>
               </button>
             );
