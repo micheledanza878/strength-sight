@@ -136,6 +136,7 @@ export default function WorkoutSession() {
             user_id: userId,
             workout_log_id: logId,
             exercise_name: ex.exercise_name,
+            workout_plan_exercise_id: ex.id,
             set_number: setIdx + 1,
             reps: isSkillHold ? null : parseInt(reps) || 0,
             hold_seconds: isSkillHold ? parseInt(reps) || 0 : null,
@@ -300,7 +301,7 @@ export default function WorkoutSession() {
     // - esercizi a peso: double progression classica (peso + reps)
     const suggestions: Record<string, ProgressionSuggestion> = {};
     exercises.forEach((ex) => {
-      const prev = prevSets[ex.exercise_name];
+      const prev = getPrevExerciseSets(ex);
       if (!prev) return;
 
       if (ex.skill_slug) {
@@ -353,11 +354,12 @@ export default function WorkoutSession() {
 
     setSets((prev) => {
       const updated = { ...prev };
-      Object.entries(prevSets).forEach(([exName, prevExSets]) => {
-        if (!updated[exName]) return;
-        const ex = exercises.find((e) => e.exercise_name === exName);
+      exercises.forEach((ex) => {
+        const exName = ex.exercise_name;
+        const prevExSets = getPrevExerciseSets(ex);
+        if (!updated[exName] || !prevExSets) return;
 
-        if (ex?.tracking_unit === "seconds") {
+        if (ex.tracking_unit === "seconds") {
           // Niente peso. Il target di progressione (+1 secondo per set rispetto
           // alla sessione precedente) viene dal range della scheda per le tenute
           // semplici, o dallo step corrente per le skill — calcolato sopra in
@@ -491,15 +493,20 @@ export default function WorkoutSession() {
 
       const { data: lastSets } = await supabase
         .from("set_logs")
-        .select("exercise_name, set_number, reps, weight, hold_seconds")
+        .select("exercise_name, workout_plan_exercise_id, set_number, reps, weight, hold_seconds")
         .eq("workout_log_id", lastLog.id)
         .order("set_number", { ascending: true });
 
       if (lastSets) {
+        // Raggruppa per id dell'esercizio quando disponibile (stabile anche se
+        // il nome è stato rinominato dopo), altrimenti per nome (log salvati
+        // prima di workout_plan_exercise_id). getPrevExerciseSets prova prima
+        // l'id, poi il nome, per ogni esercizio corrente.
         const grouped: Record<string, { reps: number; weight: number; hold_seconds: number }[]> = {};
         lastSets.forEach((s) => {
-          if (!grouped[s.exercise_name]) grouped[s.exercise_name] = [];
-          grouped[s.exercise_name].push({ reps: s.reps, weight: s.weight, hold_seconds: s.hold_seconds ?? 0 });
+          const key = s.workout_plan_exercise_id ?? s.exercise_name;
+          if (!grouped[key]) grouped[key] = [];
+          grouped[key].push({ reps: s.reps, weight: s.weight, hold_seconds: s.hold_seconds ?? 0 });
         });
         setPrevSets(grouped);
       }
@@ -571,6 +578,14 @@ export default function WorkoutSession() {
     }
 
     setPhase("active");
+  }
+
+  // Set della sessione precedente per un esercizio: prova prima l'id stabile
+  // (workout_plan_exercise_id, salvato da autosaveSet), poi ricade sul nome
+  // per i log salvati prima che quella colonna esistesse — così un esercizio
+  // rinominato nella scheda non perde lo storico già raccolto con l'id.
+  function getPrevExerciseSets(ex: PlanExercise) {
+    return prevSets[ex.id] ?? prevSets[ex.exercise_name];
   }
 
   // Info sullo step corrente di una skill (nome step, target, sedute pulite verso l'avanzamento)
@@ -707,9 +722,9 @@ export default function WorkoutSession() {
                       {ex.reps_max && ex.reps_max !== ex.reps_min ? `-${ex.reps_max}` : ""} {isHold ? "sec" : "reps"}
                     </span>
                   )}
-                  {!isHold && prevSets[ex.exercise_name]?.[0]?.weight > 0 && (
+                  {!isHold && (getPrevExerciseSets(ex)?.[0]?.weight ?? 0) > 0 && (
                     <span className="inline-flex items-center rounded-lg bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                      {suggestion?.shouldIncrease ? suggestion.suggestedWeight : prevSets[ex.exercise_name][0].weight}kg
+                      {suggestion?.shouldIncrease ? suggestion.suggestedWeight : getPrevExerciseSets(ex)[0].weight}kg
                     </span>
                   )}
                   {!isHold && suggestion?.shouldIncrease && (
@@ -719,13 +734,13 @@ export default function WorkoutSession() {
                   )}
                   {!isHold &&
                     !suggestion?.shouldIncrease &&
-                    suggestion?.suggestedReps?.[0] > (prevSets[ex.exercise_name]?.[0]?.reps ?? 0) && (
+                    suggestion?.suggestedReps?.[0] > (getPrevExerciseSets(ex)?.[0]?.reps ?? 0) && (
                       <span className="inline-flex items-center rounded-lg bg-success/15 text-success px-2 py-0.5 text-[10px] font-medium">
                         ↑ +1 rep
                       </span>
                     )}
                   {isHold &&
-                    suggestion?.suggestedReps?.[0] > (prevSets[ex.exercise_name]?.[0]?.hold_seconds ?? 0) && (
+                    suggestion?.suggestedReps?.[0] > (getPrevExerciseSets(ex)?.[0]?.hold_seconds ?? 0) && (
                       <span className="inline-flex items-center rounded-lg bg-success/15 text-success px-2 py-0.5 text-[10px] font-medium">
                         ↑ +1 sec
                       </span>
@@ -781,14 +796,16 @@ export default function WorkoutSession() {
     });
   }
 
-  function isNewPR(exName: string, weight: number, reps: number): boolean {
-    const prevReps = prevSets[exName]?.[0]?.reps ?? 0;
-    const prevWeight = prevSets[exName]?.[0]?.weight ?? 0;
+  function isNewPR(exId: string, exName: string, weight: number, reps: number): boolean {
+    const prev = prevSets[exId] ?? prevSets[exName];
+    const prevReps = prev?.[0]?.reps ?? 0;
+    const prevWeight = prev?.[0]?.weight ?? 0;
     return weight > prevWeight || (weight === prevWeight && reps > prevReps);
   }
 
-  function isNewHoldPR(exName: string, holdSeconds: number): boolean {
-    const prevHold = Math.max(0, ...(prevSets[exName] || []).map((s) => s.hold_seconds ?? 0));
+  function isNewHoldPR(exId: string, exName: string, holdSeconds: number): boolean {
+    const prev = prevSets[exId] ?? prevSets[exName];
+    const prevHold = Math.max(0, ...(prev || []).map((s) => s.hold_seconds ?? 0));
     return holdSeconds > prevHold;
   }
 
@@ -1084,8 +1101,8 @@ export default function WorkoutSession() {
             const key = `${exercise.exercise_name}-${i}`;
             const isPR = s.done && (
               isHoldExercise
-                ? isNewHoldPR(exercise?.exercise_name || "", parseInt(s.reps) || 0)
-                : isNewPR(exercise?.exercise_name || "", parseFloat(s.weight) || 0, parseInt(s.reps) || 0)
+                ? isNewHoldPR(exercise?.id || "", exercise?.exercise_name || "", parseInt(s.reps) || 0)
+                : isNewPR(exercise?.id || "", exercise?.exercise_name || "", parseFloat(s.weight) || 0, parseInt(s.reps) || 0)
             );
             return (
               <div key={i}>

@@ -436,6 +436,7 @@ export type Database = {
           user_id: string | null
           weight: number | null
           workout_log_id: string
+          workout_plan_exercise_id: string | null
         }
         Insert: {
           created_at?: string
@@ -449,6 +450,7 @@ export type Database = {
           user_id?: string | null
           weight?: number | null
           workout_log_id: string
+          workout_plan_exercise_id?: string | null
         }
         Update: {
           created_at?: string
@@ -462,6 +464,7 @@ export type Database = {
           user_id?: string | null
           weight?: number | null
           workout_log_id?: string
+          workout_plan_exercise_id?: string | null
         }
         Relationships: [
           {
@@ -469,6 +472,13 @@ export type Database = {
             columns: ["workout_log_id"]
             isOneToOne: false
             referencedRelation: "workout_logs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "set_logs_workout_plan_exercise_id_fkey"
+            columns: ["workout_plan_exercise_id"]
+            isOneToOne: false
+            referencedRelation: "workout_plan_exercises"
             referencedColumns: ["id"]
           },
         ]
