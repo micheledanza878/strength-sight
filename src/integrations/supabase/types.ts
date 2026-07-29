@@ -618,24 +618,6 @@ export type Database = {
         }
         Relationships: []
       }
-      substitution_groups: {
-        Row: {
-          description: string | null
-          id: string
-          name: string
-        }
-        Insert: {
-          description?: string | null
-          id?: string
-          name: string
-        }
-        Update: {
-          description?: string | null
-          id?: string
-          name?: string
-        }
-        Relationships: []
-      }
       user_skill_progress: {
         Row: {
           consecutive_clean_sessions: number
@@ -846,9 +828,30 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      delete_food_equivalence: { Args: { p_id: string }; Returns: undefined }
       import_diet_plan: {
         Args: { p_meals: Json; p_new_foods: Json; p_start_date: string }
         Returns: Json
+      }
+      upsert_food_equivalence: {
+        Args: {
+          p_base_quantity_g: number
+          p_food_id: string
+          p_group_id: string
+        }
+        Returns: {
+          base_quantity_g: number
+          created_at: string | null
+          food_id: string
+          group_id: string
+          id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "food_equivalences"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
     }
     Enums: {
@@ -976,3 +979,9 @@ export type CompositeTypes<
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
+
+export const Constants = {
+  public: {
+    Enums: {},
+  },
+} as const

@@ -53,6 +53,23 @@ export async function getOrCreateWeeklyPlan(
 }
 
 /**
+ * Get all weekly plans for a user (current + past), newest first. Used by
+ * the diet history viewer — past plans are never deleted on import, only
+ * deactivated (see import_diet_plan RPC), so this is what actually shows
+ * that nothing was overwritten.
+ */
+export async function getWeeklyPlans(userId: string): Promise<DietWeeklyPlan[]> {
+  const { data, error } = await supabase
+    .from('diet_weekly_plans')
+    .select('*')
+    .eq('user_id', userId)
+    .order('start_date', { ascending: false, nullsFirst: false });
+
+  if (error) throw error;
+  return data || [];
+}
+
+/**
  * Get single day view
  */
 export async function getDayView(

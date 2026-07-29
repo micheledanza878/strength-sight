@@ -20,6 +20,7 @@ import SkillDashboardPage from "./pages/SkillDashboardPage";
 import DietViewer from "./pages/Diet/DietViewer";
 import FoodGuide from "./pages/Diet/FoodGuide";
 import DietImport from "./pages/Diet/DietImport";
+import DietHistory from "./pages/Diet/DietHistory";
 import ExerciseDetail from "./pages/ExerciseDetail";
 import NotFound from "./pages/NotFound";
 
@@ -37,6 +38,7 @@ function AppContent() {
         <Route path="/diet" element={<DietViewer />} />
         <Route path="/diet/foods" element={<FoodGuide />} />
         <Route path="/diet/import" element={<DietImport />} />
+        <Route path="/diet/history" element={<DietHistory />} />
         <Route path="/history" element={<History />} />
         <Route path="/create-plan" element={<CreateWorkoutPlan />} />
         <Route path="/edit-plan/:planId" element={<EditWorkoutPlan />} />

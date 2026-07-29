@@ -39,6 +39,10 @@ import {
 
 const MEAL_TYPE_KEYS = Object.keys(MEAL_TYPES) as (keyof typeof MEAL_TYPES)[];
 
+// Stesse etichette abbreviate del selettore giorni in DietViewer.tsx, per
+// coerenza visiva tra le due pagine.
+const DAY_LABELS = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
+
 type Step = 'upload' | 'analyzing' | 'review';
 
 /** Un alimento estratto dal PDF, appiattito rispetto a days/meals per rendere
@@ -125,6 +129,10 @@ export default function DietImport() {
   const [warningsDismissed, setWarningsDismissed] = useState(false);
   const [reviewItems, setReviewItems] = useState<ReviewFoodItem[]>([]);
   const [resolvingKey, setResolvingKey] = useState<string | null>(null);
+  // Filtro per giorno nella revisione: null = mostra tutti i giorni insieme
+  // (com'era prima). Con una dieta intera la lista è lunghissima, quindi si
+  // parte filtrati sul primo giorno estratto non appena i dati arrivano.
+  const [dayFilter, setDayFilter] = useState<number | null>(null);
 
   const [startDate, setStartDate] = useState(todayIsoDate());
   const [committing, setCommitting] = useState(false);
@@ -197,6 +205,13 @@ export default function DietImport() {
       setWarnings(plan.warnings);
       setWarningsDismissed(false);
       setCommitError(null);
+      // Parte filtrato sul primo giorno estratto (ordine Lunedì..Domenica):
+      // con una dieta intera la lista di tutti i giorni insieme è lunghissima.
+      const firstDay = itemsWithNames.reduce<number | null>(
+        (min, item) => (min === null || item.dayOfWeek < min ? item.dayOfWeek : min),
+        null
+      );
+      setDayFilter(firstDay);
       setStep('review');
     } catch (error) {
       console.error('Errore analisi PDF dieta:', error);
@@ -267,9 +282,17 @@ export default function DietImport() {
           mealType,
           items: byMeal.get(mealType)!,
         }));
-        return { dayOfWeek, meals };
+        const unresolved = items.filter((i) => !i.resolvedFoodId && !i.newFood).length;
+        return { dayOfWeek, meals, itemCount: items.length, unresolved };
       });
   }, [reviewItems]);
+
+  // Solo i giorni effettivamente estratti compaiono come chip filtro (non
+  // tutti e 7 sempre): una dieta di 5 giorni non deve mostrare due chip vuoti.
+  const visibleDayGroups = useMemo(
+    () => (dayFilter === null ? dayGroups : dayGroups.filter((g) => g.dayOfWeek === dayFilter)),
+    [dayGroups, dayFilter]
+  );
 
   async function handleCommit() {
     if (unresolvedCount > 0 || committing) return;
@@ -449,7 +472,41 @@ export default function DietImport() {
             </div>
           )}
 
-          {dayGroups.map(({ dayOfWeek, meals }) => (
+          {/* ── Filtro giorno: solo i giorni effettivamente estratti, più "Tutti" ── */}
+          {dayGroups.length > 1 && (
+            <div className="flex gap-2 overflow-x-auto no-scrollbar">
+              <button
+                onClick={() => setDayFilter(null)}
+                className={cn(
+                  'flex-shrink-0 px-3 py-2 rounded-2xl text-xs font-semibold transition-all active:scale-95',
+                  dayFilter === null
+                    ? 'gradient-primary text-white'
+                    : 'bg-card border border-border text-muted-foreground'
+                )}
+              >
+                Tutti
+              </button>
+              {dayGroups.map(({ dayOfWeek, itemCount, unresolved }) => (
+                <button
+                  key={dayOfWeek}
+                  onClick={() => setDayFilter(dayOfWeek)}
+                  className={cn(
+                    'flex-shrink-0 flex flex-col items-center gap-0.5 w-14 py-2 rounded-2xl text-xs font-semibold transition-all active:scale-95',
+                    dayFilter === dayOfWeek
+                      ? 'gradient-primary text-white'
+                      : 'bg-card border border-border text-muted-foreground'
+                  )}
+                >
+                  <span>{DAY_LABELS[dayOfWeek]}</span>
+                  <span className={cn('text-[10px] font-normal', dayFilter === dayOfWeek ? 'text-white/80' : 'text-muted-foreground/70')}>
+                    {unresolved > 0 ? `${unresolved}/${itemCount}` : itemCount}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {visibleDayGroups.map(({ dayOfWeek, meals }) => (
             <div key={dayOfWeek} className="rounded-2xl border border-border bg-card overflow-hidden">
               <div className="px-4 py-3 border-b border-border">
                 <p className="font-bold text-sm tracking-tight">{DAYS_OF_WEEK[dayOfWeek]}</p>
