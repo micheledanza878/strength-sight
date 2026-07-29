@@ -58,6 +58,7 @@ export default function Dashboard() {
 
   const [plans, setPlans] = useState<WorkoutPlan[]>([]);
   const [selectedMonth, setSelectedMonth] = useState(new Date());
+  const [activeTab, setActiveTab] = useState<"home" | "grafici">("home");
 
   // ── Notifiche ──────────────────────────────────────────────────────────────
   const { isEnabled, isSupported, isLoading: notifLoading, toggle: toggleNotifications } = useNotifications();
@@ -371,11 +372,39 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* ── Content Grid: dal blocco Hero al Calendario ── */}
+      {/* ── Tabs: Home (hero/stat/calendario) vs Grafici (skill dashboard) ── */}
+      {!loading && (
+        <div className="flex gap-1 mb-4 bg-secondary p-1 rounded-xl">
+          <button
+            onClick={() => setActiveTab("home")}
+            className={`flex-1 py-2 rounded-[10px] text-xs font-semibold transition-all ${
+              activeTab === "home" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
+            }`}
+          >
+            Home
+          </button>
+          <button
+            onClick={() => setActiveTab("grafici")}
+            className={`flex-1 py-2 rounded-[10px] text-xs font-semibold transition-all ${
+              activeTab === "grafici" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
+            }`}
+          >
+            Grafici
+          </button>
+        </div>
+      )}
+
+      {/* ── Tab: Grafici ── */}
+      {!loading && activeTab === "grafici" && (
+        <SkillDashboard data={skillData ?? undefined} loading={skillLoading} />
+      )}
+
+      {/* ── Tab: Home — dal blocco Hero al Calendario ── */}
+      {!loading && activeTab === "home" && (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 lg:gap-6">
 
       {/* ── Hero: Next Workout ── */}
-      {!loading && nextPlanDay && (
+      {nextPlanDay && (
         <button
           onClick={() => navigate(`/session/${nextPlanDay.id}`)}
           className="w-full card-hero p-5 text-left active:scale-[0.98] transition-transform glow-primary-sm md:col-span-2 lg:col-span-3"
@@ -448,11 +477,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* ── Skill Dashboard: progressione skill, volume settimanale, aderenza allo split ── */}
-      <div className="md:col-span-2 lg:col-span-3 min-w-0">
-        <SkillDashboard data={skillData ?? undefined} loading={skillLoading} />
-      </div>
-
       {/* ── Calendar ── */}
       <div className="bg-card border border-border rounded-2xl p-4 md:col-span-2 lg:col-span-1">
         <div className="flex items-center justify-between mb-3">
@@ -499,6 +523,7 @@ export default function Dashboard() {
       </div>
 
       </div>
+      )}
     </PageContainer>
   );
 }
