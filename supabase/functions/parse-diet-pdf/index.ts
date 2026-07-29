@@ -15,10 +15,16 @@ const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 // (non è possibile chiedere di più), quindi gemini-2.5-flash — che supporta
 // fino a 65536 — va provato PER PRIMO, non per ultimo: è l'unico dei tre
 // realisticamente capace di completare l'estrazione senza troncare.
-const MODELS: { url: string; maxOutputTokens: number }[] = [
+// gemini-2.5-flash ha il "thinking" (ragionamento esteso) attivo per
+// default, che allunga parecchio i tempi di risposta per un compito che è
+// essenzialmente estrazione strutturata guidata da un catalogo esplicito,
+// non ragionamento multi-step. thinkingBudget:0 lo disattiva — esiste solo
+// per i modelli 2.5+, i 2.0 sotto non lo supportano/necessitano.
+const MODELS: { url: string; maxOutputTokens: number; thinkingBudget?: number }[] = [
   {
     url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
     maxOutputTokens: 65536,
+    thinkingBudget: 0,
   },
   {
     url: "https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent",
@@ -487,6 +493,9 @@ serve(async (req: Request) => {
         // creatività. 0.2 privilegia fedeltà al documento e coerenza del JSON.
         temperature: 0.2,
         maxOutputTokens: model.maxOutputTokens,
+        ...(model.thinkingBudget !== undefined && {
+          thinkingConfig: { thinkingBudget: model.thinkingBudget },
+        }),
       },
     });
 
