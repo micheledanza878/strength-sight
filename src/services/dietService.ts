@@ -251,6 +251,24 @@ export async function removeFoodFromMeal(
 }
 
 /**
+ * Get foods by a list of ids (lookup helper). Usato dal flusso di import
+ * dieta da PDF per risolvere i `matched_food_id` restituiti dall'AI in
+ * nome/categoria da mostrare nella schermata di revisione, senza dover
+ * scaricare l'intero catalogo categoria per categoria.
+ */
+export async function getFoodsByIds(ids: string[]): Promise<Food[]> {
+  if (ids.length === 0) return [];
+
+  const { data, error } = await supabase
+    .from('foods')
+    .select('*')
+    .in('id', ids);
+
+  if (error) throw error;
+  return data || [];
+}
+
+/**
  * Get all food categories with foods
  */
 export async function getFoodCategories(): Promise<FoodCategory[]> {

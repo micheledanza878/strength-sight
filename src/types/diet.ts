@@ -98,3 +98,56 @@ export const MEAL_TYPES = {
   spuntino_pomeridiano: 'Spuntino pomeridiano',
   cena: 'Cena'
 };
+
+// ─── Diet PDF import (AI-assisted) ─────────────────────────────────────────
+// Questi tipi sono un contratto verbatim con la risposta di successo
+// dell'edge function `parse-diet-pdf` (supabase/functions/parse-diet-pdf/index.ts).
+// Non rinominare/annidare campi senza aggiornare anche la funzione.
+
+export type DietImportConfidence = 'high' | 'medium' | 'low';
+
+export interface ParsedDietFoodItem {
+  raw_name: string;
+  matched_food_id: string | null;
+  confidence: DietImportConfidence;
+  portion_g: number;
+}
+
+export interface ParsedDietMeal {
+  meal_type: keyof typeof MEAL_TYPES;
+  foods: ParsedDietFoodItem[];
+}
+
+export interface ParsedDietDay {
+  day_of_week: number; // 0 = Lunedì .. 6 = Domenica
+  meals: ParsedDietMeal[];
+}
+
+export interface ParsedDietPlan {
+  detected_format_ok: boolean;
+  warnings: string[];
+  days: ParsedDietDay[];
+}
+
+// ─── Diet PDF import: payload della RPC import_diet_plan ───────────────────
+// Contratto verbatim con supabase/migrations/20260728000000_import_diet_plan_rpc.sql.
+
+export interface ImportDietPlanNewFood {
+  temp_id: string;
+  name: string;
+  category_id: string;
+  standard_portion_g: number;
+}
+
+export interface ImportDietPlanMealFood {
+  food_id: string | null;
+  new_food_temp_id: string | null;
+  portion_size_g: number;
+  order_index: number;
+}
+
+export interface ImportDietPlanMeal {
+  day_of_week: number;
+  meal_type: keyof typeof MEAL_TYPES;
+  foods: ImportDietPlanMealFood[];
+}

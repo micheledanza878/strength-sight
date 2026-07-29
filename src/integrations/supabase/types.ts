@@ -846,7 +846,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      import_diet_plan: {
+        Args: { p_meals: Json; p_new_foods: Json; p_start_date: string }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never

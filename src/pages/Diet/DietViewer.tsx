@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
-import { BookOpen, Loader2 } from 'lucide-react';
+import { BookOpen, FileUp, Loader2 } from 'lucide-react';
 import { MealCard } from '@/components/Diet/MealCard';
 import { DAYS_OF_WEEK } from '@/types/diet';
 import {
@@ -123,13 +123,22 @@ export default function DietViewer() {
           <h1 className="text-2xl font-bold tracking-tight">Dieta</h1>
           <p className="text-muted-foreground text-xs mt-0.5">Il tuo piano alimentare</p>
         </div>
-        <button
-          onClick={() => navigate('/diet/foods')}
-          className="flex items-center gap-1.5 h-9 px-3 rounded-xl bg-secondary text-muted-foreground text-xs font-semibold active:scale-95 transition-transform"
-        >
-          <BookOpen className="h-3.5 w-3.5" />
-          Guida
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate('/diet/import')}
+            className="flex items-center gap-1.5 h-9 px-3 rounded-xl bg-secondary text-muted-foreground text-xs font-semibold active:scale-95 transition-transform"
+          >
+            <FileUp className="h-3.5 w-3.5" />
+            Importa PDF
+          </button>
+          <button
+            onClick={() => navigate('/diet/foods')}
+            className="flex items-center gap-1.5 h-9 px-3 rounded-xl bg-secondary text-muted-foreground text-xs font-semibold active:scale-95 transition-transform"
+          >
+            <BookOpen className="h-3.5 w-3.5" />
+            Guida
+          </button>
+        </div>
       </div>
 
       {/* ── Day Selector ── */}
