@@ -6,13 +6,28 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // e NON è mai inclusa nel bundle JavaScript pubblico.
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 
-// Stessa lista di modelli di generate-workout-plan / gemini-recipe: fallback
-// automatico in caso di sovraccarico (503) o quota esaurita (429). NB: tutti
-// e tre supportano input multimodale (PDF inline) nelle rispettive API.
-const MODELS = [
-  "https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent",
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
-  "https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash-lite:generateContent",
+// A differenza di generate-workout-plan/gemini-recipe (output breve, un
+// tetto uniforme di 8192 token basta), l'estrazione di una dieta settimanale
+// intera (7 giorni x pasti x alimenti, ognuno con nome/id/confidenza/warning)
+// produce facilmente output molto più lunghi — osservato in produzione:
+// risposta troncata a metà stringa con MAX_TOKENS a 8192 su un PDF reale.
+// gemini-2.0-flash e gemini-2.0-flash-lite sono comunque limitati a 8192
+// (non è possibile chiedere di più), quindi gemini-2.5-flash — che supporta
+// fino a 65536 — va provato PER PRIMO, non per ultimo: è l'unico dei tre
+// realisticamente capace di completare l'estrazione senza troncare.
+const MODELS: { url: string; maxOutputTokens: number }[] = [
+  {
+    url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+    maxOutputTokens: 65536,
+  },
+  {
+    url: "https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent",
+    maxOutputTokens: 8192,
+  },
+  {
+    url: "https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash-lite:generateContent",
+    maxOutputTokens: 8192,
+  },
 ];
 
 const CORS_HEADERS = {
@@ -446,40 +461,38 @@ serve(async (req: Request) => {
   const validFoodIds = new Set(catalog.map((f) => f.id));
   const prompt = buildPrompt(formatCatalog(catalog));
 
-  const geminiBody = JSON.stringify({
-    contents: [
-      {
-        parts: [
-          { text: prompt },
-          // Forma REST ufficiale di Gemini per i dati inline (snake_case,
-          // vedi https://ai.google.dev/api/generate-content): inline_data / mime_type.
-          {
-            inline_data: {
-              mime_type: body.mimeType,
-              data: body.pdfBase64,
-            },
-          },
-        ],
-      },
-    ],
-    generationConfig: {
-      // Temperatura bassa: è un compito di estrazione strutturata, non di
-      // creatività. 0.2 privilegia fedeltà al documento e coerenza del JSON.
-      temperature: 0.2,
-      // 8192 è il tetto comune ai tre modelli in MODELS: usare un valore più
-      // alto rischierebbe di essere rifiutato dal modello con la capacità
-      // minore. Un piano settimanale molto fitto potrebbe troncare l'output;
-      // in tal caso il parsing fallisce e si passa al modello successivo.
-      maxOutputTokens: 8192,
-    },
-  });
-
   // ── Fallback automatico sui modelli ─────────────────────────────────────
+  // Il body va ricostruito per ogni modello: ciascuno ha un maxOutputTokens
+  // diverso (vedi commento su MODELS), non è più un valore uniforme.
   let lastError = "";
-  for (const modelUrl of MODELS) {
+  for (const model of MODELS) {
+    const geminiBody = JSON.stringify({
+      contents: [
+        {
+          parts: [
+            { text: prompt },
+            // Forma REST ufficiale di Gemini per i dati inline (snake_case,
+            // vedi https://ai.google.dev/api/generate-content): inline_data / mime_type.
+            {
+              inline_data: {
+                mime_type: body.mimeType,
+                data: body.pdfBase64,
+              },
+            },
+          ],
+        },
+      ],
+      generationConfig: {
+        // Temperatura bassa: è un compito di estrazione strutturata, non di
+        // creatività. 0.2 privilegia fedeltà al documento e coerenza del JSON.
+        temperature: 0.2,
+        maxOutputTokens: model.maxOutputTokens,
+      },
+    });
+
     let response: Response;
     try {
-      response = await fetch(`${modelUrl}?key=${GEMINI_API_KEY}`, {
+      response = await fetch(`${model.url}?key=${GEMINI_API_KEY}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: geminiBody,
@@ -493,7 +506,7 @@ serve(async (req: Request) => {
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
       lastError = (err as { error?: { message?: string } })?.error?.message ?? `HTTP ${response.status}`;
-      console.error(`Gemini model ${modelUrl} error:`, lastError);
+      console.error(`Gemini model ${model.url} error:`, lastError);
       // 400 è permanente (prompt/payload malformato): inutile ritentare con altri modelli
       if (response.status === 400) break;
       continue;
@@ -503,7 +516,7 @@ serve(async (req: Request) => {
 
     const finishReason = data?.candidates?.[0]?.finishReason;
     if (finishReason === "MAX_TOKENS") {
-      console.warn(`Gemini model ${modelUrl}: output troncato per limite di token (MAX_TOKENS)`);
+      console.warn(`Gemini model ${model.url}: output troncato per limite di token (MAX_TOKENS, tetto ${model.maxOutputTokens})`);
     }
 
     const parts: Array<{ text?: string; thought?: boolean }> =
