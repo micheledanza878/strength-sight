@@ -6,7 +6,6 @@ import type {
   SkillLog,
   SkillRepsThreshold,
   SkillThresholdItem,
-  WorkoutSession,
 } from "./types";
 import { SPLIT_DAYS, round } from "./chartTheme";
 
@@ -105,43 +104,6 @@ export interface WeeklyCategoryVolumePoint {
   legs: number;
 }
 
-/**
- * Aggrega le sessioni per settimana (inizio lunedì), sommando le serie totali
- * per categoria (push/pull/legs). Include tutte le sessioni presenti a
- * prescindere da `completed`: le serie eseguite contano come volume anche se
- * la sessione non è stata segnata come completata per intero.
- */
-export function aggregateWeeklyCategoryVolume(
-  sessions: WorkoutSession[]
-): WeeklyCategoryVolumePoint[] {
-  const weekMap = new Map<string, WeeklyCategoryVolumePoint>();
-
-  for (const session of sessions) {
-    const weekStart = startOfWeek(new Date(session.date), { weekStartsOn: 1 });
-    const key = format(weekStart, "yyyy-MM-dd");
-
-    let point = weekMap.get(key);
-    if (!point) {
-      point = {
-        weekLabel: format(weekStart, "d MMM", { locale: it }),
-        weekStart,
-        push: 0,
-        pull: 0,
-        legs: 0,
-      };
-      weekMap.set(key, point);
-    }
-
-    for (const exercise of session.exercises) {
-      point[exercise.category] += exercise.sets;
-    }
-  }
-
-  return Array.from(weekMap.values()).sort(
-    (a, b) => a.weekStart.getTime() - b.weekStart.getTime()
-  );
-}
-
 export interface AdherenceCell {
   splitDay: string;
   splitLabel: string;
@@ -208,11 +170,6 @@ export function buildAdherenceMatrix(
   }));
 
   return { weeks: weekCols, rows };
-}
-
-/** Etichetta categoria+numero serie per un tooltip/summary testuale. */
-export function categorySummary(point: WeeklyCategoryVolumePoint): string {
-  return `push ${round(point.push)}, pull ${round(point.pull)}, legs ${round(point.legs)}`;
 }
 
 export type { Category };

@@ -26,6 +26,7 @@ import PageContainer from "@/components/PageContainer";
 import { StatCard } from "@/components/StatCard";
 import { SkillDashboard } from "@/components/skillDashboard/SkillDashboard";
 import { useSkillDashboardData } from "@/components/skillDashboard/useSkillDashboardData";
+import { WeeklyVolumeProportionBar } from "@/components/skillDashboard/WeeklyVolumeProportionBar";
 
 interface PlanDay {
   id: string;
@@ -429,6 +430,9 @@ export default function Dashboard() {
           </p>
         </div>
       )}
+
+      {/* ── Bilanciamento set (ultima settimana allenata) ── */}
+      <WeeklyVolumeProportionBar data={skillData?.weeklyVolume} />
 
       {/* ── Calendar ── */}
       <div className="bg-card border border-border rounded-2xl p-3 md:col-span-2 lg:col-span-1">

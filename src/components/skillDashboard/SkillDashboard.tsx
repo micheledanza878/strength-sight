@@ -4,7 +4,6 @@ import type { SkillDashboardData } from "./useSkillDashboardData";
 import { mockSkillLogs, mockSkillRepsThresholds, mockSessions } from "./mockData";
 import { SkillThresholdTiles } from "./SkillThresholdTiles";
 import { SkillProgressLineChart } from "./SkillProgressLineChart";
-import { WeeklyVolumeStackedBar } from "./WeeklyVolumeStackedBar";
 import { SplitAdherenceHeatmap } from "./SplitAdherenceHeatmap";
 import { SkillRadarChart } from "./SkillRadarChart";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -78,10 +77,6 @@ export function SkillDashboard({ skillLogs, sessions, repsThresholds, data, load
 
         <div className="min-w-0">
           <SkillRadarChart logs={resolvedSkillLogs} repsThresholds={resolvedRepsThresholds} />
-        </div>
-
-        <div className="min-w-0">
-          <WeeklyVolumeStackedBar sessions={resolvedSessions} data={data?.weeklyVolume} />
         </div>
 
         <div className="md:col-span-2 min-w-0">
