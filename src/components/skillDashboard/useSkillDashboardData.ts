@@ -37,6 +37,7 @@ interface SkillSetLogRow {
 interface WorkoutLogWithSetsRow {
   id: string;
   workout_day: string;
+  workout_plan_day_id: string | null;
   started_at: string;
   set_logs: SkillSetLogRow[] | null;
 }
@@ -112,17 +113,17 @@ export function useSkillDashboardData(activePlanId: string | null) {
             .eq("user_id", uid),
           supabase
             .from("workout_logs")
-            .select("id, workout_day, started_at, set_logs(skill_slug, skill_step_order, hold_seconds, reps)")
+            .select("id, workout_day, workout_plan_day_id, started_at, set_logs(skill_slug, skill_step_order, hold_seconds, reps)")
             .eq("user_id", uid)
             .not("completed_at", "is", null)
             .order("started_at", { ascending: true }),
           activePlanId
             ? supabase
                 .from("workout_plan_days")
-                .select("day_name, day_number")
+                .select("id, day_name, day_number")
                 .eq("workout_plan_id", activePlanId)
                 .order("day_number", { ascending: true })
-            : Promise.resolve({ data: [] as { day_name: string; day_number: number }[], error: null }),
+            : Promise.resolve({ data: [] as { id: string; day_name: string; day_number: number }[], error: null }),
         ]);
 
         if (progressRes.error) throw progressRes.error;
@@ -218,15 +219,31 @@ export function useSkillDashboardData(activePlanId: string | null) {
         );
 
         // ── Heatmap di aderenza: giorni della scheda attiva × ultime 8 settimane ──
+        // Chiave per riga = id del giorno scheda, non il nome: uno split può
+        // riusare lo stesso day_name su più giorni (es. Push A/Push B entrambi
+        // etichettati solo "Push"), e matchare per nome marcherebbe come
+        // completate TUTTE le righe con quel nome per una singola sessione.
+        // I log storici senza workout_plan_day_id ricadono sul nome solo
+        // quando è univoco nella scheda (stesso pattern di WorkoutSession).
         let adherenceMatrix: AdherenceMatrix = EMPTY_ADHERENCE_MATRIX;
         if (activePlanId) {
-          const splitDays = (planDaysRes.data ?? []).map((d) => ({ key: d.day_name, label: d.day_name }));
+          const planDaysData = planDaysRes.data ?? [];
+          const splitDays = planDaysData.map((d) => ({ key: d.id, label: d.day_name }));
           if (splitDays.length > 0) {
-            const syntheticSessions = logs.map((log) => ({
-              splitDay: log.workout_day,
-              completed: true,
-              date: log.started_at,
-            }));
+            const nameCounts = new Map<string, number>();
+            planDaysData.forEach((d) => nameCounts.set(d.day_name, (nameCounts.get(d.day_name) ?? 0) + 1));
+            const idByUnambiguousName = new Map<string, string>();
+            planDaysData.forEach((d) => {
+              if (nameCounts.get(d.day_name) === 1) idByUnambiguousName.set(d.day_name, d.id);
+            });
+
+            const syntheticSessions = logs
+              .map((log) => {
+                const splitDay = log.workout_plan_day_id ?? idByUnambiguousName.get(log.workout_day);
+                if (!splitDay) return null;
+                return { splitDay, completed: true, date: log.started_at };
+              })
+              .filter((s): s is { splitDay: string; completed: true; date: string } => s !== null);
             adherenceMatrix = buildAdherenceMatrix(syntheticSessions, 8, splitDays);
           }
         }
