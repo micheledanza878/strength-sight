@@ -137,7 +137,7 @@ async function fetchFoodCatalog(
     .order("name");
 
   if (error) {
-    throw new Error(`Errore recupero catalogo alimenti: ${error.message}`);
+    throw new Error("Errore recupero catalogo alimenti: " + error.message);
   }
   if (!data || data.length === 0) {
     throw new Error("Catalogo alimenti vuoto: impossibile procedere con l'abbinamento");
@@ -159,49 +159,57 @@ async function fetchFoodCatalog(
 // Con ~158 alimenti resta comunque leggibile e non va troncato: il modello ha
 // bisogno della lista COMPLETA per poter dire "nessun match" con cognizione di causa.
 function formatCatalog(items: FoodCatalogItem[]): string {
-  return items.map((f) => `${f.id}|${f.name}|${f.category_name}|${f.standard_portion_g}`).join("\n");
+  return items.map((f) => f.id + "|" + f.name + "|" + f.category_name + "|" + f.standard_portion_g).join("\n");
 }
 
 // ─── Costruzione del prompt ───────────────────────────────────────────────────
+// Costruito con concatenazione di stringhe (non un template literal) perché il
+// testo istruisce il modello a non usare blocchi di codice markdown — evitare
+// backtick letterali nel sorgente elimina il rischio di rompere il bundling
+// (è già successo: un blocco ``` non correttamente sfuggito dentro un
+// template literal ha rotto il parsing del modulo in fase di deploy).
 
 function buildPrompt(catalogText: string): string {
-  return `Sei un assistente esperto in estrazione di dati nutrizionali da documenti PDF. Riceverai in allegato il PDF di un piano alimentare settimanale e devi estrarne la struttura in formato JSON, abbinando ogni alimento a una voce del catalogo fornito.
-
-CATALOGO ALIMENTI DISPONIBILE (una riga per alimento, formato: id|nome|categoria|porzione_standard_g):
-${catalogText}
-
-REGOLE OBBLIGATORIE:
-1. Analizza il PDF allegato: è atteso un piano alimentare settimanale con pasti organizzati per giorno e relative grammature in grammi.
-2. Se il documento allegato NON sembra affatto un piano alimentare settimanale con grammature (es. è un documento di altro tipo, una pagina illeggibile, un testo generico senza pasti/grammi), imposta "detected_format_ok": false e restituisci "days": []. NON inventare una struttura plausibile solo per riempire il JSON: è meglio dichiarare il fallimento che restituire dati fabbricati.
-3. Se il documento È un piano alimentare ma alcuni giorni non hanno pasti chiaramente identificabili, mantieni "detected_format_ok": true, includi comunque quei giorni con "meals": [] e aggiungi una voce in "warnings" che lo segnali.
-4. "day_of_week" è un intero da 0 (Lunedì) a 6 (Domenica): deducilo dall'intestazione della sezione nel PDF (es. "Lunedì", "Giorno 1", nomi dei giorni in italiano o abbreviati).
-5. "meal_type" deve essere ESATTAMENTE uno di questi 5 valori, senza eccezioni e senza inventarne altri: "colazione", "spuntino_mattutino", "pranzo", "spuntino_pomeridiano", "cena". Se il PDF usa etichette diverse (es. "merenda" = spuntino_pomeridiano) deducine il significato più plausibile in base all'orario o alla posizione nel documento, ma usa SEMPRE uno di questi 5 valori esatti come output.
-6. Per ogni alimento elencato in un pasto, popola:
-   - "raw_name": il nome dell'alimento come scritto nel PDF (trascrizione fedele, anche se manoscritto).
-   - "matched_food_id": l'id del catalogo che corrisponde SEMANTICAMENTE all'alimento, gestendo le normali variazioni di formulazione e morfologia italiana (es. "petto di pollo" deve corrispondere a una voce catalogo tipo "Pollo, petto"; "olio evo" a "Olio extravergine di oliva"; plurali, sinonimi, ordine delle parole invertito sono tutti ammessi). Se NON esiste alcuna corrispondenza ragionevole nel catalogo, usa null: non forzare mai un abbinamento sbagliato solo per restituire un id.
-   - "confidence": una tua autovalutazione onesta dell'abbinamento, uno tra "high" (corrispondenza chiara), "medium" (plausibile ma con qualche incertezza), "low" (abbinamento incerto o assente).
-   - "portion_g": la grammatura in grammi, come numero puro. Se il PDF indica la porzione in un'altra unità (es. "1 uovo", "2 fette", "1 cucchiaio") stima i grammi usando la porzione standard del catalogo per l'alimento abbinato e segnala l'assunzione fatta in "warnings".
-7. Popola "warnings" (array di stringhe leggibili in ITALIANO) con qualunque cosa tu non sia riuscito a risolvere con piena certezza: un giorno senza pasti individuabili, una grammatura ambigua o assente, testo manoscritto poco leggibile, un alimento senza corrispondenza nel catalogo, un'unità di misura convertita in grammi, pasti duplicati nello stesso giorno, ecc. Se non c'è nulla da segnalare, restituisci un array vuoto.
-8. Rispondi ESCLUSIVAMENTE con il JSON valido, senza blocchi \`\`\`json, senza testo o spiegazioni prima o dopo.
-
-FORMATO DI OUTPUT OBBLIGATORIO (rispetta esattamente questi nomi di campo e questa struttura):
-{
-  "detected_format_ok": true,
-  "warnings": ["stringa leggibile in italiano", "..."],
-  "days": [
-    {
-      "day_of_week": 0,
-      "meals": [
-        {
-          "meal_type": "colazione",
-          "foods": [
-            { "raw_name": "Petto di pollo", "matched_food_id": "uuid-oppure-null", "confidence": "high", "portion_g": 150 }
-          ]
-        }
-      ]
-    }
-  ]
-}`;
+  const lines = [
+    "Sei un assistente esperto in estrazione di dati nutrizionali da documenti PDF. Riceverai in allegato il PDF di un piano alimentare settimanale e devi estrarne la struttura in formato JSON, abbinando ogni alimento a una voce del catalogo fornito.",
+    "",
+    "CATALOGO ALIMENTI DISPONIBILE (una riga per alimento, formato: id|nome|categoria|porzione_standard_g):",
+    catalogText,
+    "",
+    "REGOLE OBBLIGATORIE:",
+    "1. Analizza il PDF allegato: è atteso un piano alimentare settimanale con pasti organizzati per giorno e relative grammature in grammi.",
+    "2. Se il documento allegato NON sembra affatto un piano alimentare settimanale con grammature (es. è un documento di altro tipo, una pagina illeggibile, un testo generico senza pasti/grammi), imposta \"detected_format_ok\": false e restituisci \"days\": []. NON inventare una struttura plausibile solo per riempire il JSON: è meglio dichiarare il fallimento che restituire dati fabbricati.",
+    "3. Se il documento È un piano alimentare ma alcuni giorni non hanno pasti chiaramente identificabili, mantieni \"detected_format_ok\": true, includi comunque quei giorni con \"meals\": [] e aggiungi una voce in \"warnings\" che lo segnali.",
+    "4. \"day_of_week\" è un intero da 0 (Lunedì) a 6 (Domenica): deducilo dall'intestazione della sezione nel PDF (es. \"Lunedì\", \"Giorno 1\", nomi dei giorni in italiano o abbreviati).",
+    "5. \"meal_type\" deve essere ESATTAMENTE uno di questi 5 valori, senza eccezioni e senza inventarne altri: \"colazione\", \"spuntino_mattutino\", \"pranzo\", \"spuntino_pomeridiano\", \"cena\". Se il PDF usa etichette diverse (es. \"merenda\" = spuntino_pomeridiano) deducine il significato più plausibile in base all'orario o alla posizione nel documento, ma usa SEMPRE uno di questi 5 valori esatti come output.",
+    "6. Per ogni alimento elencato in un pasto, popola:",
+    "   - \"raw_name\": il nome dell'alimento come scritto nel PDF (trascrizione fedele, anche se manoscritto).",
+    "   - \"matched_food_id\": l'id del catalogo che corrisponde SEMANTICAMENTE all'alimento, gestendo le normali variazioni di formulazione e morfologia italiana (es. \"petto di pollo\" deve corrispondere a una voce catalogo tipo \"Pollo, petto\"; \"olio evo\" a \"Olio extravergine di oliva\"; plurali, sinonimi, ordine delle parole invertito sono tutti ammessi). Se NON esiste alcuna corrispondenza ragionevole nel catalogo, usa null: non forzare mai un abbinamento sbagliato solo per restituire un id.",
+    "   - \"confidence\": una tua autovalutazione onesta dell'abbinamento, uno tra \"high\" (corrispondenza chiara), \"medium\" (plausibile ma con qualche incertezza), \"low\" (abbinamento incerto o assente).",
+    "   - \"portion_g\": la grammatura in grammi, come numero puro. Se il PDF indica la porzione in un'altra unità (es. \"1 uovo\", \"2 fette\", \"1 cucchiaio\") stima i grammi usando la porzione standard del catalogo per l'alimento abbinato e segnala l'assunzione fatta in \"warnings\".",
+    "7. Popola \"warnings\" (array di stringhe leggibili in ITALIANO) con qualunque cosa tu non sia riuscito a risolvere con piena certezza: un giorno senza pasti individuabili, una grammatura ambigua o assente, testo manoscritto poco leggibile, un alimento senza corrispondenza nel catalogo, un'unità di misura convertita in grammi, pasti duplicati nello stesso giorno, ecc. Se non c'è nulla da segnalare, restituisci un array vuoto.",
+    "8. Rispondi ESCLUSIVAMENTE con il JSON valido, senza blocchi di codice markdown, senza testo o spiegazioni prima o dopo.",
+    "",
+    "FORMATO DI OUTPUT OBBLIGATORIO (rispetta esattamente questi nomi di campo e questa struttura):",
+    "{",
+    "  \"detected_format_ok\": true,",
+    "  \"warnings\": [\"stringa leggibile in italiano\", \"...\"],",
+    "  \"days\": [",
+    "    {",
+    "      \"day_of_week\": 0,",
+    "      \"meals\": [",
+    "        {",
+    "          \"meal_type\": \"colazione\",",
+    "          \"foods\": [",
+    "            { \"raw_name\": \"Petto di pollo\", \"matched_food_id\": \"uuid-oppure-null\", \"confidence\": \"high\", \"portion_g\": 150 }",
+    "          ]",
+    "        }",
+    "      ]",
+    "    }",
+    "  ]",
+    "}",
+  ];
+  return lines.join("\n");
 }
 
 // ─── Normalizzazione meal_type ─────────────────────────────────────────────
@@ -225,8 +233,15 @@ function normalizeMealType(raw: unknown): MealType | null {
   return MEAL_TYPE_SYNONYMS[v] ?? null;
 }
 
+// Regex per il blocco di codice markdown ```...``` che Gemini a volte usa per
+// avvolgere il JSON nonostante l'istruzione contraria. Costruita con
+// String.fromCharCode invece di un backtick letterale per lo stesso motivo
+// di buildPrompt qui sopra.
+const CODE_FENCE_RE = new RegExp(
+  String.fromCharCode(96, 96, 96) + "(?:json)?\\s*([\\s\\S]*?)" + String.fromCharCode(96, 96, 96)
+);
+
 // ─── Parsing e validazione dell'output Gemini ─────────────────────────────────
-// Gemini a volte avvolge il JSON in un blocco markdown ```json ... ```.
 // Validazione difensiva: i problemi strutturali fondamentali (campi radice
 // mancanti/di tipo sbagliato) fanno rigettare l'intera risposta (si tenta il
 // modello successivo); i problemi puntuali (un giorno o un alimento malformato)
@@ -235,7 +250,7 @@ function normalizeMealType(raw: unknown): MealType | null {
 
 function parseAndValidateDiet(text: string, validFoodIds: Set<string>): ParsedDietPlan {
   let cleaned = text.trim();
-  const fenceMatch = cleaned.match(/```(?:json)?\s*([\s\S]*?)```/);
+  const fenceMatch = cleaned.match(CODE_FENCE_RE);
   if (fenceMatch) {
     cleaned = fenceMatch[1].trim();
   }
@@ -244,7 +259,7 @@ function parseAndValidateDiet(text: string, validFoodIds: Set<string>): ParsedDi
   try {
     parsed = JSON.parse(cleaned);
   } catch {
-    throw new Error(`JSON non parsabile: ${cleaned.slice(0, 200)}`);
+    throw new Error("JSON non parsabile: " + cleaned.slice(0, 200));
   }
 
   if (!parsed || typeof parsed !== "object") {
@@ -273,17 +288,17 @@ function parseAndValidateDiet(text: string, validFoodIds: Set<string>): ParsedDi
     const d = rawDay as Record<string, unknown>;
     const dayOfWeek = Number(d.day_of_week);
     if (!Number.isInteger(dayOfWeek) || dayOfWeek < 0 || dayOfWeek > 6) {
-      warnings.push(`Giorno con indice non valido ("${String(d.day_of_week)}") ignorato.`);
+      warnings.push("Giorno con indice non valido (\"" + String(d.day_of_week) + "\") ignorato.");
       continue;
     }
 
     if (!Array.isArray(d.meals)) {
-      warnings.push(`Giorno ${dayOfWeek}: nessun pasto individuato o formato non valido.`);
+      warnings.push("Giorno " + dayOfWeek + ": nessun pasto individuato o formato non valido.");
       days.push({ day_of_week: dayOfWeek, meals: [] });
       continue;
     }
     if (d.meals.length === 0) {
-      warnings.push(`Giorno ${dayOfWeek}: nessun pasto individuato nel PDF.`);
+      warnings.push("Giorno " + dayOfWeek + ": nessun pasto individuato nel PDF.");
     }
 
     // I pasti con lo stesso meal_type nello stesso giorno vengono uniti: a valle
@@ -293,37 +308,37 @@ function parseAndValidateDiet(text: string, validFoodIds: Set<string>): ParsedDi
 
     for (const rawMeal of d.meals) {
       if (!rawMeal || typeof rawMeal !== "object") {
-        warnings.push(`Giorno ${dayOfWeek}: un pasto malformato è stato ignorato.`);
+        warnings.push("Giorno " + dayOfWeek + ": un pasto malformato è stato ignorato.");
         continue;
       }
       const m = rawMeal as Record<string, unknown>;
       const mealType = normalizeMealType(m.meal_type);
       if (!mealType) {
-        warnings.push(`Giorno ${dayOfWeek}: tipo di pasto non riconosciuto ("${String(m.meal_type)}") e ignorato.`);
+        warnings.push("Giorno " + dayOfWeek + ": tipo di pasto non riconosciuto (\"" + String(m.meal_type) + "\") e ignorato.");
         continue;
       }
       if (!Array.isArray(m.foods)) {
-        warnings.push(`Giorno ${dayOfWeek}, ${mealType}: elenco alimenti mancante o non valido.`);
+        warnings.push("Giorno " + dayOfWeek + ", " + mealType + ": elenco alimenti mancante o non valido.");
         continue;
       }
 
       const foods: ParsedFoodItem[] = [];
       for (const rawFood of m.foods) {
         if (!rawFood || typeof rawFood !== "object") {
-          warnings.push(`Giorno ${dayOfWeek}, ${mealType}: un alimento malformato è stato ignorato.`);
+          warnings.push("Giorno " + dayOfWeek + ", " + mealType + ": un alimento malformato è stato ignorato.");
           continue;
         }
         const f = rawFood as Record<string, unknown>;
 
         const rawName = typeof f.raw_name === "string" ? f.raw_name.trim() : "";
         if (!rawName) {
-          warnings.push(`Giorno ${dayOfWeek}, ${mealType}: alimento senza nome ignorato.`);
+          warnings.push("Giorno " + dayOfWeek + ", " + mealType + ": alimento senza nome ignorato.");
           continue;
         }
 
         const portionG = Number(f.portion_g);
         if (!Number.isFinite(portionG) || portionG <= 0) {
-          warnings.push(`Giorno ${dayOfWeek}, ${mealType}: grammatura non valida per "${rawName}", alimento ignorato.`);
+          warnings.push("Giorno " + dayOfWeek + ", " + mealType + ": grammatura non valida per \"" + rawName + "\", alimento ignorato.");
           continue;
         }
 
@@ -332,7 +347,7 @@ function parseAndValidateDiet(text: string, validFoodIds: Set<string>): ParsedDi
         // fallirebbe per violazione della foreign key. Meglio null + warning.
         let matchedFoodId: string | null = typeof f.matched_food_id === "string" ? f.matched_food_id : null;
         if (matchedFoodId && !validFoodIds.has(matchedFoodId)) {
-          warnings.push(`Giorno ${dayOfWeek}, ${mealType}: id di catalogo non valido per "${rawName}", trattato come non abbinato.`);
+          warnings.push("Giorno " + dayOfWeek + ", " + mealType + ": id di catalogo non valido per \"" + rawName + "\", trattato come non abbinato.");
           matchedFoodId = null;
         }
 
@@ -350,13 +365,13 @@ function parseAndValidateDiet(text: string, validFoodIds: Set<string>): ParsedDi
       }
 
       if (foods.length === 0) {
-        warnings.push(`Giorno ${dayOfWeek}, ${mealType}: nessun alimento valido, pasto ignorato.`);
+        warnings.push("Giorno " + dayOfWeek + ", " + mealType + ": nessun alimento valido, pasto ignorato.");
         continue;
       }
 
       if (mealsByType.has(mealType)) {
         mealsByType.get(mealType)!.push(...foods);
-        warnings.push(`Giorno ${dayOfWeek}: più occorrenze di "${mealType}" sono state unite in un unico pasto.`);
+        warnings.push("Giorno " + dayOfWeek + ": più occorrenze di \"" + mealType + "\" sono state unite in un unico pasto.");
       } else {
         mealsByType.set(mealType, foods);
       }
@@ -371,7 +386,7 @@ function parseAndValidateDiet(text: string, validFoodIds: Set<string>): ParsedDi
   }
 
   return {
-    detected_format_ok: root.detected_format_ok,
+    detected_format_ok: root.detected_format_ok as boolean,
     warnings,
     days,
   };
@@ -444,7 +459,7 @@ serve(async (req: Request) => {
   if (approxDecodedBytes > MAX_PDF_BYTES) {
     return new Response(
       JSON.stringify({
-        error: `Il PDF è troppo grande (~${(approxDecodedBytes / (1024 * 1024)).toFixed(1)}MB). Limite massimo: ${MAX_PDF_BYTES / (1024 * 1024)}MB.`,
+        error: "Il PDF è troppo grande (~" + (approxDecodedBytes / (1024 * 1024)).toFixed(1) + "MB). Limite massimo: " + (MAX_PDF_BYTES / (1024 * 1024)) + "MB.",
       }),
       { status: 400, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
     );
@@ -501,21 +516,21 @@ serve(async (req: Request) => {
 
     let response: Response;
     try {
-      response = await fetch(`${model.url}?key=${GEMINI_API_KEY}`, {
+      response = await fetch(model.url + "?key=" + GEMINI_API_KEY, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: geminiBody,
       });
     } catch (networkErr) {
-      lastError = `Errore di rete verso Gemini: ${networkErr}`;
+      lastError = "Errore di rete verso Gemini: " + networkErr;
       console.error(lastError);
       continue;
     }
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
-      lastError = (err as { error?: { message?: string } })?.error?.message ?? `HTTP ${response.status}`;
-      console.error(`Gemini model ${model.url} error:`, lastError);
+      lastError = (err as { error?: { message?: string } })?.error?.message ?? ("HTTP " + response.status);
+      console.error("Gemini model " + model.url + " error:", lastError);
       // 400 è permanente (prompt/payload malformato): inutile ritentare con altri modelli
       if (response.status === 400) break;
       continue;
@@ -525,7 +540,7 @@ serve(async (req: Request) => {
 
     const finishReason = data?.candidates?.[0]?.finishReason;
     if (finishReason === "MAX_TOKENS") {
-      console.warn(`Gemini model ${model.url}: output troncato per limite di token (MAX_TOKENS, tetto ${model.maxOutputTokens})`);
+      console.warn("Gemini model " + model.url + ": output troncato per limite di token (MAX_TOKENS, tetto " + model.maxOutputTokens + ")");
     }
 
     const parts: Array<{ text?: string; thought?: boolean }> =
@@ -545,7 +560,7 @@ serve(async (req: Request) => {
     try {
       result = parseAndValidateDiet(text, validFoodIds);
     } catch (parseErr) {
-      lastError = `Errore parsing risposta: ${parseErr}`;
+      lastError = "Errore parsing risposta: " + parseErr;
       console.error(lastError, "| Raw text:", text.slice(0, 500));
       continue;
     }
