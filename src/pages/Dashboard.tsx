@@ -5,7 +5,7 @@ import {
   isSameDay, parseISO, startOfWeek, subDays, differenceInDays, addMonths, subMonths,
 } from "date-fns";
 import { it } from "date-fns/locale";
-import { ChevronRight, Flame, Trophy, ChevronLeft, LogOut, Zap, Bell, BellOff } from "lucide-react";
+import { ChevronRight, Flame, ChevronLeft, LogOut, Zap, Bell, BellOff } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useActivePlan } from "@/contexts/ActivePlanContext";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -53,7 +53,6 @@ export default function Dashboard() {
   const [hasWorkedOutToday, setHasWorkedOutToday] = useState(false);
   const [weekCount, setWeekCount] = useState(0);
   const [monthCount, setMonthCount] = useState(0);
-  const [topPRs, setTopPRs] = useState<{ exercise: string; weight: number; reps: number }[]>([]);
   const [lastMeasurementDaysAgo, setLastMeasurementDaysAgo] = useState<number | null>(null);
 
   const [plans, setPlans] = useState<WorkoutPlan[]>([]);
@@ -229,31 +228,6 @@ export default function Dashboard() {
       }
     }
 
-    // Top 3 PRs
-    const { data: allLogs } = await supabase
-      .from("workout_logs")
-      .select("id, set_logs(exercise_name, weight, reps)")
-      .eq("user_id", uid)
-      .not("completed_at", "is", null);
-
-    if (allLogs) {
-      const prMap: Record<string, { weight: number; reps: number }> = {};
-      allLogs.forEach((log) => {
-        const sets = (log.set_logs as { exercise_name: string; weight: number; reps: number }[]) || [];
-        sets.forEach((s) => {
-          const cur = prMap[s.exercise_name];
-          if (!cur || s.weight > cur.weight || (s.weight === cur.weight && s.reps > cur.reps)) {
-            prMap[s.exercise_name] = { weight: s.weight, reps: s.reps };
-          }
-        });
-      });
-      const prs = Object.entries(prMap)
-        .map(([exercise, { weight, reps }]) => ({ exercise, weight, reps }))
-        .sort((a, b) => b.weight - a.weight)
-        .slice(0, 3);
-      setTopPRs(prs);
-    }
-
     // Last measurement
     const { data: measurements } = await supabase
       .from("body_measurements")
@@ -281,9 +255,9 @@ export default function Dashboard() {
     <PageContainer variant="wide" className="px-4 pt-14 pb-32 min-h-screen">
 
       {/* ── Header ── */}
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center justify-between mb-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">
+          <h1 className="text-xl font-bold tracking-tight">
             Ciao, <span className="text-gradient-primary">atleta</span> 👋
           </h1>
           <p className="text-muted-foreground text-xs mt-0.5 capitalize">
@@ -330,9 +304,9 @@ export default function Dashboard() {
 
       {/* ── Plan Selector ── */}
       {plans.length > 0 && (
-        <div className="mb-5">
+        <div className="mb-3">
           <Select value={activePlanId || ""} onValueChange={changePlan}>
-            <SelectTrigger className="w-full bg-secondary border-0 h-11 text-sm font-medium rounded-xl">
+            <SelectTrigger className="w-full bg-secondary border-0 h-9 text-sm font-medium rounded-xl">
               <SelectValue placeholder="Seleziona scheda" />
             </SelectTrigger>
             <SelectContent>
@@ -374,7 +348,7 @@ export default function Dashboard() {
 
       {/* ── Tabs: Home (hero/stat/calendario) vs Grafici (skill dashboard) ── */}
       {!loading && (
-        <div className="flex gap-1 mb-4 bg-secondary p-1 rounded-xl">
+        <div className="flex gap-1 mb-3 bg-secondary p-1 rounded-xl">
           <button
             onClick={() => setActiveTab("home")}
             className={`flex-1 py-2 rounded-[10px] text-xs font-semibold transition-all ${
@@ -401,33 +375,33 @@ export default function Dashboard() {
 
       {/* ── Tab: Home — dal blocco Hero al Calendario ── */}
       {!loading && activeTab === "home" && (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 lg:gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 lg:gap-5">
 
       {/* ── Hero: Next Workout ── */}
       {nextPlanDay && (
         <button
           onClick={() => navigate(`/session/${nextPlanDay.id}`)}
-          className="w-full card-hero p-5 text-left active:scale-[0.98] transition-transform glow-primary-sm md:col-span-2 lg:col-span-3"
+          className="w-full card-hero p-4 text-left active:scale-[0.98] transition-transform glow-primary-sm md:col-span-2 lg:col-span-3"
         >
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <div className="flex items-center gap-1.5 mb-3">
+              <div className="flex items-center gap-1.5 mb-2">
                 <Zap className="w-3.5 h-3.5 text-primary" />
                 <p className="text-xs text-primary font-semibold uppercase tracking-widest">Prossimo allenamento</p>
               </div>
-              <p className="text-2xl font-bold tracking-tight mb-1">{nextPlanDay.day_name}</p>
+              <p className="text-xl font-bold tracking-tight mb-1">{nextPlanDay.day_name}</p>
               <p className="text-sm text-muted-foreground">
                 Giorno {nextPlanDay.day_number}
                 {currentPlan && ` · ${currentPlan.name}`}
               </p>
             </div>
-            <div className="w-14 h-14 rounded-2xl gradient-primary flex items-center justify-center glow-primary ml-3 flex-shrink-0">
-              <Flame className="w-7 h-7 text-white" />
+            <div className="w-11 h-11 rounded-2xl gradient-primary flex items-center justify-center glow-primary ml-3 flex-shrink-0">
+              <Flame className="w-5 h-5 text-white" />
             </div>
           </div>
 
           {/* CTA bar */}
-          <div className="mt-4 pt-4 border-t border-primary/20 flex items-center justify-between">
+          <div className="mt-3 pt-3 border-t border-primary/20 flex items-center justify-between">
             <span className="text-sm font-semibold text-primary">Inizia sessione</span>
             <ChevronRight className="w-4 h-4 text-primary" />
           </div>
@@ -437,40 +411,19 @@ export default function Dashboard() {
       {/* ── Stats Row ── */}
       {!loading && (
         <div className="md:col-span-2 lg:col-span-3">
-          <div className="grid grid-cols-3 gap-2.5">
-            <StatCard align="center" label="🔥 Streak" value={streak} />
-            <StatCard align="center" label="questa sett." value={weekCount} />
-            <StatCard align="center" label="questo mese" value={monthCount} />
-          </div>
-        </div>
-      )}
-
-      {/* ── Top PR Card ── */}
-      {!loading && topPRs.length > 0 && (
-        <div className="bg-card border border-border rounded-2xl p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Trophy className="w-4 h-4 text-yellow-500" />
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Top PR</p>
-          </div>
-          <div className="space-y-2.5">
-            {topPRs.map((pr, i) => (
-              <div key={i} className="flex items-center justify-between">
-                <p className="text-sm font-medium truncate flex-1 mr-3">{pr.exercise}</p>
-                <div className="flex items-center gap-1 flex-shrink-0">
-                  <span className="text-sm font-bold text-primary">{pr.weight}kg</span>
-                  <span className="text-xs text-muted-foreground">×{pr.reps}</span>
-                </div>
-              </div>
-            ))}
+          <div className="grid grid-cols-3 gap-2">
+            <StatCard align="center" size="sm" label="🔥 Streak" value={streak} />
+            <StatCard align="center" size="sm" label="questa sett." value={weekCount} />
+            <StatCard align="center" size="sm" label="questo mese" value={monthCount} />
           </div>
         </div>
       )}
 
       {/* ── Last Workout ── */}
       {lastDayData && lastWorkout && (
-        <div className="bg-card border border-border rounded-2xl p-4">
-          <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-2">Ultimo allenamento</p>
-          <p className="text-base font-semibold">{lastDayData.label}</p>
+        <div className="bg-card border border-border rounded-2xl p-3">
+          <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1">Ultimo allenamento</p>
+          <p className="text-sm font-semibold">{lastDayData.label}</p>
           <p className="text-xs text-muted-foreground mt-0.5">
             {format(parseISO(lastWorkout.date), "d MMMM · HH:mm", { locale: it })}
           </p>
@@ -478,11 +431,11 @@ export default function Dashboard() {
       )}
 
       {/* ── Calendar ── */}
-      <div className="bg-card border border-border rounded-2xl p-4 md:col-span-2 lg:col-span-1">
-        <div className="flex items-center justify-between mb-3">
+      <div className="bg-card border border-border rounded-2xl p-3 md:col-span-2 lg:col-span-1">
+        <div className="flex items-center justify-between mb-2">
           <button
             onClick={() => setSelectedMonth(subMonths(selectedMonth, 1))}
-            className="w-8 h-8 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground active:scale-90 transition-transform"
+            className="w-7 h-7 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground active:scale-90 transition-transform"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
@@ -491,14 +444,14 @@ export default function Dashboard() {
           </p>
           <button
             onClick={() => setSelectedMonth(addMonths(selectedMonth, 1))}
-            className="w-8 h-8 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground active:scale-90 transition-transform"
+            className="w-7 h-7 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground active:scale-90 transition-transform"
           >
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
         <div className="grid grid-cols-7 gap-1 text-center">
           {["L", "M", "M", "G", "V", "S", "D"].map((d, i) => (
-            <span key={i} className="text-[10px] text-muted-foreground font-semibold pb-1.5 tracking-wider">{d}</span>
+            <span key={i} className="text-[10px] text-muted-foreground font-semibold pb-1 tracking-wider">{d}</span>
           ))}
           {Array.from({ length: firstDayOffset }).map((_, i) => (
             <span key={`empty-${i}`} />
@@ -510,7 +463,7 @@ export default function Dashboard() {
               <div
                 key={day.toISOString()}
                 className={[
-                  "w-8 h-8 flex items-center justify-center rounded-full text-xs font-medium mx-auto transition-colors",
+                  "w-7 h-7 flex items-center justify-center rounded-full text-xs font-medium mx-auto transition-colors",
                   isToday && !hasWorkout ? "ring-1.5 ring-primary text-primary" : "",
                   hasWorkout ? "gradient-primary text-white font-semibold" : !isToday ? "text-muted-foreground" : "",
                 ].join(" ")}

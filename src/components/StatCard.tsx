@@ -7,6 +7,8 @@ interface StatCardProps {
   value: ReactNode;
   subtext?: ReactNode;
   align?: "left" | "center";
+  /** "sm" tightens padding and the value font size — for dense rows (e.g. Dashboard stats). */
+  size?: "default" | "sm";
   className?: string;
 }
 
@@ -26,12 +28,15 @@ export function StatCard({
   value,
   subtext,
   align = "left",
+  size = "default",
   className,
 }: StatCardProps) {
+  const isSm = size === "sm";
   return (
     <div
       className={cn(
-        "bg-card border border-border rounded-2xl p-5 md:p-6",
+        "bg-card border border-border rounded-2xl",
+        isSm ? "p-3" : "p-5 md:p-6",
         align === "center" && "text-center",
         className
       )}
@@ -46,7 +51,7 @@ export function StatCard({
               {label}
             </span>
           </div>
-          <div className="text-3xl md:text-4xl font-bold tracking-tight leading-none">
+          <div className={cn("font-bold tracking-tight leading-none", isSm ? "text-xl" : "text-3xl md:text-4xl")}>
             {value}
           </div>
           {subtext && (
@@ -55,7 +60,7 @@ export function StatCard({
         </>
       ) : (
         <>
-          <div className="text-3xl md:text-4xl font-bold tracking-tight leading-none mb-1.5">
+          <div className={cn("font-bold tracking-tight leading-none mb-1", isSm ? "text-xl" : "text-3xl md:text-4xl mb-1.5")}>
             {value}
           </div>
           <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
